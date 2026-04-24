@@ -47,9 +47,9 @@ class RadiusArcVisual extends LTElement<{}> {
     super();
   }
 
-  protected defaultOptions() { return {}; }
+  protected override defaultOptions() { return {}; }
 
-  render(renderer: CanvasRenderer): void {
+  override render(renderer: CanvasRenderer): void {
     const op = this.constraintOpacity;
     if (op <= 0.001) return;
 
@@ -322,7 +322,7 @@ export class RadiusConstraint extends Constraint {
     }
   }
 
-  resolve(p: V2): V2 {
+  override resolve(p: V2): V2 {
     const center = this._getCenter();
     const radius = this._getRadius();
     const delta  = p.sub(center);
@@ -332,11 +332,11 @@ export class RadiusConstraint extends Constraint {
     return center.add(delta.setLenght(radius));
   }
 
-  createVisual(): LTElement {
+  override createVisual(): LTElement {
     return this._visual;
   }
 
-  setOpacity(opacity: number): void {
+  override setOpacity(opacity: number): void {
     this._visual.constraintOpacity = opacity;
   }
 

@@ -19,11 +19,11 @@ export class PerfOverlay extends LTElement<{}> {
   private lastDt = 16;
   private cleanupClick?: () => void;
 
-  protected defaultOptions() {
+  protected override defaultOptions() {
     return {};
   }
 
-  setup(engine: LunaTerraEngine) {
+  override setup(engine: LunaTerraEngine) {
     super.setup(engine);
 
     const canvas = engine.renderer.canvas;
@@ -45,11 +45,11 @@ export class PerfOverlay extends LTElement<{}> {
     this.cleanupClick = () => canvas.removeEventListener('click', handler);
   }
 
-  update(dt: number) {
+  override update(dt: number) {
     this.lastDt = dt;
   }
 
-  render(renderer: CanvasRenderer) {
+  override render(renderer: CanvasRenderer) {
     const fps = this.lastDt > 0 ? Math.round(1000 / this.lastDt) : 0;
     const toggle = this.expanded ? '▾' : '▸';
     const fpsLabel = `FPS: ${fps} ${toggle}`;
@@ -78,7 +78,7 @@ export class PerfOverlay extends LTElement<{}> {
     }
   }
 
-  destroy() {
+  override destroy() {
     this.cleanupClick?.();
   }
 }

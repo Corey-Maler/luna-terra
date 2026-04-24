@@ -317,7 +317,7 @@ export class Batch extends LLSoftware {
     this.lineTo(p1);
   };
 
-  stroke = () => {
+  override stroke = () => {
     if (this.preservePath) {
       return;
     }
@@ -325,7 +325,7 @@ export class Batch extends LLSoftware {
     super.stroke();
   };
 
-  fill = (color?: Color) => {
+  override fill = (color?: Color) => {
     this.fillStyle = color?.toString() ?? this.color.toString();
     super.fill();
   };

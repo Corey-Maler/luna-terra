@@ -46,7 +46,7 @@ export class Handle extends LTStyledElement<HandleOptions> {
     }
   }
 
-  protected defaultOptions(): HandleOptions {
+  protected override defaultOptions(): HandleOptions {
     return {};
   }
 
@@ -98,7 +98,7 @@ export class Handle extends LTStyledElement<HandleOptions> {
    *  – linear decay from 1→0 between within..5×within
    *  – 0 beyond 5×within
    */
-  testHover = (p: V2, within: number): boolean => {
+  override testHover = (p: V2, within: number): boolean => {
     const distance = this.position.distanceTo(p);
     const hovered = distance < within;
     this.proximityOpacity = linearDecay(distance, within, 1, 5);
@@ -139,7 +139,7 @@ export class Handle extends LTStyledElement<HandleOptions> {
     }
   }
 
-  render(renderer: CanvasRenderer): void {
+  override render(renderer: CanvasRenderer): void {
     const opacity = this.active ? 1 : this.proximityOpacity;
     if (opacity <= 0.001) return;
 

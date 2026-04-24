@@ -13,7 +13,7 @@ const DEFAULT_STYLES: MpStyles = {
   opacity: 1,
 };
 
-export abstract class MpStyledElement<P, S = {}> extends MPElement<P> {
+export abstract class MpStyledElement<P extends {} = {}, S = {}> extends MPElement<P> {
   public styles: MpStyles & S;
 
   constructor(options?: Partial<P>, styles: Partial<MpStyles & S> = {}) {
@@ -27,22 +27,15 @@ export abstract class MpStyledElement<P, S = {}> extends MPElement<P> {
     }
   }
 
-  protected get computedStyles() {
-    const self = this;
-    const parent = this.findParent((e) => e instanceof MpStyledElement) as MpStyledElement<unknown, unknown> | undefined;
+  protected get computedStyles(): MpStyles {
+    const parent = this.findParent((e) => e instanceof MpStyledElement) as MpStyledElement<{}, {}> | undefined;
+    const color = this.styles.color
+      ? this.styles.color.opaque(this.styles.opacity)
+      : parent?.computedStyles.color ?? DEFAULT_STYLES.color.opaque(this.styles.opacity);
+
     return {
-      get color() {
-        if (self.styles.color) {
-          return self.styles.color.opaque(self.styles.opacity);
-        }
-        if (parent?.computedStyles?.color) {
-          return parent.computedStyles.color;
-        }
-        return DEFAULT_STYLES.color.opaque(self.styles.opacity);
-      },
-      get opacity() {
-        return self.styles.opacity;
-      },
+      color,
+      opacity: this.styles.opacity,
     };
   }
 }

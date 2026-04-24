@@ -10,7 +10,7 @@ import type { CrosshairOptions } from './chart-types';
  * the canvas to see the X position tracked.
  */
 export class Crosshair extends LTStyledElement<CrosshairOptions> {
-  protected defaultOptions(): CrosshairOptions {
+  protected override defaultOptions(): CrosshairOptions {
     return {
       xMin: -0.4,
       xMax: 0.4,
@@ -43,7 +43,7 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     });
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._unsubscribeMouse?.();
     this._unsubscribeMouse = undefined;
   }

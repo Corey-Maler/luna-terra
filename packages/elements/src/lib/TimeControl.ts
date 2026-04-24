@@ -126,7 +126,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
 
   // ── Internals ──────────────────────────────────────────────────────────
 
-  protected defaultOptions(): TimeControlOptions {
+  protected override defaultOptions(): TimeControlOptions {
     const now = new Date();
     const sixMonths = 183 * 86_400_000;
     return {
@@ -164,7 +164,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────
 
-  setup(engine: LunaTerraEngine) {
+  override setup(engine: LunaTerraEngine) {
     super.setup(engine);
     this._date = this.options.initialDate ?? new Date();
 
@@ -274,7 +274,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     }
   }
 
-  render(renderer: CanvasRenderer) {
+  override render(renderer: CanvasRenderer) {
     const opts = this.options;
     const hdpi = window.devicePixelRatio || 1;
     const canvasW = renderer.width;  // physical px
@@ -399,7 +399,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     );
   }
 
-  destroy() {
+  override destroy() {
     for (const fn of this._cleanups) fn();
     this._cleanups = [];
     if (this._playing) {

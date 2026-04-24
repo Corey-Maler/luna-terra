@@ -26,11 +26,11 @@ class LinearConstraintVisual extends LTElement<{}> {
     super();
   }
 
-  protected defaultOptions() {
+  protected override defaultOptions() {
     return {};
   }
 
-  render(renderer: CanvasRenderer): void {
+  override render(renderer: CanvasRenderer): void {
     const op = this.constraintOpacity;
     if (op <= 0.001) return;
 
@@ -133,7 +133,7 @@ export class LinearConstraint extends Constraint {
     );
   }
 
-  resolve(p: V2): V2 {
+  override resolve(p: V2): V2 {
     const start = this._getStart();
     const end = this._getEnd();
 
@@ -153,11 +153,11 @@ export class LinearConstraint extends Constraint {
     }
   }
 
-  createVisual(): LTElement {
+  override createVisual(): LTElement {
     return this._visual;
   }
 
-  setOpacity(opacity: number): void {
+  override setOpacity(opacity: number): void {
     this._visual.constraintOpacity = opacity;
   }
 

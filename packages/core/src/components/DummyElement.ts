@@ -3,11 +3,11 @@ import type { CanvasRenderer } from '../render/CanvasRenderer';
 import { LTElement } from '../render/Elements/LTElement';
 
 export class DummyElement extends LTElement<{}> {
-  protected defaultOptions() {
+  protected override defaultOptions() {
     return {};
   }
 
-  render(renderer: CanvasRenderer) {
+  override render(renderer: CanvasRenderer) {
     const { path, stroke } = renderer.batch('green');
 
     path([

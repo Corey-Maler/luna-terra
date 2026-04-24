@@ -21,7 +21,7 @@ import { renderMarker } from './markers';
 export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
   private _elapsedTime = 0;
 
-  protected defaultOptions(): LineOptions {
+  protected override defaultOptions(): LineOptions {
     return {
       points: [],
       cornerRadius: 0,
@@ -65,7 +65,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
 
   private _handles: Handle[] = [];
 
-  composeHelpers(): LTElement[] {
+  override composeHelpers(): LTElement[] {
     if (!this.options.interactive) return [];
 
     this._handles = this.options.points.map((pt, i) => {
@@ -97,7 +97,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     return this._handles;
   }
 
-  getBounds(): Rect2D {
+  override getBounds(): Rect2D {
     const pts = this.options.points;
     if (pts.length === 0) return new Rect2D(new V2(0, 0), new V2(0, 0));
 
@@ -112,14 +112,14 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     return new Rect2D(new V2(minX, minY), new V2(maxX, maxY));
   }
 
-  update(dt: number): void {
+  override update(dt: number): void {
     if (this._isFlowActive()) {
       this._elapsedTime += dt / 1000;
       // No requestUpdate() needed — the continuous loop handles rendering
     }
   }
 
-  render(renderer: CanvasRenderer): void {
+  override render(renderer: CanvasRenderer): void {
     const { points, cornerRadius, startMarker, endMarker, closed, glow, flow } = this.options;
     if (points.length < 2) return;
 

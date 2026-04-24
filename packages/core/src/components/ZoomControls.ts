@@ -163,7 +163,7 @@ export class ZoomControls extends LTElement<ZoomControlsOptions> {
     }
   }
 
-  destroy() {
+  override destroy() {
     this._cleanupClick?.();
     this._zoomEngine = null;
   }

@@ -200,9 +200,9 @@ export abstract class MPElement<OPTIONS extends {} = {}> {
     //   this.children.forEach((child) => child.doRender(renderer));
     // }
 
-    renderer.prepareScreen(this);
+    renderer.pushLocalTransform(null);
     this.render(renderer);
-    renderer.resetScreen(this);
+    renderer.popLocalTransform();
   }
 
   render(renderer: CanvasRenderer) {}

@@ -31,7 +31,7 @@ export class SelectionBox extends LTElement<{}> {
   /** World-space center of the bounding box. */
   private _center: V2 = new V2(0, 0);
 
-  protected defaultOptions() { return {}; }
+  protected override defaultOptions() { return {}; }
 
   public attach(element: LTElement): void {
     this.target = element;
@@ -41,7 +41,7 @@ export class SelectionBox extends LTElement<{}> {
     this.target = null;
   }
 
-  compute(renderer: CanvasRenderer): void {
+  override compute(renderer: CanvasRenderer): void {
     if (!this.target || !this.target.getBounds) return;
 
     const bounds = this.target.getBounds();
@@ -180,7 +180,7 @@ export class SelectionBox extends LTElement<{}> {
     this.target.rotation = Math.atan2(dx, -dy);
   }
 
-  render(renderer: CanvasRenderer): void {
+  override render(renderer: CanvasRenderer): void {
     if (!this.target || !this.target.getBounds || this._corners.length < 4) return;
 
     const colorStr = SELECTION_COLOR.opaque(0.9).toString();

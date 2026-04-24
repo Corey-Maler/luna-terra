@@ -195,6 +195,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
   }
 
   private _updateChartData(): void {
+    const engine = this._engineRef;
     const showChart = this._mode !== 'number';
     this._fpsLine.visibility = showChart;
     const showStacked = this._mode === 'detailed';
@@ -220,7 +221,12 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
     };
 
     if (showStacked) {
-      const history = this._engineRef.tracing.getHistory();
+      if (!engine) {
+        this._stackedArea.options = { ...this._stackedArea.options, layers: [] };
+        return;
+      }
+
+      const history = engine.tracing.getHistory();
       const len = history.length;
       if (len < 2) {
         this._stackedArea.options = { ...this._stackedArea.options, layers: [] };
@@ -229,7 +235,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
 
       const tagSet = new Set<string>();
       for (const snap of history) {
-        for (const key of snap.keys()) tagSet.add(key);
+        snap.forEach((_value, key) => tagSet.add(key));
       }
       const tags = Array.from(tagSet);
       const MS_MAX = 33;
