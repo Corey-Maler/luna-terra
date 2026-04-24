@@ -1,0 +1,24 @@
+{
+  "name": "@lunaterra/charts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lunaterra/core": "workspace:*",
+    "@lunaterra/math": "workspace:*",
+    "@lunaterra/color": "workspace:*",
+    "@lunaterra/elements": "workspace:*",
+    "d3-scale": "^4.0.2",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/d3-scale": "^4.0.8"
+  }
+}

@@ -1,0 +1,51 @@
+/* ─── App Shell Layout ─────────────────────────────────────────────────── */
+
+:global(body) {
+  --left-nav-width: 272px;
+  --right-nav-width: 272px;
+  --header-height: 108px;
+}
+
+/* The three-column shell: fixed left nav | main content | fixed right nav guide */
+.app {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--surface, #fcf9f2);
+  padding-top: var(--header-height);
+  min-height: 100vh;
+}
+
+/* Left nav is fixed; push main content right.
+   Right nav guide is also fixed; cap max-width to prevent stretching. */
+.mainContainer {
+  flex: 1 1 auto;
+  margin-left: var(--left-nav-width);
+  margin-right: var(--right-nav-width);
+  padding: 3rem 3.5rem;
+  max-width: 860px;
+  background-color: var(--surface, #fcf9f2);
+  min-height: calc(100vh - var(--header-height));
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+:global(html.dark) .mainContainer {
+  border-right-color: rgba(71, 72, 75, 0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1280px) {
+  .mainContainer {
+    margin-right: 0;
+    border-right: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainContainer {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 1.5rem 1.25rem;
+    max-width: 100%;
+  }
+}

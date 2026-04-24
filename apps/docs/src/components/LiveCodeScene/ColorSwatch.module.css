@@ -1,0 +1,55 @@
+/* Tiny inline swatch button — fits inline with code text */
+
+.swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  vertical-align: middle;
+  cursor: pointer;
+  margin-right: 3px;
+  position: relative;
+  top: -1px;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--accent-color, #d45b7a);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring-color, #005fcc);
+    outline-offset: 2px;
+  }
+}
+
+/* Popover panel */
+
+.popover {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  padding: 12px;
+  z-index: 200;
+  /* Override light-theme vars so inner components render correctly on dark surface */
+  --text-primary: #e8e6e0;
+  --text-secondary: #a0a0b0;
+  --accent-color: #d45b7a;
+  --focus-ring-color: #7c9ef8;
+  color: #e8e6e0;
+
+  &[data-entering] { animation: swatch-pop-in 100ms ease; }
+  &[data-exiting]  { animation: swatch-pop-in 80ms ease reverse; }
+}
+
+.dialog {
+  outline: none;
+}
+
+@keyframes swatch-pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

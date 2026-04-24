@@ -1,0 +1,70 @@
+/* ── Trigger button: [■] Label ──────────────────────────────────────────── */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 5px;
+  padding: 3px 8px 3px 4px;
+  cursor: pointer;
+  color: inherit;
+  font-size: 0.8rem;
+
+  &:hover {
+    border-color: rgba(128, 128, 128, 0.45);
+  }
+
+  &[data-pressed] {
+    border-color: var(--accent-color, #d45b7a);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring-color, #005fcc);
+    outline-offset: 2px;
+  }
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.label {
+  color: var(--text-secondary, #888);
+  white-space: nowrap;
+}
+
+/* ── Popover ─────────────────────────────────────────────────────────────── */
+
+.popover {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  padding: 12px;
+  z-index: 100;
+  /* Override light-theme vars so inner components render correctly on dark surface */
+  --text-primary: #e8e6e0;
+  --text-secondary: #a0a0b0;
+  --accent-color: #d45b7a;
+  --focus-ring-color: #7c9ef8;
+  color: #e8e6e0;
+
+  &[data-entering] { animation: popover-in 120ms ease; }
+  &[data-exiting]  { animation: popover-in 80ms ease reverse; }
+}
+
+.dialog {
+  outline: none;
+}
+
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

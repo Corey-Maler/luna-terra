@@ -1,0 +1,35 @@
+.meter {
+    --fill-color: var(--accent-color);
+
+    display: grid;
+    grid-template-areas: "label value"
+                       "bar bar";
+    grid-template-columns: 1fr auto;
+    gap: 4px;
+    /* width: 100; */
+    color: var(--text-primary);
+    font-size: .75rem;
+
+    .value {
+        grid-area: value;
+    }
+
+    .bar {
+        grid-area: bar;
+        forced-color-adjust: none;
+        background: rgb(0 0 0 / 0.05);
+        height: 4px;
+        overflow: hidden;
+    }
+
+    .fill {
+        background: var(--fill-color);
+        height: 100%;
+    }
+}
+
+@media (forced-colors: active) {
+    .meter {
+        --fill-color: Highlight;
+    }
+}

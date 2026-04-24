@@ -1,0 +1,83 @@
+/* ── Home page layout ───────────────────────────────────────────────────── */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l, 1rem);
+}
+
+/* ── Hero / welcome text ───────────────────────────────────────────────── */
+
+.hero {
+  text-align: center;
+  padding: var(--space-xxl, 1.5rem) 0 var(--space-l, 1rem);
+}
+
+.headline {
+  font-family: var(--font-headline, 'Newsreader', Georgia, serif);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  margin: 0 0 var(--space-s, 0.5rem);
+  color: var(--on-surface, #1a1c1d);
+}
+
+.tagline {
+  font-family: var(--font-body, 'Noto Serif', Georgia, serif);
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  color: var(--text-secondary, #474747);
+  margin: 0 0 var(--space-m, 0.75rem);
+  line-height: 1.6;
+}
+
+.divider {
+  width: 60px;
+  border: none;
+  border-top: 1px solid var(--outline-variant, #c6c6c6);
+  margin: 0 auto var(--space-l, 1rem);
+}
+
+.ctaLink {
+  display: inline-block;
+  font-family: var(--font-label, 'Public Sans', ui-sans-serif, sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-color, #b52424);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.ctaLink:hover {
+  border-bottom-color: var(--accent-color, #b52424);
+}
+
+/* ── Canvas container ──────────────────────────────────────────────────── */
+
+.canvasWrap {
+  position: relative;
+  width: 100%;
+  /* Mobile-first aspect ratio — tall enough for portrait phones */
+  aspect-ratio: 4 / 3;
+  max-height: 520px;
+  border-radius: 4px;
+  overflow: hidden;
+  /* Make the canvas transparent and let the page bg show through */
+  background: transparent;
+}
+
+/* Force the engine's rootDiv to fill the aspect-ratio container */
+.canvasWrap > div {
+  width: 100%;
+  height: 100%;
+}
+
+/* On wider screens the aspect ratio can relax a bit */
+@media (min-width: 640px) {
+  .canvasWrap {
+    aspect-ratio: 16 / 10;
+    max-height: 480px;
+  }
+}

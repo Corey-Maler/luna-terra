@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": "./",
+    "paths": {
+      "@lunaterra/math": ["packages/math/src/index.ts"],
+      "@lunaterra/core": ["packages/core/src/index.ts"],
+      "@lunaterra/color": ["packages/color/src/index.ts"],
+      "@lunaterra/tracing": ["packages/tracing/src/index.ts"],
+      "@lunaterra/elements": ["packages/elements/src/index.ts"],
+      "@lunaterra/charts": ["packages/charts/src/index.ts"],
+      "@lunaterra/ui": ["packages/ui/src/index.ts"]
+    }
+  }
+}

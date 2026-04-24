@@ -1,0 +1,29 @@
+.button {
+    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: var(--text-accent-primary);
+    border: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    &:hover {
+        background-color: color-mix(in srgb, var(--accent-color) 75%, white 25%);
+    }
+}
+
+.button[data-variant='secondary'] {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    &:hover {
+        background-color: var(--bg-tertiary);
+    }
+}
+
+.button[data-variant='link'] {
+    background: none;
+    color: var(--accent-color);
+    padding: 0;
+    &:hover {
+        text-decoration: underline;
+    }
+}

@@ -1,0 +1,44 @@
+.wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.resultsGrid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    width: 100%;
+    margin-top: var(--space-m, 16px);
+}
+
+.gridHeader {
+    font-weight: 600;
+    padding: 8px 12px;
+    text-align: left;
+    color: var(--color-text-subtle, #666);
+}
+
+.gridCell {
+    padding: 8px 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.faster {
+    font-weight: bold;
+    color: var(--color-success, #008000);
+}
+
+.first {
+    border-left: 5px solid var(--bauhaus-red);
+    padding-left: var(--space-m);
+}
+
+.second {
+    border-left: 5px solid var(--bauhaus-blue);
+    padding-left: var(--space-m);
+}

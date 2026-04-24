@@ -1,0 +1,19 @@
+{
+  "name": "@lunaterra/core",
+  "version": "0.0.1",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "@lunaterra/color": "workspace:*",
+    "@lunaterra/math": "workspace:*",
+    "@lunaterra/tracing": "workspace:*"
+  }
+}

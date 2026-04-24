@@ -1,0 +1,180 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background-color: var(--surface, #fcf9f2);
+  border-bottom: 4px solid var(--primary, #000);
+}
+
+html.dark .header {
+  border-bottom: 2px solid rgba(71, 72, 75, 0.4);
+  border-top: 2px solid rgba(71, 72, 75, 0.4);
+}
+
+.inner {
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ── Top row: vol | MASTHEAD | actions ── */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 0 0.5rem;
+}
+
+.vol {
+  font-family: var(--font-label, 'Public Sans', sans-serif);
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--on-surface-variant, #474747);
+  min-width: 140px;
+}
+
+.masthead {
+  font-family: var(--font-headline, 'Newsreader', serif);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--on-surface, #1a1c1d);
+  text-decoration: none;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.masthead:hover {
+  opacity: 0.75;
+  color: var(--on-surface, #1a1c1d);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 140px;
+  justify-content: flex-end;
+}
+
+/* ── Search ── */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0;
+  color: var(--on-surface-variant, #474747);
+  pointer-events: none;
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--outline-variant, #c6c6c6);
+  outline: none;
+  padding: 0.25rem 0.25rem 0.25rem 1.25rem;
+  font-family: var(--font-headline, 'Newsreader', serif);
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--on-surface, #1a1c1d);
+  width: 160px;
+  transition: border-color 0.15s, width 0.2s;
+  /* Browsers inject their own search cancel button decoration; keep it hidden */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.searchInput::placeholder {
+  color: var(--on-surface-variant, #474747);
+  opacity: 0.7;
+}
+
+.searchInput:focus {
+  border-bottom-color: var(--primary, #000);
+  width: 200px;
+}
+
+/* ── Icon buttons (GitHub, theme toggle, FPS) ── */
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: var(--on-surface-variant, #474747);
+  transition: color 0.15s;
+}
+
+.iconBtn:hover {
+  color: var(--on-surface, #1a1c1d);
+}
+
+.iconBtnActive {
+  color: var(--on-surface, #1a1c1d);
+}
+
+/* ── Nav row ── */
+.navRow {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  padding: 0.5rem 0 0.625rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html.dark .navRow {
+  border-top-color: rgba(71, 72, 75, 0.3);
+}
+
+.navLink {
+  font-family: var(--font-label, 'Public Sans', sans-serif);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--on-surface-variant, #474747);
+  text-decoration: none;
+  text-transform: uppercase;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.navLink:hover {
+  color: var(--on-surface, #1a1c1d);
+}
+
+.navLinkActive {
+  color: var(--on-surface, #1a1c1d);
+  border-bottom-color: var(--primary, #000);
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .vol {
+    display: none;
+  }
+
+  .searchWrap {
+    display: none;
+  }
+
+  .masthead {
+    font-size: 1.5rem;
+  }
+
+  .navRow {
+    gap: 1.5rem;
+  }
+}
