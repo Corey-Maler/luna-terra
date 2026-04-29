@@ -1,6 +1,7 @@
 import { TracingInstance } from '@lunaterra/tracing';
 import type { Rect2D, V2 } from '@lunaterra/math';
 import { CanvasRenderer } from '../render/CanvasRenderer';
+import type { EditModeOptions, ItemDragModeOptions } from '../render/MouseEventHandlers';
 import type { LTElement } from '../render/Elements/LTElement';
 import type { LTThemePalette } from '../render/theme';
 import { InteractionManager } from './InteractionManager';
@@ -44,8 +45,12 @@ export class LunaTerraEngine {
     return this.interactionManager;
   }
 
-  public activateEditMode = (props: any) => {
+  public activateEditMode = (props: EditModeOptions) => {
     return this.renderer.mouseHandlers.activateEditMode(props);
+  };
+
+  public activateItemDragMode = (props: ItemDragModeOptions) => {
+    return this.renderer.mouseHandlers.activateItemDragMode(props);
   };
 
   public add(element: LTElement) {

@@ -130,6 +130,7 @@
   border-left: 3px solid var(--primary, #000);
   padding: 0.875rem 0 0.875rem 1.25rem;
   margin: 1.75rem 0;
+  scroll-margin-top: 8.5rem;
 }
 
 :global(html.dark) .method {
@@ -178,6 +179,10 @@
 
 :global(html.dark) .methodSig {
   color: var(--on-surface, #e6e5e8);
+}
+
+.methodSig code {
+  white-space: inherit;
 }
 
 .methodDesc {
@@ -251,6 +256,58 @@
   color: #6ecfbf;
   background: rgba(110, 207, 191, 0.08);
   border-color: rgba(110, 207, 191, 0.2);
+}
+
+.symbol {
+  text-decoration: none;
+}
+
+.symbolInline {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.95em;
+}
+
+.symbolCode {
+  color: inherit;
+}
+
+.symbolLink {
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+
+.symbolLink:hover {
+  color: var(--primary, #000);
+}
+
+.symbolInline.symbolLink {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.symbolInline.symbolLink:hover {
+  border-bottom-color: var(--primary, #000);
+}
+
+.typeBadge.symbolLink:hover {
+  background: rgba(26, 106, 94, 0.16);
+  border-color: rgba(26, 106, 94, 0.35);
+}
+
+:global(html.dark) .symbolInline.symbolLink {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+:global(html.dark) .symbolInline.symbolLink:hover {
+  border-bottom-color: #6ecfbf;
+  color: #6ecfbf;
+}
+
+:global(html.dark) .typeBadge.symbolLink:hover {
+  background: rgba(110, 207, 191, 0.16);
+  border-color: rgba(110, 207, 191, 0.35);
+}
+
+.symbolUndocumented {
+  opacity: 0.92;
 }
 
 .defaultChip {

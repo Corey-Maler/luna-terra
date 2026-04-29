@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useId, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sun, Moon, Search, Github, Activity } from 'lucide-react';
 import { LunaTerraEngine } from '@lunaterra/core';
+import { searchDocs } from '../../docs/searchIndex';
 import { useFps } from '../../context/FpsContext';
 import styles from './Header.module.css';
 
@@ -33,8 +34,18 @@ const NAV_LINKS = [
 
 export function Header() {
   const [dark, setDark] = useDarkMode();
+  const [query, setQuery] = useState('');
   const location = useLocation();
   const { fpsEnabled, setFpsEnabled } = useFps();
+  const deferredQuery = useDeferredValue(query);
+  const resultsId = useId();
+  const normalizedQuery = deferredQuery.trim();
+  const searchResults = searchDocs(normalizedQuery);
+  const showSearchResults = normalizedQuery.length > 0;
+
+  useEffect(() => {
+    setQuery('');
+  }, [location.pathname]);
 
   const handleFpsToggle = () => {
     const next = !fpsEnabled;
@@ -61,7 +72,40 @@ export function Header() {
                 type="search"
                 placeholder="Search the docs..."
                 aria-label="Search documentation"
+                aria-autocomplete="list"
+                aria-controls={resultsId}
+                aria-expanded={showSearchResults}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setQuery('');
+                  }
+                }}
               />
+              {showSearchResults && (
+                <div className={styles.searchResults} id={resultsId} role="listbox">
+                  {searchResults.length > 0 ? (
+                    searchResults.map((result) => (
+                      <Link
+                        key={result.id}
+                        to={result.href}
+                        className={styles.searchResult}
+                        onClick={() => setQuery('')}
+                      >
+                        <span className={styles.searchResultHeader}>
+                          <span className={styles.searchResultTitle}>{result.title}</span>
+                          <span className={styles.searchResultKind}>{result.kind}</span>
+                        </span>
+                        <span className={styles.searchResultMeta}>{result.section}</span>
+                        <span className={styles.searchResultSummary}>{result.summary}</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className={styles.searchEmpty}>No matches for “{normalizedQuery}”.</div>
+                  )}
+                </div>
+              )}
             </div>
             <a
               href="https://github.com/lunaterra"

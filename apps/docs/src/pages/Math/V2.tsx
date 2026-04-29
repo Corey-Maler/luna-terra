@@ -436,6 +436,7 @@ export default function V2Page() {
       <DocPage.Section id="api" title="API Reference">
 
         <DocPage.Method
+          id="constructor"
           signature="new V2(x: number, y: number)"
           description="Creates a new 2-D vector with the given components."
           params={[
@@ -446,6 +447,7 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="add"
           signature="add(v: V2): V2"
           description="Returns a new vector equal to this + v (component-wise sum)."
           params={[{ name: 'v', type: 'V2', description: 'The vector to add.' }]}
@@ -453,6 +455,7 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="sub"
           signature="sub(v: V2): V2"
           description="Returns a new vector equal to this − v."
           params={[{ name: 'v', type: 'V2', description: 'The vector to subtract.' }]}
@@ -467,6 +470,7 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="dot"
           signature="dot(v: V2): number"
           description="Computes x₁·x₂ + y₁·y₂. Equals |this|·|v|·cos(θ) where θ is the angle between the vectors."
           params={[{ name: 'v', type: 'V2', description: 'The other vector.' }]}
@@ -480,12 +484,14 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="normalize"
           signature="normalize(): V2"
           description="Returns a unit vector (length = 1) in the same direction. Returns V2(0, 0) for a zero vector."
           returns={{ type: 'V2', description: 'Unit vector.' }}
         />
 
         <DocPage.Method
+          id="distance-to"
           signature="distanceTo(v: V2): number"
           description="Returns the Euclidean distance between this point and v."
           params={[{ name: 'v', type: 'V2', description: 'The other point.' }]}
@@ -493,6 +499,7 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="within-distance"
           signature="withinDistance(v: V2, distance: number): boolean"
           description="Returns true when distanceTo(v) ≤ distance."
           params={[
@@ -509,6 +516,7 @@ export default function V2Page() {
         />
 
         <DocPage.Method
+          id="angle-to"
           signature="angleTo(to: V2): number"
           description="Angle of the displacement from this to to — equivalent to to.sub(this).angle."
           params={[{ name: 'to', type: 'V2', description: 'Target point.' }]}
@@ -597,6 +605,7 @@ export default function V2Page() {
 
         <DocPage.Method
           isStatic
+          id="closest-to-line"
           signature="V2.closestToLine(p: V2, a: V2, b: V2): V2"
           description="Returns the point on segment a→b that is closest to p, clamped to the endpoints."
           params={[

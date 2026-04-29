@@ -1,27 +1,40 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import React, { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavGuide } from '../../context/NavGuideContext';
+import { getDocSymbolHref, getDocSymbolTitle, hasGeneratedDocSymbol } from '../../docs/docSymbols';
 import { CodePreview } from '../CodePreview';
 
 import styles from './DocPage.module.css';
 
+type TypeVariant = 'inline' | 'badge' | 'code';
+
+export interface SymbolRefProps {
+  symbol: string;
+  label?: string;
+  href?: string;
+  variant?: TypeVariant;
+}
+
 export interface MethodParam {
   name: string;
-  type: string;
+  type: React.ReactNode;
   description: string;
   optional?: boolean;
   default?: string;
 }
 
 export interface MethodProps {
+  /** Optional anchor id for direct links and search results. */
+  id?: string;
   /** Full TypeScript signature, e.g. `add(v: V2): V2` */
-  signature: string;
+  signature: React.ReactNode;
   /** Short prose description of what this method does. */
   description: React.ReactNode;
   /** Parameter descriptions. Omit for zero-arg methods. */
   params?: MethodParam[];
   /** Return type and optional description. */
-  returns?: { type: string; description?: string };
+  returns?: { type: React.ReactNode; description?: string };
   /** Mark as a static method or property. */
   isStatic?: boolean;
 }
@@ -97,6 +110,7 @@ DocPage.Pre = ({ children }: React.PropsWithChildren<{}>) => {
 };
 
 DocPage.Method = ({
+  id,
   signature,
   description,
   params,
@@ -104,7 +118,7 @@ DocPage.Method = ({
   isStatic,
 }: MethodProps) => {
   return (
-    <div className={styles.method}>
+    <div id={id} className={styles.method}>
       <div className={styles.methodHeader}>
         {isStatic && <span className={styles.staticBadge}>static</span>}
         <pre className={styles.methodSig}><code>{signature}</code></pre>
@@ -116,7 +130,7 @@ DocPage.Method = ({
             <React.Fragment key={p.name}>
               <dt className={styles.paramDt}>
                 <code className={styles.paramName}>{p.name}{p.optional ? '?' : ''}</code>
-                <span className={styles.typeBadge}>{p.type}</span>
+                {renderTypeNode(p.type, 'badge')}
                 {p.default !== undefined && (
                   <span className={styles.defaultChip}>= {p.default}</span>
                 )}
@@ -129,7 +143,7 @@ DocPage.Method = ({
       {returns && (
         <div className={styles.returns}>
           <span className={styles.returnsLabel}>Returns</span>
-          <span className={styles.typeBadge}>{returns.type}</span>
+          {renderTypeNode(returns.type, 'badge')}
           {returns.description && (
             <span className={styles.returnsDesc}> — {returns.description}</span>
           )}
@@ -169,4 +183,42 @@ function guessCodeLanguage(code: string): string {
   }
   return 'javascript';
 }
+
+function renderTypeNode(node: React.ReactNode, fallbackVariant: TypeVariant): React.ReactNode {
+  if (typeof node === 'string') {
+    return <span className={styles.typeBadge}>{node}</span>;
+  }
+
+  if (React.isValidElement<SymbolRefProps>(node) && node.type === DocPage.Type) {
+    return React.cloneElement(node, {
+      variant: node.props.variant ?? fallbackVariant,
+    });
+  }
+
+  return node;
+}
+
+DocPage.Type = ({ symbol, label, href, variant = 'inline' }: SymbolRefProps) => {
+  const resolvedHref = href ?? getDocSymbolHref(symbol);
+  const text = label ?? symbol;
+  const title = getDocSymbolTitle(symbol);
+  const className = [
+    styles.symbol,
+    variant === 'badge' ? styles.typeBadge : '',
+    variant === 'code' ? styles.symbolCode : '',
+    variant === 'inline' ? styles.symbolInline : '',
+    resolvedHref ? styles.symbolLink : '',
+    !resolvedHref && hasGeneratedDocSymbol(symbol) ? styles.symbolUndocumented : '',
+  ].filter(Boolean).join(' ');
+
+  if (resolvedHref) {
+    return (
+      <Link to={resolvedHref} className={className} title={title}>
+        {text}
+      </Link>
+    );
+  }
+
+  return <span className={className} title={title}>{text}</span>;
+};
 

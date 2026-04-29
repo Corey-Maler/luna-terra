@@ -6,6 +6,8 @@ export { LTElement } from './render/Elements/LTElement';
 export { LTStyledElement } from './render/Elements/LTStyledElement';
 export type { LTStyles, LTResolvedStyles, LTStyleOptions } from './render/Elements/LTStyledElement';
 export { CanvasRenderer } from './render/CanvasRenderer';
+export { MouseEventHandlers } from './render/MouseEventHandlers';
+export type { EditModeOptions, ItemDragModeOptions } from './render/MouseEventHandlers';
 export { DrawContext } from './render/Batch';
 export { Colors } from './render/colors';
 export { resolveThemeColor, themeColor } from './render/theme';

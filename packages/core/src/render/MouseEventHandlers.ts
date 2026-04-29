@@ -3,6 +3,23 @@ import { Observable } from '../utils/observable';
 import type { PanningTracker } from "./PanningTracker";
 import type { ViewPort } from "./ViewPort";
 
+export interface EditModeOptions {
+  onClick?: (point: V2) => void;
+  onMove?: (point: V2) => void;
+  onEnd: (point: V2) => void;
+  onStart: (point: V2) => void;
+  mode: "auto" | "clicks" | "drag&drop";
+  autorerender?: boolean;
+}
+
+export interface ItemDragModeOptions {
+  hitTest?: (screenPt: V2) => boolean;
+  onHover: (point: V2) => void;
+  onMove: (point: V2) => void;
+  onDragStart: (point: V2) => void;
+  onDragEnd?: (point: V2) => void;
+}
+
 export class MouseEventHandlers {
   private mouseMode: "trackpad" | "mouse" = "trackpad";
   public mousePosition: V2 = new V2(0, 0);
@@ -74,15 +91,7 @@ export class MouseEventHandlers {
     this.canvas.addEventListener("touchend", this.onTouchEnd, { passive: false });
   }
 
-  public activateItemDragMode = (props: {
-    /** If provided, a drag is only captured when the pointer-down position passes this test.
-     *  Drags that miss the element fall through to normal canvas panning. */
-    hitTest?: (screenPt: V2) => boolean;
-    onHover: (point: V2) => void;
-    onMove: (point: V2) => void;
-    onDragStart: (point: V2) => void;
-    onDragEnd?: (point: V2) => void;
-  }) => {
+  public activateItemDragMode = (props: ItemDragModeOptions) => {
     this.dragging = false;
     this.dragMode = true;
     this._itemDragHitTest = props.hitTest ?? null;
@@ -136,14 +145,7 @@ export class MouseEventHandlers {
     }
   };
 
-  public activateEditMode = (props: {
-    onClick?: (point: V2) => void;
-    onMove?: (point: V2) => void;
-    onEnd: (point: V2) => void;
-    onStart: (point: V2) => void;
-    mode: "auto" | "clicks" | "drag&drop";
-    autorerender?: boolean;
-  }) => {
+  public activateEditMode = (props: EditModeOptions) => {
     this.dragging = false; // not sure, but probably should be this
     this.editMode = true;
     const subscriptions = [] as (() => void)[];

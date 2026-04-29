@@ -104,6 +104,109 @@ html.dark .header {
   width: 200px;
 }
 
+.searchResults {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  width: min(28rem, 72vw);
+  max-height: 24rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem;
+  border: 2px solid var(--primary, #000);
+  background: var(--surface-container-lowest, #fffdf8);
+  box-shadow: 0.5rem 0.5rem 0 rgba(0, 0, 0, 0.08);
+}
+
+html.dark .searchResults {
+  border-color: rgba(110, 207, 191, 0.28);
+  background: #111214;
+  box-shadow: 0.5rem 0.5rem 0 rgba(0, 0, 0, 0.22);
+}
+
+.searchResult {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.55rem 0.65rem;
+  text-decoration: none;
+  color: var(--on-surface, #1a1c1d);
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html.dark .searchResult {
+  color: var(--on-surface, #e6e5e8);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.searchResult:hover {
+  border-color: var(--primary, #000);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html.dark .searchResult:hover {
+  border-color: rgba(110, 207, 191, 0.4);
+  background: rgba(110, 207, 191, 0.08);
+}
+
+.searchResultHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.searchResultTitle {
+  font-family: var(--font-headline, 'Newsreader', serif);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.searchResultKind {
+  font-family: var(--font-label, 'Public Sans', sans-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant, #474747);
+}
+
+html.dark .searchResultKind {
+  color: rgba(180, 185, 200, 0.8);
+}
+
+.searchResultMeta {
+  font-family: var(--font-label, 'Public Sans', sans-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant, #474747);
+}
+
+.searchResultSummary {
+  font-family: var(--font-body, 'Noto Serif', serif);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--on-surface-variant, #474747);
+}
+
+html.dark .searchResultSummary {
+  color: rgba(190, 195, 210, 0.84);
+}
+
+.searchEmpty {
+  padding: 0.8rem 0.65rem;
+  font-family: var(--font-body, 'Noto Serif', serif);
+  font-size: 0.85rem;
+  color: var(--on-surface-variant, #474747);
+}
+
+html.dark .searchEmpty {
+  color: rgba(190, 195, 210, 0.84);
+}
+
 /* ── Icon buttons (GitHub, theme toggle, FPS) ── */
 .iconBtn {
   display: flex;

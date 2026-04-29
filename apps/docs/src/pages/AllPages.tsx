@@ -1,9 +1,18 @@
 import { JSX, lazy } from 'react';
 
+export interface RouteSearchEntry {
+  title: string;
+  anchor?: string;
+  summary?: string;
+  keywords?: string[];
+}
+
 export interface RouteDefinition {
   title: string;
   tag: string;
   Element: React.LazyExoticComponent<() => JSX.Element>;
+  searchTerms?: string[];
+  searchEntries?: RouteSearchEntry[];
 }
 
 export interface SectionDefinition {
@@ -33,6 +42,73 @@ export const RouteDefinitions: SectionDefinition[] = [
         title: 'V2',
         tag: 'v2',
         Element: lazy(() => import('./Math/V2')),
+        searchTerms: [
+          'add',
+          'sub',
+          'scale',
+          'dot',
+          'length',
+          'normalize',
+          'distanceTo',
+          'withinDistance',
+          'angleTo',
+          'setAngle',
+          'setLenght',
+          'shortenBy',
+          'byElementDiv',
+          'closestToLine',
+          'angleBetweenPoints',
+        ],
+        searchEntries: [
+          {
+            title: 'V2.distanceTo',
+            anchor: 'distance-to',
+            summary: 'Returns the Euclidean distance between this point and another V2.',
+            keywords: ['distance', 'distanceTo', 'euclidean distance', 'v2 distance'],
+          },
+          {
+            title: 'V2.withinDistance',
+            anchor: 'within-distance',
+            summary: 'Checks whether another V2 lies within a distance threshold.',
+            keywords: ['withinDistance', 'distance threshold', 'range test'],
+          },
+          {
+            title: 'V2.add',
+            anchor: 'add',
+            summary: 'Returns the component-wise sum of two vectors.',
+            keywords: ['add', 'vector addition', 'sum'],
+          },
+          {
+            title: 'V2.sub',
+            anchor: 'sub',
+            summary: 'Returns the component-wise difference of two vectors.',
+            keywords: ['sub', 'subtract', 'difference'],
+          },
+          {
+            title: 'V2.normalize',
+            anchor: 'normalize',
+            summary: 'Returns a unit vector in the same direction.',
+            keywords: ['normalize', 'unit vector'],
+          },
+          {
+            title: 'V2.dot',
+            anchor: 'dot',
+            summary: 'Computes the scalar dot product.',
+            keywords: ['dot', 'dot product', 'projection'],
+          },
+          {
+            title: 'V2.angleTo',
+            anchor: 'angle-to',
+            summary: 'Returns the angle of the displacement from this point to another.',
+            keywords: ['angleTo', 'angle', 'direction'],
+          },
+          {
+            title: 'V2.closestToLine',
+            anchor: 'closest-to-line',
+            summary: 'Returns the closest point on a line segment to a query point.',
+            keywords: ['closestToLine', 'projection', 'line distance'],
+          },
+        ],
       },
       {
         title: 'M3',
@@ -43,6 +119,7 @@ export const RouteDefinitions: SectionDefinition[] = [
         title: 'Rect2D',
         tag: 'rect2d',
         Element: lazy(() => import('./Math/Rect2D')),
+        searchTerms: ['contains', 'intersects', 'quadrant', 'bottomLeft', 'topRight', 'center', 'width', 'height'],
       },
       {
         title: 'Angles',
@@ -61,9 +138,47 @@ export const RouteDefinitions: SectionDefinition[] = [
     tag: 'core',
     pages: [
       {
-        title: 'Base',
+        title: 'Engine & Renderers',
         tag: 'base',
         Element: lazy(() => import('./Core/Base')),
+        searchTerms: [
+          'mouse',
+          'click',
+          'pointer',
+          'drag',
+          'mouseHandlers',
+          'activateEditMode',
+          'activateItemDragMode',
+          '$clicksWorld',
+          '$mousePositionWorld',
+          '$mouseDraggingFromWorld',
+        ],
+        searchEntries: [
+          {
+            title: 'engine.activateEditMode',
+            anchor: 'pointer-input',
+            summary: 'High-level click and drag session API for interactive tools.',
+            keywords: ['click', 'mouse click', 'edit mode', 'pointer input', 'interactive tool'],
+          },
+          {
+            title: 'renderer.mouseHandlers.$clicksWorld',
+            anchor: 'pointer-input',
+            summary: 'Observable stream of click events in world coordinates.',
+            keywords: ['$clicksWorld', 'mouse click', 'world click', 'click listener'],
+          },
+          {
+            title: 'renderer.mouseHandlers.$mousePositionWorld',
+            anchor: 'pointer-input',
+            summary: 'Observable stream of pointer positions in world coordinates.',
+            keywords: ['$mousePositionWorld', 'mouse move', 'pointer move', 'hover'],
+          },
+          {
+            title: 'engine.activateItemDragMode',
+            anchor: 'pointer-input',
+            summary: 'Typed drag capture API with hover, start, move, and end callbacks.',
+            keywords: ['drag', 'item drag', 'onDragStart', 'onDragEnd', 'hitTest'],
+          },
+        ],
       },
       {
         title: 'LTElement',

@@ -14,6 +14,8 @@ import { DocPage } from '../../components/DocPage/DocPage';
 import { LiveCodeScene } from '../../components/LiveCodeScene';
 import { VectorDemoScene } from '../../components/VectorDemoScene';
 
+const T = DocPage.Type;
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 class GroupElement extends LTElement<Record<string, never>> {
@@ -380,7 +382,7 @@ export default function Rect2DPage() {
   return (
     <DocPage title="Rect2D" section="@lunaterra/math">
       <p>
-        <code>Rect2D</code> is an axis-aligned bounding rectangle defined by two
+        <T symbol="Rect2D" /> is an axis-aligned bounding rectangle defined by two
         corner points. The constructor auto-normalises them so <code>v1</code> is
         always the bottom-left and <code>v2</code> the top-right, regardless of
         which order they are passed in.
@@ -432,20 +434,20 @@ export default function Rect2DPage() {
       <DocPage.Section id="api" title="API Reference">
 
         <DocPage.Method
-          signature="new Rect2D(v1: V2, v2: V2)"
+          signature={<>new <T symbol="Rect2D" variant="code" />(v1: <T symbol="V2" variant="code" />, v2: <T symbol="V2" variant="code" />)</>}
           description="Creates an axis-aligned rect. Corners are normalised so v1 is always bottom-left."
           params={[
-            { name: 'v1', type: 'V2', description: 'One corner (normalised to bottom-left).' },
-            { name: 'v2', type: 'V2', description: 'Opposite corner (normalised to top-right).' },
+            { name: 'v1', type: <T symbol="V2" />, description: 'One corner (normalised to bottom-left).' },
+            { name: 'v2', type: <T symbol="V2" />, description: 'Opposite corner (normalised to top-right).' },
           ]}
-          returns={{ type: 'Rect2D' }}
+          returns={{ type: <T symbol="Rect2D" /> }}
         />
 
         <DocPage.Method
           isStatic
-          signature="Rect2D.identity(): Rect2D"
+          signature={<> <T symbol="Rect2D" variant="code" />.identity(): <T symbol="Rect2D" variant="code" /></>}
           description="Returns a unit rectangle from (0, 0) to (1, 1)."
-          returns={{ type: 'Rect2D' }}
+          returns={{ type: <T symbol="Rect2D" /> }}
         />
 
         <DocPage.Method
@@ -461,42 +463,42 @@ export default function Rect2DPage() {
         />
 
         <DocPage.Method
-          signature="get center: V2"
+          signature={<>get center: <T symbol="V2" variant="code" /></>}
           description="Returns the midpoint (v1 + v2) / 2."
-          returns={{ type: 'V2' }}
+          returns={{ type: <T symbol="V2" /> }}
         />
 
         <DocPage.Method
-          signature="get bottomLeft: V2"
+          signature={<>get bottomLeft: <T symbol="V2" variant="code" /></>}
           description="Alias for v1 — the normalised bottom-left corner."
-          returns={{ type: 'V2' }}
+          returns={{ type: <T symbol="V2" /> }}
         />
 
         <DocPage.Method
-          signature="get topRight: V2"
+          signature={<>get topRight: <T symbol="V2" variant="code" /></>}
           description="Alias for v2 — the normalised top-right corner."
-          returns={{ type: 'V2' }}
+          returns={{ type: <T symbol="V2" /> }}
         />
 
         <DocPage.Method
-          signature="contains(v: V2): boolean"
+          signature={<>contains(v: <T symbol="V2" variant="code" />): boolean</>}
           description="Returns true when v lies within this rectangle (boundary-inclusive)."
-          params={[{ name: 'v', type: 'V2', description: 'Point to test.' }]}
+          params={[{ name: 'v', type: <T symbol="V2" />, description: 'Point to test.' }]}
           returns={{ type: 'boolean' }}
         />
 
         <DocPage.Method
-          signature="intersects(r: Rect2D): boolean"
+          signature={<>intersects(r: <T symbol="Rect2D" variant="code" />): boolean</>}
           description="Returns true when this rectangle and r overlap (boundary-exclusive)."
-          params={[{ name: 'r', type: 'Rect2D', description: 'The other rectangle.' }]}
+          params={[{ name: 'r', type: <T symbol="Rect2D" />, description: 'The other rectangle.' }]}
           returns={{ type: 'boolean' }}
         />
 
         <DocPage.Method
-          signature="quadrant(n: number): Rect2D"
+          signature={<>quadrant(n: number): <T symbol="Rect2D" variant="code" /></>}
           description="Returns one of the four equal sub-rectangles: 0 = bottom-left, 1 = bottom-right, 2 = top-right, 3 = top-left."
           params={[{ name: 'n', type: '0 | 1 | 2 | 3', description: 'Quadrant index.' }]}
-          returns={{ type: 'Rect2D', description: 'Sub-rectangle.' }}
+          returns={{ type: <T symbol="Rect2D" />, description: 'Sub-rectangle.' }}
         />
 
         <DocPage.Method

@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "generate:symbols": "node ../../scripts/generate-doc-symbol-index.mjs",
+    "dev": "pnpm run generate:symbols && vite",
+    "build": "pnpm run generate:symbols && vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit"
+    "typecheck": "pnpm run generate:symbols && tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
     "@lunaterra/ui": "workspace:*"
