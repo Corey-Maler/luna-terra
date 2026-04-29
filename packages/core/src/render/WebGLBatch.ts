@@ -83,7 +83,7 @@ function createProgram(
   return null;
 }
 
-export class WebGLBatchLL {
+export class WebGLDrawBackend {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;

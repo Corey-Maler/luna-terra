@@ -27,7 +27,7 @@ class Circle extends LTElement {
   protected defaultOptions() { return {}; }
 
   render(renderer) {
-    const batch = renderer.batch('#222', 2);
+    const batch = renderer.draw('#222', 2);
     batch.arc(new V2(0.5, 0.5), 0.2);
     batch.stroke();
   }

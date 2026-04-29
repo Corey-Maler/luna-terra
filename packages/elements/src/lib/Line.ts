@@ -133,8 +133,8 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     }
 
     // ── Canvas2D crisp line ─────────────────────────────────────────────
-    const batch = renderer.batch(colorStr, lineWidth);
-    batch.renew(colorStr, lineWidth, { dashPattern });
+    const batch = renderer.draw(colorStr, lineWidth);
+    batch.begin(colorStr, lineWidth, { dashPattern });
 
     // Apply lineCap and lineJoin directly on the context
     const ctx = (renderer as unknown as { ctx: CanvasRenderingContext2D }).ctx;
@@ -193,7 +193,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     }
   }
 
-  private _drawSegment(batch: ReturnType<CanvasRenderer['batch']>, prev: LinePoint, seg: LinePoint): void {
+  private _drawSegment(batch: ReturnType<CanvasRenderer['draw']>, prev: LinePoint, seg: LinePoint): void {
     const dest = pointDestination(seg);
 
     if (isQuadratic(seg)) {
@@ -227,7 +227,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     }
 
     try {
-      renderer.webGL.renderGlowLine(
+      renderer.webgl.renderGlowLine(
         flatPoints,
         parametric,
         {

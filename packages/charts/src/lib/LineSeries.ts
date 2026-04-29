@@ -26,10 +26,10 @@ export class LineSeries extends LTStyledElement<LineSeriesOptions> {
     const points = data.map((d) => new V2(d.x, d.y));
 
     if (fillOpacity > 0) {
-      renderer.batch(colorStr, lineWidth).fillGradientBelow(points, yFillTo, colorObj, fillOpacity);
+      renderer.draw(colorStr, lineWidth).fillGradientBelow(points, yFillTo, colorObj, fillOpacity);
     }
 
-    const b = renderer.batch(colorStr, lineWidth);
+    const b = renderer.draw(colorStr, lineWidth);
     b.path(points);
     b.stroke();
   }

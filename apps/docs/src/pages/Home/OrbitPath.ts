@@ -36,8 +36,8 @@ export class OrbitPath extends LTElement<OrbitPathOptions> {
     const ellipse = projectedOrbitEllipse(cfg);
     const center = new V2(ellipse.cx, ellipse.cy);
 
-    const batch = renderer.batch(this.accentColor, 1.5);
-    batch.renew(this.accentColor, 1.5, { dashPattern: [4, 4] });
+    const batch = renderer.draw(this.accentColor, 1.5);
+    batch.begin(this.accentColor, 1.5, { dashPattern: [4, 4] });
     batch.setAlpha(0.45);
     batch.ellipse(center, ellipse.a, ellipse.b);
     batch.stroke();

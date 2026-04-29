@@ -28,7 +28,7 @@ export class FunctionPlot extends LTStyledElement<FunctionPlotOptions> {
 
     const flush = () => {
       if (segment.length >= 2) {
-        const b = renderer.batch(colorStr, lineWidth);
+        const b = renderer.draw(colorStr, lineWidth);
         b.path(segment);
         b.stroke();
       }

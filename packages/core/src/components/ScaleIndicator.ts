@@ -85,7 +85,7 @@ export class ScaleIndicator extends LTElement<ScaleIndicatorOptions> {
     const textColor = _themeColor(renderer, 'ui.scaleIndicator.text', new Color(0, 0, 0, 0.7)).toString();
 
     // ── Draw ──────────────────────────────────────────────────────────────
-    const b = renderer.batchScreenSpace(ruleColor, lineW);
+    const b = renderer.drawScreenSpace(ruleColor, lineW);
 
     // Horizontal rule
     b.moveTo(new V2(leftPx, y));
@@ -93,13 +93,13 @@ export class ScaleIndicator extends LTElement<ScaleIndicatorOptions> {
     b.stroke();
 
     // Left cap
-    const bL = renderer.batchScreenSpace(ruleColor, lineW);
+    const bL = renderer.drawScreenSpace(ruleColor, lineW);
     bL.moveTo(new V2(leftPx, y - capH));
     bL.lineTo(new V2(leftPx, y));
     bL.stroke();
 
     // Right cap
-    const bR = renderer.batchScreenSpace(ruleColor, lineW);
+    const bR = renderer.drawScreenSpace(ruleColor, lineW);
     bR.moveTo(new V2(leftPx + barPx, y - capH));
     bR.lineTo(new V2(leftPx + barPx, y));
     bR.stroke();
@@ -107,7 +107,7 @@ export class ScaleIndicator extends LTElement<ScaleIndicatorOptions> {
     // Label (above rule, centred)
     const labelX = leftPx + barPx / 2;
     const labelY = y - capH - 4 * hdpi;
-    renderer.batchScreenSpace(textColor).renderText(
+    renderer.drawScreenSpace(textColor).renderText(
       label,
       new V2(labelX, labelY),
       10 * hdpi,

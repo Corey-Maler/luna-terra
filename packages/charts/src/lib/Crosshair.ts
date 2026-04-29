@@ -58,8 +58,8 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     const colorStr = color?.toString() ?? 'rgba(255,255,255,0.55)';
 
     // Dashed vertical line spanning the Y domain
-    const b = renderer.batch(colorStr, lineWidth);
-    b.renew(colorStr, lineWidth, { dashPattern: [5, 4] });
+    const b = renderer.draw(colorStr, lineWidth);
+    b.begin(colorStr, lineWidth, { dashPattern: [5, 4] });
     b.line(new V2(x, yMin), new V2(x, yMax));
     b.stroke();
 
@@ -68,7 +68,7 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     for (const fn of fns) {
       const y = fn(x);
       if (!isFinite(y)) continue;
-      const dot = renderer.batch(colorStr, 1);
+      const dot = renderer.draw(colorStr, 1);
       dot.fillStyle = colorStr;
       dot.arc(new V2(x, y), dotRadius);
       dot.fill();
@@ -78,7 +78,7 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     for (const data of series) {
       const y = interpolateSeries(data, x);
       if (y === null) continue;
-      const dot = renderer.batch(colorStr, 1);
+      const dot = renderer.draw(colorStr, 1);
       dot.fillStyle = colorStr;
       dot.arc(new V2(x, y), dotRadius);
       dot.fill();
@@ -87,7 +87,7 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     // X-value label just below the X axis (below yMin)
     const labelOffset = renderer.measureScreenInWorld(14);
     const label = formatValue(x);
-    renderer.batch(colorStr, 1).renderText(label, new V2(x, yMin - labelOffset), labelSize);
+    renderer.draw(colorStr, 1).renderText(label, new V2(x, yMin - labelOffset), labelSize);
   }
 }
 

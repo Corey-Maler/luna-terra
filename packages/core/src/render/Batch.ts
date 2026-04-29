@@ -1,7 +1,7 @@
 import { type M3, Rect2D, V2 } from '@lunaterra/math';
 import { Color } from '@lunaterra/color';
 
-// NOTE, this is not "native" batch, but abstract
+// NOTE: this is a shared drawing context, not a native canvas batch primitive.
 
 // export interface LL {
 //   moveTo(v: V2): void;
@@ -208,7 +208,7 @@ protected transformToViewSpace() {
 */
 }
 
-export class Batch extends LLSoftware {
+export class DrawContext extends LLSoftware {
   private color: string | Color = '#000000';
   private preservePath = false;
 
@@ -236,7 +236,7 @@ export class Batch extends LLSoftware {
   // ) {
   //   this.color = color;
 
-  //   this.renew();
+  //   this.begin();
   // }
 
   pss = () => {
@@ -247,7 +247,7 @@ export class Batch extends LLSoftware {
     this.ctx.strokeStyle = grad;
   };
 
-  renew = (
+  begin = (
     newColor?: string | Color,
     width?: number,
     opts: { preservePath?: boolean; dashPattern?: number[] } = {}

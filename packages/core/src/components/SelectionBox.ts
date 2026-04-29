@@ -188,8 +188,8 @@ export class SelectionBox extends LTElement<{}> {
     const handleHalf = renderer.measureScreenInWorld(HANDLE_HALF * hdpi);
 
     // ── Dashed bounding rectangle ───────────────────────────────────────
-    const batch = renderer.batch(colorStr, 1);
-    batch.renew(colorStr, 1, { dashPattern: [6, 4] });
+    const batch = renderer.draw(colorStr, 1);
+    batch.begin(colorStr, 1, { dashPattern: [6, 4] });
     batch.moveTo(this._corners[0]);
     batch.lineTo(this._corners[1]);
     batch.lineTo(this._corners[2]);
@@ -198,7 +198,7 @@ export class SelectionBox extends LTElement<{}> {
     batch.stroke();
 
     // ── Resize handle squares ───────────────────────────────────────────
-    batch.renew(colorStr, 1);
+    batch.begin(colorStr, 1);
     for (const pos of this._resizePositions) {
       batch.moveTo(new V2(pos.x - handleHalf, pos.y - handleHalf));
       batch.lineTo(new V2(pos.x + handleHalf, pos.y - handleHalf));
@@ -209,7 +209,7 @@ export class SelectionBox extends LTElement<{}> {
     batch.stroke();
 
     // Fill resize handles
-    batch.renew(new Color(255, 255, 255).opaque(0.9).toString(), 1);
+    batch.begin(new Color(255, 255, 255).opaque(0.9).toString(), 1);
     for (const pos of this._resizePositions) {
       batch.moveTo(new V2(pos.x - handleHalf, pos.y - handleHalf));
       batch.lineTo(new V2(pos.x + handleHalf, pos.y - handleHalf));
@@ -219,7 +219,7 @@ export class SelectionBox extends LTElement<{}> {
       batch.fill();
     }
     // Stroke outlines on top
-    batch.renew(colorStr, 1);
+    batch.begin(colorStr, 1);
     for (const pos of this._resizePositions) {
       batch.moveTo(new V2(pos.x - handleHalf, pos.y - handleHalf));
       batch.lineTo(new V2(pos.x + handleHalf, pos.y - handleHalf));
@@ -232,17 +232,17 @@ export class SelectionBox extends LTElement<{}> {
     // ── Rotation handle ─────────────────────────────────────────────────
     // Connecting line from top-center to rotation handle
     const topCenter = this._resizePositions[1];
-    batch.renew(colorStr, 1, { dashPattern: [4, 3] });
+    batch.begin(colorStr, 1, { dashPattern: [4, 3] });
     batch.moveTo(topCenter);
     batch.lineTo(this._rotatePosition);
     batch.stroke();
 
     // Rotation handle circle
     const rotateRadius = renderer.measureScreenInWorld(5 * hdpi);
-    batch.renew(new Color(255, 255, 255).opaque(0.9).toString(), 1);
+    batch.begin(new Color(255, 255, 255).opaque(0.9).toString(), 1);
     batch.arc(this._rotatePosition, rotateRadius);
     batch.fill();
-    batch.renew(colorStr, 1);
+    batch.begin(colorStr, 1);
     batch.arc(this._rotatePosition, rotateRadius);
     batch.stroke();
   }

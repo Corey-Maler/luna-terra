@@ -250,8 +250,8 @@ class UnitCircle extends LTStyledElement<{}> {
       const a = (i / steps) * Math.PI * 2;
       return new V2(Math.cos(a) * 0.2, Math.sin(a) * 0.2);
     });
-    const b = renderer.batch('rgba(130,145,165,0.35)', 1);
-    b.renew('rgba(130,145,165,0.35)', 1, { dashPattern: [4, 3] });
+    const b = renderer.draw('rgba(130,145,165,0.35)', 1);
+    b.begin('rgba(130,145,165,0.35)', 1, { dashPattern: [4, 3] });
     b.path(pts);
     b.stroke();
   }
@@ -313,11 +313,11 @@ class AngleArc extends LTStyledElement<{ angleDeg: number }> {
       return new V2(Math.cos(t) * arcR, Math.sin(t) * arcR);
     });
     if (pts.length >= 2) {
-      const b = renderer.batch('rgba(200,200,80,0.5)', 1);
+      const b = renderer.draw('rgba(200,200,80,0.5)', 1);
       b.path(pts);
       b.stroke();
       const mid = pts[Math.floor(pts.length / 2)];
-      renderer.batch('rgba(200,200,80,0.8)', 1).renderText(`${angleDeg}°`, new V2(mid.x + renderer.measureScreenInWorld(8), mid.y), 10);
+      renderer.draw('rgba(200,200,80,0.8)', 1).renderText(`${angleDeg}°`, new V2(mid.x + renderer.measureScreenInWorld(8), mid.y), 10);
     }
   }
 }

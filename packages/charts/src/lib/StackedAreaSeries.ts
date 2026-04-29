@@ -77,7 +77,7 @@ export class StackedAreaSeries extends LTStyledElement<StackedAreaSeriesOptions>
         if (bottomPoints) {
           // Polygon: top edge forward, bottom edge reversed.
           const pts = [...topPoints, ...[...bottomPoints].reverse()];
-          const b = renderer.batch(colorStr, lineWidth);
+          const b = renderer.draw(colorStr, lineWidth);
           b.ctx2d.beginPath();
           const p0 = b.toPixelsPub(pts[0]);
           b.ctx2d.moveTo(p0.x, p0.y);
@@ -89,12 +89,12 @@ export class StackedAreaSeries extends LTStyledElement<StackedAreaSeriesOptions>
           b.ctx2d.fillStyle = colorObj.opaque(fillOpacity).toString();
           b.ctx2d.fill();
         } else {
-          renderer.batch(colorStr, lineWidth).fillGradientBelow(topPoints, bottomY!, colorObj, fillOpacity);
+          renderer.draw(colorStr, lineWidth).fillGradientBelow(topPoints, bottomY!, colorObj, fillOpacity);
         }
       }
 
       // Top edge stroke
-      const b = renderer.batch(colorStr, lineWidth);
+      const b = renderer.draw(colorStr, lineWidth);
       b.path(topPoints);
       b.stroke();
     }

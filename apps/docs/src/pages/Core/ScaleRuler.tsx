@@ -137,7 +137,7 @@ export default function ScaleRulerPage() {
         </p>
         <p>
           It is rendered entirely in screen-pixel space via{' '}
-          <code>renderer.batchScreenSpace()</code>, so it stays sharp and
+          <code>renderer.drawScreenSpace()</code>, so it stays sharp and
           consistently sized regardless of world zoom level. Like{' '}
           <code>ZoomControls</code> and <code>ScaleIndicator</code>, it is an{' '}
           <code>LTElement</code> that you simply <code>engine.add()</code> once.

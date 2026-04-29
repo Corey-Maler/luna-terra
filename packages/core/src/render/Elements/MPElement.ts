@@ -1,7 +1,7 @@
 import { V2 } from '@lunaterra/math';
 import type { LunaTerraEngine } from '../../engine/engine';
 import type { CanvasRenderer } from '../CanvasRenderer';
-import { Batch } from '../Batch';
+import { DrawContext } from '../Batch';
 
 // export interface MPElement {
 //   testHover?: (p: V2, within: number) => boolean;
@@ -206,7 +206,7 @@ export abstract class MPElement<OPTIONS extends {} = {}> {
   }
 
   render(renderer: CanvasRenderer) {}
-  renderPath(batch: Batch) {}
+  renderPath(batch: DrawContext) {}
 
   public renderHelpers(renderer: CanvasRenderer) {
     for (const child of this.children ?? []) {

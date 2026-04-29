@@ -291,7 +291,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
     const label = isAnimating ? `${latestFps} fps ${modeIcon}` : `PAUSED ${modeIcon}`;
     const textColor = isAnimating ? fpsColor : '#94a3b8';
 
-    const b = renderer.batch(textColor, 1);
+    const b = renderer.draw(textColor, 1);
     b.fillText(label, new V2(PAD, PAD + TEXT_H), textColor, TEXT_H, 'left', 'top');
 
     // ── Reference lines (minimal + detailed) ──────────────────────────────
@@ -303,7 +303,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
 
       for (const ref of REF_LINES) {
         const y = chartY + chartH - (ref.fps / FPS_MAX) * chartH;
-        const br = renderer.batch(REF_LINE_COLOR, 1);
+        const br = renderer.draw(REF_LINE_COLOR, 1);
         br.ctx2d.save();
         br.ctx2d.setLineDash([3, 4]);
         br.moveTo(new V2(chartX, y));
@@ -313,7 +313,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
         br.ctx2d.restore();
 
         if (chartH > 30) {
-          const bt = renderer.batch(REF_TEXT_COLOR, 1);
+          const bt = renderer.draw(REF_TEXT_COLOR, 1);
           // Right-align inside chart to avoid spilling past the panel edge.
           bt.fillText(ref.label, new V2(chartX + chartW - 2, y), REF_TEXT_COLOR, 9, 'right', 'middle');
         }
@@ -323,7 +323,7 @@ export class FpsPanel extends LTElement<FpsPanelOptions> {
       if (mode === 'minimal' && this._fpsHistory.length > 1) {
         const minFps = Math.min(...this._fpsHistory);
         const maxFps = Math.max(...this._fpsHistory);
-        const bt = renderer.batch(REF_TEXT_COLOR, 1);
+        const bt = renderer.draw(REF_TEXT_COLOR, 1);
         bt.fillText(`↑${maxFps}`, new V2(chartX, chartY - 1), REF_TEXT_COLOR, 9, 'left', 'bottom');
         bt.fillText(`↓${minFps}`, new V2(chartX, chartY + chartH + 1), REF_TEXT_COLOR, 9, 'left', 'top');
       }

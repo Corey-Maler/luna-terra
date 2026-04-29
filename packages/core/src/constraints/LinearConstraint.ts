@@ -69,7 +69,7 @@ class LinearConstraintVisual extends LTElement<{}> {
       if (fade < 0.01) continue;
 
       const segColor = this.color.opaque(op * fade * 0.8);
-      const batch = renderer.batch(segColor, 1.5);
+      const batch = renderer.draw(segColor, 1.5);
       batch.line(p0, p1);
       batch.stroke();
     }
@@ -80,10 +80,10 @@ class LinearConstraintVisual extends LTElement<{}> {
       const perp = new V2(-unit.y, unit.x).scale(tickSize);
 
       const endpointColor = this.color.opaque(op * 0.6);
-      const b = renderer.batch(endpointColor, 1.5);
+      const b = renderer.draw(endpointColor, 1.5);
       b.line(start.sub(perp), start.add(perp));
       b.stroke();
-      b.renew(endpointColor, 1.5);
+      b.begin(endpointColor, 1.5);
       b.line(end.sub(perp), end.add(perp));
       b.stroke();
     }

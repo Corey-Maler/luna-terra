@@ -47,16 +47,16 @@ export class Axis extends LTStyledElement<AxisOptions> {
 
     if (showX) {
       // X axis line
-      let b = renderer.batch(colorStr, 1);
+      let b = renderer.draw(colorStr, 1);
       b.line(new V2(xMin, xAxisY), new V2(xMax, xAxisY));
       b.stroke();
 
       if (showArrows) {
         // Arrow tip at xMax (open chevron: two angled lines)
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(xMax, xAxisY), new V2(xMax - arrowSize, xAxisY + arrowSize * 0.6));
         b.stroke();
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(xMax, xAxisY), new V2(xMax - arrowSize, xAxisY - arrowSize * 0.6));
         b.stroke();
       }
@@ -64,30 +64,30 @@ export class Axis extends LTStyledElement<AxisOptions> {
       // X ticks + labels
       for (const t of xTickValues) {
         if (t === yAxisX) continue;
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(t, xAxisY - tickSize), new V2(t, xAxisY + tickSize));
         b.stroke();
         const tickPos = new V2(t, xAxisY);
         const opacity = renderer.labelRegistry.avoidanceOpacity(tickPos, 'axis-label-avoid', tickSize * 10, tickSize * 3);
         if (opacity > 0.01) {
           const c = color?.opaque(opacity).toString() ?? `rgba(0,0,0,${opacity})`;
-          renderer.batch(c, 1).renderText(String(t), new V2(t, xAxisY - tickSize * 4), labelSize);
+          renderer.draw(c, 1).renderText(String(t), new V2(t, xAxisY - tickSize * 4), labelSize);
         }
       }
     }
 
     if (showY) {
       // Y axis line
-      let b = renderer.batch(colorStr, 1);
+      let b = renderer.draw(colorStr, 1);
       b.line(new V2(yAxisX, yMin), new V2(yAxisX, yMax));
       b.stroke();
 
       if (showArrows) {
         // Arrow tip at yMax
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(yAxisX, yMax), new V2(yAxisX + arrowSize * 0.6, yMax - arrowSize));
         b.stroke();
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(yAxisX, yMax), new V2(yAxisX - arrowSize * 0.6, yMax - arrowSize));
         b.stroke();
       }
@@ -95,21 +95,21 @@ export class Axis extends LTStyledElement<AxisOptions> {
       // Y ticks + labels
       for (const t of yTickValues) {
         if (t === xAxisY) continue;
-        b = renderer.batch(colorStr, 1);
+        b = renderer.draw(colorStr, 1);
         b.line(new V2(yAxisX - tickSize, t), new V2(yAxisX + tickSize, t));
         b.stroke();
         const tickPos = new V2(yAxisX, t);
         const opacity = renderer.labelRegistry.avoidanceOpacity(tickPos, 'axis-label-avoid', tickSize * 10, tickSize * 3);
         if (opacity > 0.01) {
           const c = color?.opaque(opacity).toString() ?? `rgba(0,0,0,${opacity})`;
-          renderer.batch(c, 1).renderText(String(t), new V2(yAxisX + tickSize * 2.5, t), labelSize);
+          renderer.draw(c, 1).renderText(String(t), new V2(yAxisX + tickSize * 2.5, t), labelSize);
         }
       }
     }
 
     // Zero label (only when axes are at origin)
     if ((showX || showY) && xAxisY === 0 && yAxisX === 0) {
-      renderer.batch(colorStr, 1).renderText('0', new V2(-tickSize * 4, -tickSize * 4), labelSize);
+      renderer.draw(colorStr, 1).renderText('0', new V2(-tickSize * 4, -tickSize * 4), labelSize);
     }
   }
 }

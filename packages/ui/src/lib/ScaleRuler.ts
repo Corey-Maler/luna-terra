@@ -2,7 +2,7 @@ import { V2 } from '@lunaterra/math';
 import type { LunaTerraEngine } from '@lunaterra/core';
 import type { CanvasRenderer } from '@lunaterra/core';
 import { LTElement, resolveThemeColor, themeColor } from '@lunaterra/core';
-import type { Batch } from '@lunaterra/core';
+import type { DrawContext } from '@lunaterra/core';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -373,7 +373,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const toothClearance = tickDotR * 2.5;
 
     const toothAlpha = 0.18 + 0.82 * hs;  // always slightly visible, full at hover
-    const tb = renderer.batchScreenSpace(toothColor, 1);
+    const tb = renderer.drawScreenSpace(toothColor, 1);
     tb.fillStyle = toothColor;
     tb.save();
     tb.setAlpha(toothAlpha);
@@ -392,7 +392,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     // ── Tick dots + labels ────────────────────────────────────────────────
     const labelY   = trackY + LABEL_PAD * hdpi + LABEL_SIZE * hdpi;
 
-    const tickDots = renderer.batchScreenSpace(tickColor, 1);
+    const tickDots = renderer.drawScreenSpace(tickColor, 1);
     tickDots.fillStyle = tickColor;
     for (const tick of ticks) {
       const tx = valToX(tick.value);
@@ -406,7 +406,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const tx = valToX(tick.value);
       // Clip labels that would overflow the track area.
       if (tx < trackX0 || tx > trackX1) continue;
-      renderer.batchScreenSpace(labelColor).renderText(
+      renderer.drawScreenSpace(labelColor).renderText(
         tick.label.toUpperCase(),
         new V2(tx, labelY),
         LABEL_SIZE,
@@ -427,7 +427,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const pillTop   = pillBot - pillH;
 
     // Badge background (rounded rect + downward arrow triangle)
-    const badge = renderer.batchScreenSpace(badgeBg, 1);
+    const badge = renderer.drawScreenSpace(badgeBg, 1);
     badge.fillStyle = badgeBg;
     _roundRect(badge, pillX, pillTop, pillW, pillH, pillR);
     // Arrow triangle
@@ -440,7 +440,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     // Value text centred in badge
     const valueStr = this._value.toFixed(2);
     const textY = pillTop + pillH * 0.65;
-    renderer.batchScreenSpace(badgeText).renderText(
+    renderer.drawScreenSpace(badgeText).renderText(
       valueStr,
       new V2(caretPx, textY),
       10,
@@ -501,7 +501,7 @@ function _themeColor(renderer: CanvasRenderer, path: string, fallback: string): 
 }
 
 /** Rounded rectangle path (adds to current open path — no beginPath). */
-function _roundRect(b: Batch, x: number, y: number, w: number, h: number, r: number) {
+function _roundRect(b: DrawContext, x: number, y: number, w: number, h: number, r: number) {
   b.moveTo(new V2(x + r,     y));
   b.lineTo(new V2(x + w - r, y));
   b.arcTo(new V2(x + w, y),     new V2(x + w, y + r),     r);
@@ -515,7 +515,7 @@ function _roundRect(b: Batch, x: number, y: number, w: number, h: number, r: num
 }
 
 /** Draw a filled rect path (add to current open path — no beginPath). */
-function _filledRect(b: Batch, x: number, y: number, w: number, h: number) {
+function _filledRect(b: DrawContext, x: number, y: number, w: number, h: number) {
   b.moveTo(new V2(x,     y));
   b.lineTo(new V2(x + w, y));
   b.lineTo(new V2(x + w, y + h));

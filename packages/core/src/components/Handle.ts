@@ -152,12 +152,12 @@ export class Handle extends LTStyledElement<HandleOptions> {
     const origin = new V2(0, 0);
 
     // Outer halo
-    const batch = renderer.batch(color.opaque(opacity * 0.4), 1);
+    const batch = renderer.draw(color.opaque(opacity * 0.4), 1);
     batch.arc(origin, haloRadius);
     batch.fill();
 
     // Inner solid dot
-    batch.renew(color.opaque(opacity));
+    batch.begin(color.opaque(opacity));
     batch.arc(origin, dotRadius);
     batch.fill();
   }

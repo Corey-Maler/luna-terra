@@ -85,7 +85,7 @@ export class VectorArrow extends LTStyledElement<VectorArrowOptions> {
     const labelSize = 11;
 
     // ── Arrow body (dark, 0.8 opacity) ───────────────────────────────────────
-    const ab = renderer.batch(ARROW_COLOR, 1.5);
+    const ab = renderer.draw(ARROW_COLOR, 1.5);
     ab.line(origin, tip);
     ab.stroke();
 
@@ -104,11 +104,11 @@ export class VectorArrow extends LTStyledElement<VectorArrowOptions> {
         tip.y - Math.sin(angle + spread) * arrowSize * 1.6,
       );
 
-      const ch1 = renderer.batch(ARROW_COLOR, 1.5);
+      const ch1 = renderer.draw(ARROW_COLOR, 1.5);
       ch1.line(tip, a1);
       ch1.stroke();
 
-      const ch2 = renderer.batch(ARROW_COLOR, 1.5);
+      const ch2 = renderer.draw(ARROW_COLOR, 1.5);
       ch2.line(tip, a2);
       ch2.stroke();
     }
@@ -116,7 +116,7 @@ export class VectorArrow extends LTStyledElement<VectorArrowOptions> {
     // ── Optional label at tip ────────────────────────────────────────────────
     if (this.options.label) {
       const offset = renderer.measureScreenInWorld(14);
-      renderer.batch(ARROW_COLOR, 1).renderText(
+      renderer.draw(ARROW_COLOR, 1).renderText(
         this.options.label,
         new V2(tip.x + offset, tip.y + offset),
         labelSize,
@@ -133,19 +133,19 @@ export class VectorArrow extends LTStyledElement<VectorArrowOptions> {
     if (Math.abs(vec.x) > 0.002) {
       const xAxisPt = new V2(tip.x, origin.y);
 
-      const bx = renderer.batch(X_COLOR, 1);
-      bx.renew(X_COLOR, 1, { dashPattern: [4, 3] });
+      const bx = renderer.draw(X_COLOR, 1);
+      bx.begin(X_COLOR, 1, { dashPattern: [4, 3] });
       bx.line(xAxisPt, tip);
       bx.stroke();
 
       // dot on axis
-      const dotBx = renderer.batch(X_COLOR, 1);
+      const dotBx = renderer.draw(X_COLOR, 1);
       dotBx.fillStyle = X_COLOR;
       dotBx.arc(xAxisPt, dotR);
       dotBx.fill();
 
       // x value label below axis intercept — and register for axis tick avoidance
-      renderer.batch(X_COLOR, 1).renderText(
+      renderer.draw(X_COLOR, 1).renderText(
         vec.x.toFixed(2),
         new V2(tip.x, origin.y - tickOffset),
         labelSize,
@@ -157,20 +157,20 @@ export class VectorArrow extends LTStyledElement<VectorArrowOptions> {
     if (Math.abs(vec.y) > 0.002) {
       const yAxisPt = new V2(origin.x, tip.y);
 
-      const by = renderer.batch(Y_COLOR, 1);
-      by.renew(Y_COLOR, 1, { dashPattern: [4, 3] });
+      const by = renderer.draw(Y_COLOR, 1);
+      by.begin(Y_COLOR, 1, { dashPattern: [4, 3] });
       by.line(yAxisPt, tip);
       by.stroke();
 
       // dot on axis
-      const dotBy = renderer.batch(Y_COLOR, 1);
+      const dotBy = renderer.draw(Y_COLOR, 1);
       dotBy.fillStyle = Y_COLOR;
       dotBy.arc(yAxisPt, dotR);
       dotBy.fill();
 
       // y value label left of axis intercept — and register for axis tick avoidance
       const labelW = renderer.measureScreenInWorld(30);
-      renderer.batch(Y_COLOR, 1).renderText(
+      renderer.draw(Y_COLOR, 1).renderText(
         vec.y.toFixed(2),
         new V2(origin.x - labelW, tip.y),
         labelSize,

@@ -55,14 +55,14 @@ export class Panel extends LTElement<PanelOptions> {
     const r = Math.min(cornerRadius, Math.abs(width) / 2, Math.abs(height) / 2);
 
     // Fill pass
-    const bf = renderer.batch(backgroundColor, borderWidth);
+    const bf = renderer.draw(backgroundColor, borderWidth);
     buildRoundedRectPath(bf, x, y, width, height, r);
     bf.ctx2d.fillStyle = backgroundColor;
     bf.fill();
 
     // Border pass (separate batch call → fresh beginPath)
     if (borderWidth > 0) {
-      const bs = renderer.batch(borderColor, borderWidth);
+      const bs = renderer.draw(borderColor, borderWidth);
       buildRoundedRectPath(bs, x, y, width, height, r);
       bs.stroke();
     }

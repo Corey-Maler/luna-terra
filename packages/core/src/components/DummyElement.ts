@@ -8,7 +8,7 @@ export class DummyElement extends LTElement<{}> {
   }
 
   override render(renderer: CanvasRenderer) {
-    const { path, stroke } = renderer.batch('green');
+    const { path, stroke } = renderer.draw('green');
 
     path([
       new V2(0.11, 0.11),
@@ -19,7 +19,7 @@ export class DummyElement extends LTElement<{}> {
     ]);
     stroke();
 
-    renderer.webGL.p3(
+    renderer.webgl.p3(
       new Float32Array([
         0.09, 0.09, 0.09, 0.91, 0.91, 0.91, 0.91, 0.09, 0.09, 0.09, 0.91, 0.91,
         0.91, 0.09, 0.09, 0.91,
@@ -29,7 +29,7 @@ export class DummyElement extends LTElement<{}> {
       ['#666600'],
     );
 
-    renderer.webGL.p3(
+    renderer.webgl.p3(
       new Float32Array([
         0.09, 0.09, 0.09, 0.21, 0.21, 0.21, 0.21, 0.09, 0.09, 0.09,
       ]),

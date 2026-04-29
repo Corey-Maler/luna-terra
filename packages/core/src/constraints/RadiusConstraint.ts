@@ -95,7 +95,7 @@ class RadiusArcVisual extends LTElement<{}> {
         if (prox < 0.01) continue;
         const segColor = this.color.opaque(op * prox * 0.22 * globalFade);
         // Negate angles for ctx.arc Y-flip convention
-        const sb = renderer.batch(segColor, 1);
+        const sb = renderer.draw(segColor, 1);
         sb.arc(center, this.radius, -a0, -a1, compDir > 0);
         sb.stroke();
       }
@@ -108,7 +108,7 @@ class RadiusArcVisual extends LTElement<{}> {
       const ARC_EXT = isSmall ? Math.PI / 6 : 0; // 30° extension each side
       const arcStart = refAngle    - sweepDir * ARC_EXT;
       const arcEnd   = handleAngle + sweepDir * ARC_EXT;
-      const ab = renderer.batch(arcColor, 3);
+      const ab = renderer.draw(arcColor, 3);
       ab.arc(center, this.radius, -arcStart, -arcEnd, delta >= 0);
       ab.stroke();
     }
@@ -127,7 +127,7 @@ class RadiusArcVisual extends LTElement<{}> {
       const sin   = Math.sin(refAngle);
       const outer = new V2(center.x + cos * (this.radius + tLen), center.y + sin * (this.radius + tLen));
       const inner = new V2(center.x + cos * (this.radius - tLen), center.y + sin * (this.radius - tLen));
-      const tb = renderer.batch(this.color.opaque(op * 0.5), 1);
+      const tb = renderer.draw(this.color.opaque(op * 0.5), 1);
       tb.line(inner, outer);
       tb.stroke();
     }
@@ -164,7 +164,7 @@ class RadiusArcVisual extends LTElement<{}> {
       const label = base != null
         ? `${currentDeg.toFixed(1)}° (+${(currentDeg - base).toFixed(1)}°)`
         : `${currentDeg.toFixed(1)}°`;
-      const lb = renderer.batch(this.color.opaque(labelAlpha * op), 1);
+      const lb = renderer.draw(this.color.opaque(labelAlpha * op), 1);
       lb.renderText(label, labelPos, 11, 'center', 'middle');
     }
   }
@@ -199,7 +199,7 @@ class RadiusArcVisual extends LTElement<{}> {
       const sin = Math.sin(angle);
       const pInner = new V2(center.x + cos * innerR, center.y + sin * innerR);
       const pOuter = new V2(center.x + cos * outerR, center.y + sin * outerR);
-      const ab = renderer.batch(arcColor, 1);
+      const ab = renderer.draw(arcColor, 1);
       ab.line(pInner, pOuter);
       ab.stroke();
     }
@@ -225,7 +225,7 @@ class RadiusArcVisual extends LTElement<{}> {
       const label = base != null
         ? `${currentDeg.toFixed(1)}° (+${(currentDeg - base).toFixed(1)}°)`
         : `${currentDeg.toFixed(1)}°`;
-      const lb = renderer.batch(this.color.opaque(labelAlpha * op), 1);
+      const lb = renderer.draw(this.color.opaque(labelAlpha * op), 1);
       lb.renderText(label, labelPos, 11, 'center', 'middle');
     }
   }
@@ -257,7 +257,7 @@ class RadiusArcVisual extends LTElement<{}> {
     const base1 = new V2(tip.x - tx * size + px * size * 0.5, tip.y - ty * size + py * size * 0.5);
     const base2 = new V2(tip.x - tx * size - px * size * 0.5, tip.y - ty * size - py * size * 0.5);
 
-    const b = renderer.batch(color, 1);
+    const b = renderer.draw(color, 1);
     b.moveTo(tip);
     b.lineTo(base1);
     b.lineTo(base2);

@@ -51,26 +51,26 @@ class RectElement extends LTStyledElement<RectElementOptions> {
     const bl = v1.clone();
 
     // Fill
-    const fill = renderer.batch(colorStr, 1);
+    const fill = renderer.draw(colorStr, 1);
     fill.fillStyle = colorStr;
     fill.path([tl, tr, br, bl, tl]);
     fill.fill(resolvedColor.opaque(fillOpacity));
 
     // Stroke
-    const stroke = renderer.batch(colorStr, 1.5);
+    const stroke = renderer.draw(colorStr, 1.5);
     stroke.path([tl, tr, br, bl, tl]);
     stroke.stroke();
 
     // Center dot
     const center = new V2((v1.x + v2.x) / 2, (v1.y + v2.y) / 2);
     const dotR = renderer.measureScreenInWorld(4);
-    const dot = renderer.batch(colorStr, 1);
+    const dot = renderer.draw(colorStr, 1);
     dot.fillStyle = colorStr;
     dot.arc(center, dotR);
     dot.fill();
 
     // Center label
-    renderer.batch(colorStr, 1).renderText('center', new V2(center.x + renderer.measureScreenInWorld(10), center.y), 10);
+    renderer.draw(colorStr, 1).renderText('center', new V2(center.x + renderer.measureScreenInWorld(10), center.y), 10);
   }
 }
 // ── Draggable rect (two corner handles) ──────────────────────────────────
@@ -134,29 +134,29 @@ class DraggableRectElement extends LTElement<DraggableRectCallbacks> {
     const br = new V2(v2.x, v1.y);
     const bl = v1.clone();
 
-    const fill = renderer.batch(colorStr, 1);
+    const fill = renderer.draw(colorStr, 1);
     fill.fillStyle = colorStr;
     fill.path([tl, tr, br, bl, tl]);
     fill.fill(rectColor.opaque(0.12));
 
-    renderer.batch(colorStr, 1.5).path([tl, tr, br, bl, tl]);
-    renderer.batch(colorStr, 1.5).stroke();
+    renderer.draw(colorStr, 1.5).path([tl, tr, br, bl, tl]);
+    renderer.draw(colorStr, 1.5).stroke();
 
     const center = rect.center;
     const dotR = renderer.measureScreenInWorld(4);
-    const dot = renderer.batch(colorStr, 1);
+    const dot = renderer.draw(colorStr, 1);
     dot.fillStyle = colorStr;
     dot.arc(center, dotR);
     dot.fill();
-    renderer.batch(colorStr, 1).renderText('center', new V2(center.x + renderer.measureScreenInWorld(10), center.y), 10);
+    renderer.draw(colorStr, 1).renderText('center', new V2(center.x + renderer.measureScreenInWorld(10), center.y), 10);
 
     const lOff = renderer.measureScreenInWorld(8);
-    renderer.batch(labelColor.toString(), 1).renderText(
+    renderer.draw(labelColor.toString(), 1).renderText(
       `(${this.corner1.x.toFixed(2)}, ${this.corner1.y.toFixed(2)})`,
       new V2(this.corner1.x + lOff, this.corner1.y - renderer.measureScreenInWorld(14)),
       9,
     );
-    renderer.batch(labelColor.toString(), 1).renderText(
+    renderer.draw(labelColor.toString(), 1).renderText(
       `(${this.corner2.x.toFixed(2)}, ${this.corner2.y.toFixed(2)})`,
       new V2(this.corner2.x - renderer.measureScreenInWorld(50), this.corner2.y + lOff),
       9,
@@ -203,11 +203,11 @@ class DraggablePointElement extends LTElement<{ onChangeP: (v: V2) => void }> {
       ? themedColor(renderer, 'math.state.successStrong', new Color(60, 200, 100)).opaque(0.9).toString()
       : themedColor(renderer, 'math.state.danger', new Color(220, 80, 60)).opaque(0.9).toString();
     const r = renderer.measureScreenInWorld(6);
-    const dot = renderer.batch(color, 1);
+    const dot = renderer.draw(color, 1);
     dot.fillStyle = color;
     dot.arc(point, r);
     dot.fill();
-    renderer.batch(color, 1).renderText(
+    renderer.draw(color, 1).renderText(
       inside ? 'inside' : 'outside',
       new V2(point.x + renderer.measureScreenInWorld(10), point.y),
       11,
@@ -338,16 +338,16 @@ class QuadrantHighlight extends LTStyledElement<QuadrantHighlightOptions> {
     const tr = qv2.clone();
     const br = new V2(qv2.x, qv1.y);
     const bl = qv1.clone();
-    const fill = renderer.batch(qColor, 1);
+    const fill = renderer.draw(qColor, 1);
     fill.fillStyle = qColor;
     fill.path([tl, tr, br, bl, tl]);
     fill.fill(quadColor.opaque(0.18));
-    renderer.batch(qColor, 1.5).path([tl, tr, br, bl, tl]);
-    renderer.batch(qColor, 1.5).stroke();
+    renderer.draw(qColor, 1.5).path([tl, tr, br, bl, tl]);
+    renderer.draw(qColor, 1.5).stroke();
     const names = ['bottom-left', 'bottom-right', 'top-right', 'top-left'];
     const cx = (qv1.x + qv2.x) / 2;
     const cy = (qv1.y + qv2.y) / 2;
-    renderer.batch(qColor, 1).renderText(names[quadrant], new V2(cx - renderer.measureScreenInWorld(22), cy), 10);
+    renderer.draw(qColor, 1).renderText(names[quadrant], new V2(cx - renderer.measureScreenInWorld(22), cy), 10);
   }
 }
 

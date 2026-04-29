@@ -522,7 +522,7 @@ function phaseAngle(body: Vec3, camera: CameraBasis): number {
 function drawBody(renderer: CanvasRenderer, body: BodyRender, showLabel: boolean) {
   const origin = body.pos2;
 
-  const bg = renderer.batch(body.fill, 1);
+  const bg = renderer.draw(body.fill, 1);
   bg.arc(origin, body.radiusWorld);
   bg.fill();
 
@@ -532,7 +532,7 @@ function drawBody(renderer: CanvasRenderer, body: BodyRender, showLabel: boolean
 
   if (Math.abs(body.phaseAngle - Math.PI) > 0.02) {
     const theta = body.lightAngle;
-    const shadow = renderer.batch(body.darkFill, 1);
+    const shadow = renderer.draw(body.darkFill, 1);
 
     shadow.save();
     shadow.arc(origin, body.radiusWorld);
@@ -556,12 +556,12 @@ function drawBody(renderer: CanvasRenderer, body: BodyRender, showLabel: boolean
   }
 
   // Keep a high-contrast contour so bodies remain visible on dark backgrounds.
-  const outline = renderer.batch(body.stroke, 2.1);
+  const outline = renderer.draw(body.stroke, 2.1);
   outline.arc(origin, body.radiusWorld);
   outline.stroke();
 
   if (showLabel) {
-    const lbl = renderer.batch(body.stroke, 1);
+    const lbl = renderer.draw(body.stroke, 1);
     lbl.save();
     lbl.setAlpha(0.7);
     lbl.renderText(body.label.toUpperCase(), new V2(origin.x, origin.y - body.radiusWorld - renderer.measureScreenInWorld(16)), 10, 'center', 'alphabetic');
@@ -577,8 +577,8 @@ function drawOrbitPath(
   alpha = 1,
 ) {
   const segments = 160;
-  const path = renderer.batch(color, 1.1);
-  path.renew(color, 1.1, { dashPattern: [4, 5] });
+  const path = renderer.draw(color, 1.1);
+  path.begin(color, 1.1, { dashPattern: [4, 5] });
   path.setAlpha(0.38 * alpha);
 
   for (let i = 0; i <= segments; i++) {
@@ -603,8 +603,8 @@ function drawMoonOrbitPath(
   alpha = 1,
 ) {
   const segments = 180;
-  const path = renderer.batch(color, 1.15);
-  path.renew(color, 1.15, { dashPattern: [3, 4] });
+  const path = renderer.draw(color, 1.15);
+  path.begin(color, 1.15, { dashPattern: [3, 4] });
   path.setAlpha(0.48 * alpha);
 
   for (let i = 0; i <= segments; i++) {
@@ -672,19 +672,19 @@ function drawStarsView(
 
   // Sol
   const solProj = projectPoint({ x: 0, y: 0, z: 0 }, camera);
-  const sBg = renderer.batch(solFill, 1);
+  const sBg = renderer.draw(solFill, 1);
   sBg.save(); sBg.setAlpha(alpha);
   sBg.arc(solProj.pos, solRadius);
   sBg.fill();
   sBg.restore();
 
-  const sOut = renderer.batch(solStroke, 1.5);
+  const sOut = renderer.draw(solStroke, 1.5);
   sOut.save(); sOut.setAlpha(alpha);
   sOut.arc(solProj.pos, solRadius);
   sOut.stroke();
   sOut.restore();
 
-  const sLbl = renderer.batch(accent, 1);
+  const sLbl = renderer.draw(accent, 1);
   sLbl.save(); sLbl.setAlpha(0.75 * alpha);
   sLbl.renderText('SOL', new V2(solProj.pos.x, solProj.pos.y - solRadius - renderer.measureScreenInWorld(14)), 9, 'center', 'alphabetic');
   sLbl.restore();
@@ -695,19 +695,19 @@ function drawStarsView(
     const r    = renderer.measureScreenInWorld(star.radiusPx);
     const fill = dark ? star.colorDark : star.colorLight;
 
-    const bg = renderer.batch(fill, 1);
+    const bg = renderer.draw(fill, 1);
     bg.save(); bg.setAlpha(alpha);
     bg.arc(proj.pos, r);
     bg.fill();
     bg.restore();
 
-    const out = renderer.batch(accent, 1.2);
+    const out = renderer.draw(accent, 1.2);
     out.save(); out.setAlpha(0.4 * alpha);
     out.arc(proj.pos, r);
     out.stroke();
     out.restore();
 
-    const lbl = renderer.batch(accent, 1);
+    const lbl = renderer.draw(accent, 1);
     lbl.save(); lbl.setAlpha(0.6 * alpha);
     lbl.renderText(
       star.label.toUpperCase(),
@@ -722,14 +722,14 @@ function drawStarsView(
   const b1: Vec3 = { x:  2, y: -12, z:  8 };
   const bp0 = projectPoint(b0, camera).pos;
   const bp1 = projectPoint(b1, camera).pos;
-  const barB = renderer.batch(accent, 1.2);
+  const barB = renderer.draw(accent, 1.2);
   barB.save(); barB.setAlpha(0.4 * alpha);
   barB.moveTo(bp0);
   barB.lineTo(bp1);
   barB.stroke();
   barB.restore();
   const mid = new V2((bp0.x + bp1.x) / 2, (bp0.y + bp1.y) / 2);
-  const barLbl = renderer.batch(accent, 1);
+  const barLbl = renderer.draw(accent, 1);
   barLbl.save(); barLbl.setAlpha(0.4 * alpha);
   barLbl.renderText('10 LY', new V2(mid.x, mid.y - renderer.measureScreenInWorld(10)), 8, 'center', 'alphabetic');
   barLbl.restore();
@@ -767,7 +767,7 @@ function drawGalaxyView(
   }
 
   for (const [color, group] of [[warmFill, warm], [coolFill, cool], [neutralFill, neutral]] as [string, V2[]][]) {
-    const b = renderer.batch(color, 1);
+    const b = renderer.draw(color, 1);
     b.save(); b.setAlpha(0.55 * alpha);
     for (const p of group) {
       b.moveTo(new V2(p.x + dotRadius, p.y)); // start fresh subpath; prevents connecting lines between arcs
@@ -781,13 +781,13 @@ function drawGalaxyView(
   const gcPos    = new V2(center.x, center.y);
   const gcRadius = renderer.measureScreenInWorld(3.5);
   const gcFill   = dark ? '#c09040' : '#e0b060';
-  const gcBg = renderer.batch(gcFill, 1);
+  const gcBg = renderer.draw(gcFill, 1);
   gcBg.save(); gcBg.setAlpha(0.55 * alpha);
   gcBg.arc(gcPos, gcRadius);
   gcBg.fill();
   gcBg.restore();
 
-  const gcLbl = renderer.batch(accent, 1);
+  const gcLbl = renderer.draw(accent, 1);
   gcLbl.save(); gcLbl.setAlpha(0.55 * alpha);
   gcLbl.renderText('GALACTIC CENTER', new V2(gcPos.x, gcPos.y - gcRadius - renderer.measureScreenInWorld(13)), 8, 'center', 'alphabetic');
   gcLbl.restore();
@@ -800,19 +800,19 @@ function drawGalaxyView(
   const solFill   = dark ? '#f5c97a' : '#f2c47b';
   const solStroke = dark ? '#efe2cd' : '#5a3512';
 
-  const solBg = renderer.batch(solFill, 1);
+  const solBg = renderer.draw(solFill, 1);
   solBg.save(); solBg.setAlpha(alpha);
   solBg.arc(solPos, solRadius);
   solBg.fill();
   solBg.restore();
 
-  const solOut = renderer.batch(solStroke, 1.5);
+  const solOut = renderer.draw(solStroke, 1.5);
   solOut.save(); solOut.setAlpha(alpha);
   solOut.arc(solPos, solRadius);
   solOut.stroke();
   solOut.restore();
 
-  const solLbl = renderer.batch(accent, 1);
+  const solLbl = renderer.draw(accent, 1);
   solLbl.save(); solLbl.setAlpha(0.8 * alpha);
   solLbl.renderText('SOL', new V2(solWX, solWY - solRadius - renderer.measureScreenInWorld(13)), 8, 'center', 'alphabetic');
   solLbl.restore();
@@ -822,14 +822,14 @@ function drawGalaxyView(
   const barY   = center.y + 35 * GALAXY_KLY_SCALE;
   const barX0  = center.x - barLen / 2;
   const barX1  = center.x + barLen / 2;
-  const barB = renderer.batch(accent, 1.2);
+  const barB = renderer.draw(accent, 1.2);
   barB.save(); barB.setAlpha(0.4 * alpha);
   barB.moveTo(new V2(barX0, barY));
   barB.lineTo(new V2(barX1, barY));
   barB.stroke();
   barB.restore();
 
-  const barLbl = renderer.batch(accent, 1);
+  const barLbl = renderer.draw(accent, 1);
   barLbl.save(); barLbl.setAlpha(0.4 * alpha);
   barLbl.renderText('10 KLY', new V2((barX0 + barX1) / 2, barY - renderer.measureScreenInWorld(10)), 8, 'center', 'alphabetic');
   barLbl.restore();
@@ -1185,7 +1185,7 @@ export class SolarSystemScene extends LTElement<{}> {
       }));
 
       // Fade bodies out as we zoom to stars view
-      const fade = renderer.batch('#000', 1);
+      const fade = renderer.draw('#000', 1);
       fade.save();
       fade.setAlpha(auWeight);
       for (const body of bodies) {

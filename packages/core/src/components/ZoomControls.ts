@@ -129,12 +129,12 @@ export class ZoomControls extends LTElement<ZoomControlsOptions> {
     const labelText = _themeColor(renderer, 'ui.zoomControls.labelText', new Color(85, 85, 85, 1)).toString();
 
     // ── Background ────────────────────────────────────────────────────────
-    const bg = renderer.batchScreenSpace(panelBg, 1);
+    const bg = renderer.drawScreenSpace(panelBg, 1);
     const r = 6 * hdpi; // corner radius for rounding
     _roundRect(bg, panelX - padPx / 2, panelY, totalW + padPx, panelH, r);
     bg.fill();
 
-    const border = renderer.batchScreenSpace(panelBorder, 1);
+    const border = renderer.drawScreenSpace(panelBorder, 1);
     _roundRect(border, panelX - padPx / 2, panelY, totalW + padPx, panelH, r);
     border.stroke();
 
@@ -171,10 +171,10 @@ export class ZoomControls extends LTElement<ZoomControlsOptions> {
 
 // ── Internal drawing helpers ───────────────────────────────────────────────
 
-import type { Batch } from '../render/Batch';
+import type { DrawContext } from '../render/Batch';
 
 function _roundRect(
-  b: Batch,
+  b: DrawContext,
   x: number,
   y: number,
   w: number,
@@ -207,7 +207,7 @@ function _buttonLabel(
   const textX = x + (w - charW * label.length) / 2;
   const textY = y + h * 0.62;
   renderer
-    .batchScreenSpace(color)
+    .drawScreenSpace(color)
     .renderText(label, new V2(textX, textY), 13);
 }
 
@@ -225,7 +225,7 @@ function _labelText(
   const textX = x + (w - charW * text.length) / 2;
   const textY = y + h * 0.62;
   renderer
-    .batchScreenSpace(color)
+    .drawScreenSpace(color)
     .renderText(text, new V2(textX, textY), 11);
 }
 

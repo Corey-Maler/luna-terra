@@ -31,11 +31,11 @@ export class TestSquareElement extends LTStyledElement<TestSquareOptions> {
     const br = new V2(s, s);
     const bl = new V2(-s, s);
 
-    const fill = renderer.batch(color.opaque(opacity * 0.3), 1);
+    const fill = renderer.draw(color.opaque(opacity * 0.3), 1);
     fill.path([tl, tr, br, bl, tl]);
     fill.fill(color.opaque(opacity * 0.3));
 
-    const stroke = renderer.batch(color.opaque(opacity), 1);
+    const stroke = renderer.draw(color.opaque(opacity), 1);
     stroke.path([tl, tr, br, bl, tl]);
     stroke.stroke();
   }

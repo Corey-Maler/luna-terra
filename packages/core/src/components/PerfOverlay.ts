@@ -59,12 +59,12 @@ export class PerfOverlay extends LTElement<{}> {
       const bgH = PAD + LINE_H + stats.length * LINE_H + PAD;
 
       // semi-transparent background panel
-      const bg = renderer.batchScreenSpace('rgba(243,243,243,0.92)');
+      const bg = renderer.drawScreenSpace('rgba(243,243,243,0.92)');
       bg.rect(new V2(4, 4), new V2(4 + PANEL_W, 4 + bgH));
       bg.fill();
 
       // FPS row
-      const text = renderer.batchScreenSpace('#333333');
+      const text = renderer.drawScreenSpace('#333333');
       text.renderText(fpsLabel, new V2(10, PAD + LINE_H));
 
       // stat rows
@@ -74,7 +74,7 @@ export class PerfOverlay extends LTElement<{}> {
         y += LINE_H;
       }
     } else {
-      renderer.batchScreenSpace('#333333').renderText(fpsLabel, new V2(10, 20));
+      renderer.drawScreenSpace('#333333').renderText(fpsLabel, new V2(10, 20));
     }
   }
 

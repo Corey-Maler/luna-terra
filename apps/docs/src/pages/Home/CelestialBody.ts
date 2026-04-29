@@ -60,7 +60,7 @@ export class CelestialBody extends LTElement<CelestialBodyOptions> {
     const origin = new V2(0, 0);
 
     // ── 1. Filled circle (background colour) ────────────────────────────
-    const bg = renderer.batch(bgColor, 1);
+    const bg = renderer.draw(bgColor, 1);
     bg.arc(origin, radius);
     bg.fill();
 
@@ -74,7 +74,7 @@ export class CelestialBody extends LTElement<CelestialBodyOptions> {
     const shadowOnRight = phaseAngle > Math.PI;
 
     if (Math.abs(phaseAngle - Math.PI) > 0.02) {
-      const shadow = renderer.batch(accentColor, 1);
+      const shadow = renderer.draw(accentColor, 1);
 
       // Clip to body circle
       shadow.save();
@@ -104,7 +104,7 @@ export class CelestialBody extends LTElement<CelestialBodyOptions> {
     }
 
     // ── 3. Circle outline (accent stroke) ────────────────────────────────
-    const outline = renderer.batch(accentColor, strokePx);
+    const outline = renderer.draw(accentColor, strokePx);
     outline.arc(origin, radius);
     outline.stroke();
 
@@ -117,7 +117,7 @@ export class CelestialBody extends LTElement<CelestialBodyOptions> {
         ? radius + gap
         : -(radius + gap + renderer.measureScreenInWorld(fontSize * 0.8));
 
-      const lbl = renderer.batch(accentColor, 1);
+      const lbl = renderer.draw(accentColor, 1);
       lbl.setAlpha(0.7);
       lbl.renderText(label.toUpperCase(), new V2(0, textY), fontSize, 'center', 'alphabetic');
       lbl.resetAlpha();

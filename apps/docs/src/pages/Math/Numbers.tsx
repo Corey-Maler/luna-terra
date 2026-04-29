@@ -38,37 +38,37 @@ class NumberLineElement extends LTStyledElement<NumberLineOptions> {
     const lbl = 11;
 
     // ── Full number line ─────────────────────────────────────────────────
-    renderer.batch(lineColor, 1.5).line(new V2(lineX1, lineY), new V2(lineX2, lineY));
-    renderer.batch(lineColor, 1.5).stroke();
+    renderer.draw(lineColor, 1.5).line(new V2(lineX1, lineY), new V2(lineX2, lineY));
+    renderer.draw(lineColor, 1.5).stroke();
 
     // ── Clamped range highlight ──────────────────────────────────────────
-    renderer.batch(rangeColor, 3).line(
+    renderer.draw(rangeColor, 3).line(
       new V2(clamp(min, lineX1, lineX2), lineY),
       new V2(clamp(max, lineX1, lineX2), lineY),
     );
-    renderer.batch(rangeColor, 3).stroke();
+    renderer.draw(rangeColor, 3).stroke();
 
     // ── Min tick ─────────────────────────────────────────────────────────
     const minX = clamp(min, lineX1, lineX2);
-    renderer.batch(rangeColor, 1.5).line(new V2(minX, lineY - tickH), new V2(minX, lineY + tickH));
-    renderer.batch(rangeColor, 1.5).stroke();
-    renderer.batch(rangeColor, 1).renderText(`min=${min.toFixed(2)}`, new V2(minX - renderer.measureScreenInWorld(16), lineY - tickH * 3), lbl);
+    renderer.draw(rangeColor, 1.5).line(new V2(minX, lineY - tickH), new V2(minX, lineY + tickH));
+    renderer.draw(rangeColor, 1.5).stroke();
+    renderer.draw(rangeColor, 1).renderText(`min=${min.toFixed(2)}`, new V2(minX - renderer.measureScreenInWorld(16), lineY - tickH * 3), lbl);
 
     // ── Max tick ─────────────────────────────────────────────────────────
     const maxX = clamp(max, lineX1, lineX2);
-    renderer.batch(rangeColor, 1.5).line(new V2(maxX, lineY - tickH), new V2(maxX, lineY + tickH));
-    renderer.batch(rangeColor, 1.5).stroke();
-    renderer.batch(rangeColor, 1).renderText(`max=${max.toFixed(2)}`, new V2(maxX - renderer.measureScreenInWorld(16), lineY - tickH * 3), lbl);
+    renderer.draw(rangeColor, 1.5).line(new V2(maxX, lineY - tickH), new V2(maxX, lineY + tickH));
+    renderer.draw(rangeColor, 1.5).stroke();
+    renderer.draw(rangeColor, 1).renderText(`max=${max.toFixed(2)}`, new V2(maxX - renderer.measureScreenInWorld(16), lineY - tickH * 3), lbl);
 
     // ── Raw value dot ────────────────────────────────────────────────────
     const rawInRange = value >= lineX1 && value <= lineX2;
     const rawX = clamp(value, lineX1 - 0.05, lineX2 + 0.05);
     const rawColor = rawInRange ? 'rgba(130,145,165,0.6)' : 'rgba(220,80,60,0.75)';
-    const rawDot = renderer.batch(rawColor, 1.5);
+    const rawDot = renderer.draw(rawColor, 1.5);
     rawDot.fillStyle = rawColor;
     rawDot.arc(new V2(rawX, lineY), dotR);
     rawDot.fill();
-    renderer.batch(rawColor, 1).renderText(
+    renderer.draw(rawColor, 1).renderText(
       `value=${value.toFixed(2)}`,
       new V2(rawX - renderer.measureScreenInWorld(22), lineY + tickH * 3),
       lbl,
@@ -79,17 +79,17 @@ class NumberLineElement extends LTStyledElement<NumberLineOptions> {
     const wasClipped = Math.abs(rawX - clampedX) > 0.005;
     if (wasClipped) {
       const arrowColor = 'rgba(80,180,120,0.75)';
-      renderer.batch(arrowColor, 1.5).line(new V2(rawX, lineY + tickH * 1.5), new V2(clampedX, lineY + tickH * 1.5));
-      renderer.batch(arrowColor, 1.5).stroke();
+      renderer.draw(arrowColor, 1.5).line(new V2(rawX, lineY + tickH * 1.5), new V2(clampedX, lineY + tickH * 1.5));
+      renderer.draw(arrowColor, 1.5).stroke();
     }
 
     // ── Clamped value dot ────────────────────────────────────────────────
     const clampColor = 'rgba(60, 200, 100, 0.9)';
-    const clampDot = renderer.batch(clampColor, 1.5);
+    const clampDot = renderer.draw(clampColor, 1.5);
     clampDot.fillStyle = clampColor;
     clampDot.arc(new V2(clampedX, lineY), dotR * 1.3);
     clampDot.fill();
-    renderer.batch(clampColor, 1).renderText(
+    renderer.draw(clampColor, 1).renderText(
       `clamped=${clamped.toFixed(2)}`,
       new V2(clampedX - renderer.measureScreenInWorld(24), lineY - tickH * 6),
       lbl,

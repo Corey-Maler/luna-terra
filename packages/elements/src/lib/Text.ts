@@ -24,6 +24,6 @@ export class TextElement extends LTStyledElement<TextOptions> {
     const { color } = this.computedStyles;
     const colorStr = color?.toString() ?? '#ffffff';
 
-    renderer.batch(colorStr, 1).renderText(text, new V2(0, 0), fontSize, align, baseline);
+    renderer.draw(colorStr, 1).renderText(text, new V2(0, 0), fontSize, align, baseline);
   }
 }

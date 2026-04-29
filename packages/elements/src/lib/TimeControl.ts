@@ -1,7 +1,7 @@
 /**
  * TimeControl — a reusable canvas-rendered time scrubber / playback control.
  *
- * Renders entirely in screen space via `batchScreenSpace()` and handles its
+ * Renders entirely in screen space via `drawScreenSpace()` and handles its
  * own click/drag interaction through hit regions on the canvas — same pattern
  * as ZoomControls in @lunaterra/core.
  *
@@ -297,7 +297,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     if (barW < 100 * hdpi) return; // too narrow
 
     // ── Background pill ──────────────────────────────────────────────────
-    const bg = renderer.batchScreenSpace(this.bgColor);
+    const bg = renderer.drawScreenSpace(this.bgColor);
     const r = 8 * hdpi;
     _roundRect(bg, barX, barY, barW, barH, r);
     bg.fill();
@@ -307,7 +307,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     this._hitPlay = { x1: x, y1: barY, x2: x + btnW, y2: barY + barH };
 
     const midY = barY + barH / 2;
-    const iconBatch = renderer.batchScreenSpace(this.accentColor);
+    const iconBatch = renderer.drawScreenSpace(this.accentColor);
 
     if (this._playing) {
       // Pause icon: two vertical bars
@@ -317,7 +317,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
       iconBatch.lineTo(new V2(x + btnW / 2 - bw - 1.5 * hdpi, midY + bh / 2));
       iconBatch.moveTo(new V2(x + btnW / 2 + 1.5 * hdpi, midY - bh / 2));
       iconBatch.lineTo(new V2(x + btnW / 2 + 1.5 * hdpi, midY + bh / 2));
-      iconBatch.renew(this.accentColor, bw);
+      iconBatch.begin(this.accentColor, bw);
       iconBatch.stroke();
     } else {
       // Play icon: triangle
@@ -333,7 +333,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     // ── Speed label ──────────────────────────────────────────────────────
     this._hitSpeed = { x1: x, y1: barY, x2: x + speedW, y2: barY + barH };
     const speedStr = this._speedLabel();
-    renderer.batchScreenSpace(this.accentColor).renderText(
+    renderer.drawScreenSpace(this.accentColor).renderText(
       speedStr,
       new V2(x + speedW / 2 - (speedStr.length * 3.2 * hdpi), midY + LABEL_FONT * hdpi * 0.35),
       LABEL_FONT,
@@ -354,10 +354,10 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     };
 
     // Track line
-    const trackBatch = renderer.batchScreenSpace(this.accentColor, trackH);
+    const trackBatch = renderer.drawScreenSpace(this.accentColor, trackH);
     trackBatch.moveTo(new V2(trackX, trackY));
     trackBatch.lineTo(new V2(trackEndX, trackY));
-    trackBatch.renew(this.accentColor, trackH, {});
+    trackBatch.begin(this.accentColor, trackH, {});
     renderer.ctx.globalAlpha = 0.25;
     trackBatch.stroke();
     renderer.ctx.globalAlpha = 1;
@@ -371,7 +371,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
 
     // Filled progress line
     if (progress > 0.001) {
-      const progBatch = renderer.batchScreenSpace(this.accentColor, trackH);
+      const progBatch = renderer.drawScreenSpace(this.accentColor, trackH);
       progBatch.moveTo(new V2(trackX, trackY));
       progBatch.lineTo(new V2(thumbX, trackY));
       renderer.ctx.globalAlpha = 0.5;
@@ -392,7 +392,7 @@ export class TimeControl extends LTElement<TimeControlOptions> {
     // ── Date label ───────────────────────────────────────────────────────
     const dateStr = this._formatDate(this._date);
     const dateFontPx = DATE_FONT;
-    renderer.batchScreenSpace(this.accentColor).renderText(
+    renderer.drawScreenSpace(this.accentColor).renderText(
       dateStr,
       new V2(trackEndX + gapPx, midY + dateFontPx * hdpi * 0.35),
       dateFontPx,
@@ -446,10 +446,10 @@ export class TimeControl extends LTElement<TimeControlOptions> {
 
 // ── Drawing helpers ──────────────────────────────────────────────────────────
 
-import type { Batch } from '@lunaterra/core';
+import type { DrawContext } from '@lunaterra/core';
 
 function _roundRect(
-  b: Batch,
+  b: DrawContext,
   x: number,
   y: number,
   w: number,

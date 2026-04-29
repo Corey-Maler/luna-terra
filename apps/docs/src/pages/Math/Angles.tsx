@@ -33,7 +33,7 @@ class AngleConstantsElement extends LTStyledElement<{ customAngle: number }> {
       const a = (i / steps) * Math.PI * 2;
       return new V2(Math.cos(a) * RADIUS, Math.sin(a) * RADIUS);
     });
-    const circle = renderer.batch(circleColor, 1);
+    const circle = renderer.draw(circleColor, 1);
     circle.path(pts);
     circle.stroke();
 
@@ -56,12 +56,12 @@ class AngleConstantsElement extends LTStyledElement<{ customAngle: number }> {
       const tip = new V2(tipX, tipY);
 
       // spoke
-      const spoke = renderer.batch(color, 1.5);
+      const spoke = renderer.draw(color, 1.5);
       spoke.line(new V2(0, 0), tip);
       spoke.stroke();
 
       // dot at rim
-      const dot = renderer.batch(color, 1);
+      const dot = renderer.draw(color, 1);
       dot.fillStyle = color;
       dot.arc(tip, tipR);
       dot.fill();
@@ -70,7 +70,7 @@ class AngleConstantsElement extends LTStyledElement<{ customAngle: number }> {
       const labelR = RADIUS + labelOffset * 2.5;
       const lx = Math.cos(rad) * labelR;
       const ly = Math.sin(rad) * labelR;
-      renderer.batch(color, 1).renderText(
+      renderer.draw(color, 1).renderText(
         `${key} (${Angles.toDegrees(rad).toFixed(0)}°)`,
         new V2(lx - renderer.measureScreenInWorld(20), ly),
         10,
@@ -83,7 +83,7 @@ class AngleConstantsElement extends LTStyledElement<{ customAngle: number }> {
     const cy = Math.sin(customRad) * RADIUS;
     const customTip = new V2(cx, cy);
 
-    const custom = renderer.batch(customColor, 2);
+    const custom = renderer.draw(customColor, 2);
     custom.line(new V2(0, 0), customTip);
     custom.stroke();
 
@@ -92,23 +92,23 @@ class AngleConstantsElement extends LTStyledElement<{ customAngle: number }> {
     const spread = 0.42;
     const a1 = new V2(cx - Math.cos(angle - spread) * customSpokeSize * 1.6, cy - Math.sin(angle - spread) * customSpokeSize * 1.6);
     const a2 = new V2(cx - Math.cos(angle + spread) * customSpokeSize * 1.6, cy - Math.sin(angle + spread) * customSpokeSize * 1.6);
-    renderer.batch(customColor, 2).line(customTip, a1); renderer.batch(customColor, 2).stroke();
-    renderer.batch(customColor, 2).line(customTip, a2); renderer.batch(customColor, 2).stroke();
+    renderer.draw(customColor, 2).line(customTip, a1); renderer.draw(customColor, 2).stroke();
+    renderer.draw(customColor, 2).line(customTip, a2); renderer.draw(customColor, 2).stroke();
 
     const customLabelR = RADIUS + labelOffset * 2.5;
     const clx = Math.cos(customRad) * customLabelR;
     const cly = Math.sin(customRad) * customLabelR;
-    renderer.batch(customColor, 1).renderText(
+    renderer.draw(customColor, 1).renderText(
       `${customAngle}° → ${Angles.prettyPrint(customRad)}`,
       new V2(clx - renderer.measureScreenInWorld(cx > 0 ? 10 : 60), cly),
       10,
     );
 
     // ── Axes (thin) ───────────────────────────────────────────────────────
-    renderer.batch(spokeColor, 1).line(new V2(-DOMAIN + 0.02, 0), new V2(DOMAIN - 0.02, 0));
-    renderer.batch(spokeColor, 1).stroke();
-    renderer.batch(spokeColor, 1).line(new V2(0, -DOMAIN + 0.02), new V2(0, DOMAIN - 0.02));
-    renderer.batch(spokeColor, 1).stroke();
+    renderer.draw(spokeColor, 1).line(new V2(-DOMAIN + 0.02, 0), new V2(DOMAIN - 0.02, 0));
+    renderer.draw(spokeColor, 1).stroke();
+    renderer.draw(spokeColor, 1).line(new V2(0, -DOMAIN + 0.02), new V2(0, DOMAIN - 0.02));
+    renderer.draw(spokeColor, 1).stroke();
   }
 }
 
@@ -161,7 +161,7 @@ class ConversionScene extends LTStyledElement<{ degrees: number }> {
       const a = (i / steps) * Math.PI * 2;
       return new V2(Math.cos(a) * RADIUS, Math.sin(a) * RADIUS);
     });
-    const circle = renderer.batch(circleColor, 1);
+    const circle = renderer.draw(circleColor, 1);
     circle.path(pts);
     circle.stroke();
 
@@ -172,7 +172,7 @@ class ConversionScene extends LTStyledElement<{ degrees: number }> {
       return new V2(Math.cos(a) * RADIUS * 0.5, Math.sin(a) * RADIUS * 0.5);
     });
     if (arcPts.length >= 2) {
-      const arc = renderer.batch('rgba(220,180,40,0.5)', 1);
+      const arc = renderer.draw('rgba(220,180,40,0.5)', 1);
       arc.path(arcPts);
       arc.stroke();
     }
@@ -180,13 +180,13 @@ class ConversionScene extends LTStyledElement<{ degrees: number }> {
     // spoke
     const cx = Math.cos(rad) * RADIUS;
     const cy = Math.sin(rad) * RADIUS;
-    renderer.batch(color, 2).line(new V2(0, 0), new V2(cx, cy));
-    renderer.batch(color, 2).stroke();
+    renderer.draw(color, 2).line(new V2(0, 0), new V2(cx, cy));
+    renderer.draw(color, 2).stroke();
 
     // label
     const lx = renderer.measureScreenInWorld(14);
     const ly = renderer.measureScreenInWorld(14);
-    renderer.batch('rgba(28,28,32,0.8)', 1).renderText(
+    renderer.draw('rgba(28,28,32,0.8)', 1).renderText(
       `${degrees}° = ${rad.toFixed(4)} rad`,
       new V2(-DOMAIN + 0.02, DOMAIN - 0.04),
       11,

@@ -159,7 +159,7 @@ function buildScene2(engine: LunaTerraEngine, config: Scene2Config): LTElement {
     protected defaultOptions() { return { text: '' }; }
     render(renderer: CanvasRenderer) {
       const { color } = this.computedStyles;
-      renderer.batch(color, 1).renderText(this.options.text, new V2(0, 0), 13, 'center', 'bottom');
+      renderer.draw(color, 1).renderText(this.options.text, new V2(0, 0), 13, 'center', 'bottom');
     }
   })({ text: ((minVal + maxVal) / 2).toFixed(1) });
   labelGroup.styles.color = new Color(200, 200, 200);

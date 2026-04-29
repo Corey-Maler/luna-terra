@@ -66,7 +66,7 @@ export class Grid extends LTStyledElement<GridOptions> {
     const minorColor = this.resolveSubgridColor(renderer).opaque(this.computedStyles.opacity);
 
     if (this.options.mode === GridMode.DOTS) {
-      renderer.webGL.renderGridDots(
+      renderer.webgl.renderGridDots(
         visibleArea,
         this.options.density,
         majorColor.toString(),
@@ -92,7 +92,7 @@ export class Grid extends LTStyledElement<GridOptions> {
     const x1 = visibleArea.topRight.x;
     const y1 = visibleArea.topRight.y;
 
-    const batch = renderer.batch(
+    const batch = renderer.draw(
       minorColor.opaque(grid.subgridOpacity).toString(),
       this.options.lineWidth,
     );
@@ -105,7 +105,7 @@ export class Grid extends LTStyledElement<GridOptions> {
     }
     batch.stroke();
 
-    batch.renew(majorColor.toString(), this.options.lineWidth);
+    batch.begin(majorColor.toString(), this.options.lineWidth);
     for (const x of grid.x.grid) {
       batch.line(new V2(x, y0), new V2(x, y1));
     }

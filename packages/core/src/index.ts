@@ -1,16 +1,16 @@
 export * from './lib/core';
 
 export { LunaTerraEngine } from './engine/engine';
-export type { IFpsPanel } from './engine/engine';
+export type { FpsPanelHandle } from './engine/engine';
 export { LTElement } from './render/Elements/LTElement';
 export { LTStyledElement } from './render/Elements/LTStyledElement';
 export type { LTStyles, LTResolvedStyles, LTStyleOptions } from './render/Elements/LTStyledElement';
 export { CanvasRenderer } from './render/CanvasRenderer';
-export { Batch } from './render/Batch';
+export { DrawContext } from './render/Batch';
 export { Colors } from './render/colors';
 export { resolveThemeColor, themeColor } from './render/theme';
 export type { LTColorValue, LTThemeColorLeaf, LTThemeColorRef, LTThemePalette } from './render/theme';
-export { WebGLBatchLL } from './render/WebGLBatch';
+export { WebGLDrawBackend } from './render/WebGLBatch';
 export { LabelRegistry } from './render/LabelRegistry';
 export type { LabelEntry } from './render/LabelRegistry';
 export { DummyElement } from './components/DummyElement';

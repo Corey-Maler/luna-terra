@@ -6,7 +6,7 @@ import type { LTThemePalette } from '../render/theme';
 import { InteractionManager } from './InteractionManager';
 
 /** Interface for an FPS panel element. Typed as a plain interface to avoid circular dependency with @lunaterra/ui. */
-export interface IFpsPanel {
+export interface FpsPanelHandle {
   setEnabled(v: boolean): void;
   readonly isEnabled: boolean;
 }
@@ -25,7 +25,7 @@ export class LunaTerraEngine {
   public readonly tracing = new TracingInstance();
 
   /** Attach an FPS panel element — set by the panel itself during setup(). */
-  public fpsPanel: IFpsPanel | undefined = undefined;
+  public fpsPanel: FpsPanelHandle | undefined = undefined;
 
   constructor() {
     this.renderer = new CanvasRenderer(this);

@@ -98,17 +98,17 @@ class ZoneElement extends LTElement<ZoneOpts> {
     const { v1, v2 } = bounds;
 
     // Background fill
-    const fill = renderer.batch(bg.toString(), 1);
+    const fill = renderer.draw(bg.toString(), 1);
     fill.rect(v1, v2);
     fill.fill(bg);
 
     // Border
-    const border = renderer.batch(color.toString(), 1.5);
+    const border = renderer.draw(color.toString(), 1.5);
     border.rect(v1, v2);
     border.stroke();
 
     // Zone label (top-left inside the box)
-    renderer.batch(color.toString()).renderText(
+    renderer.draw(color.toString()).renderText(
       label,
       new V2(v1.x + 0.015, v1.y + 0.045),
     );
@@ -185,7 +185,7 @@ class DotElement extends LTElement<DotOpts> {
   }
   render(renderer: CanvasRenderer) {
     const { x, y, r, color } = this.options;
-    const b = renderer.batch(color.toString(), 1);
+    const b = renderer.draw(color.toString(), 1);
     b.arc(new V2(x, y), r, 0, Math.PI * 2, false);
     b.fill(color);
   }
@@ -198,7 +198,7 @@ class RectOutlineElement extends LTElement<RectOpts> {
   }
   render(renderer: CanvasRenderer) {
     const { v1, v2, color } = this.options;
-    const b = renderer.batch(color.toString(), 1.5);
+    const b = renderer.draw(color.toString(), 1.5);
     b.rect(v1, v2);
     b.stroke();
   }
@@ -279,7 +279,7 @@ class HintLabel extends LTElement<{}> {
   protected defaultOptions() { return {}; }
   render(renderer: CanvasRenderer) {
     renderer
-      .batchScreenSpace('rgba(0,0,0,0.35)')
+      .drawScreenSpace('rgba(0,0,0,0.35)')
       .renderText('click a zone to zoom in  ·  ⊡ to fit all', new V2(10, renderer.height - 36), 11);
   }
 }

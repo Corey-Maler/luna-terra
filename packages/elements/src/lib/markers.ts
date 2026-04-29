@@ -1,5 +1,5 @@
 import { V2 } from '@lunaterra/math';
-import type { Batch } from '@lunaterra/core';
+import type { DrawContext } from '@lunaterra/core';
 import type { MarkerOptions } from './line-types';
 
 /**
@@ -9,7 +9,7 @@ import type { MarkerOptions } from './line-types';
  * `batch` should already have its stroke/fill style configured.
  */
 export function renderMarker(
-  batch: Batch,
+  batch: DrawContext,
   position: V2,
   tangent: V2,
   marker: MarkerOptions,
@@ -38,11 +38,11 @@ export function renderMarker(
       const right = rot(-size, -size * 0.5);
 
       if (filled) {
-        batch.renew(lineColor, 1);
+        batch.begin(lineColor, 1);
         batch.path([tip, left, right, tip]);
         batch.fill();
       } else {
-        batch.renew(lineColor, 1);
+        batch.begin(lineColor, 1);
         batch.path([left, tip, right]);
         batch.stroke();
       }
@@ -54,7 +54,7 @@ export function renderMarker(
       const left = rot(-size, size * 0.5);
       const right = rot(-size, -size * 0.5);
 
-      batch.renew(lineColor, 1);
+      batch.begin(lineColor, 1);
       batch.path([tip, left, right, tip]);
       if (filled) batch.fill();
       else batch.stroke();
@@ -68,7 +68,7 @@ export function renderMarker(
       const back = rot(-half, 0);
       const bottom = rot(0, -half);
 
-      batch.renew(lineColor, 1);
+      batch.begin(lineColor, 1);
       batch.path([front, top, back, bottom, front]);
       if (filled) batch.fill();
       else batch.stroke();
@@ -77,7 +77,7 @@ export function renderMarker(
 
     case 'circle': {
       const radius = size * 0.4;
-      batch.renew(lineColor, 1);
+      batch.begin(lineColor, 1);
       batch.point(position, radius);
       if (filled) batch.fill();
       else batch.stroke();
@@ -91,7 +91,7 @@ export function renderMarker(
       const br = rot(half, -half);
       const bl = rot(-half, -half);
 
-      batch.renew(lineColor, 1);
+      batch.begin(lineColor, 1);
       batch.path([tl, tr, br, bl, tl]);
       if (filled) batch.fill();
       else batch.stroke();

@@ -1,36 +1,36 @@
 import { M3, Rect2D, V2 } from '@lunaterra/math';
 import { Color } from '@lunaterra/color';
-import { Batch } from './Batch';
+import { DrawContext } from './Batch';
 import type { LTElement } from './Elements/LTElement';
 import type { LTResolvedStyles } from './Elements/LTStyledElement';
 import { LabelRegistry } from './LabelRegistry';
 import { MouseEventHandlers } from './MouseEventHandlers';
 import { PanningTracker } from './PanningTracker';
 import { ViewPort } from './ViewPort';
-import { WebGLBatchLL } from './WebGLBatch';
+import { WebGLDrawBackend } from './WebGLBatch';
 import { Colors } from './colors';
 import type { LTThemePalette } from './theme';
 
 export class CanvasRenderer {
   protected rootDiv = document.createElement('div');
-  public readonly ll: Batch;
-  // without transform, so 10 - is 10 pixels
-  public readonly llScreenSpace: Batch;
+  public readonly ll: DrawContext;
+  // Without the world transform, so 10 units means 10 screen pixels.
+  public readonly llScreenSpace: DrawContext;
 
   /** Label avoidance registry — swap() is called once per frame by the engine. */
   public readonly labelRegistry = new LabelRegistry();
 
   public canvas: HTMLCanvasElement;
-  private webGlCanvas: HTMLCanvasElement;
+  private webglCanvas: HTMLCanvasElement;
   public getHTML() {
     return this.rootDiv;
   }
 
-  public get webGL(): WebGLBatchLL {
-    if (!this._webGlLL) {
-      throw new Error('WebGL LL is not yet setup');
+  public get webgl(): WebGLDrawBackend {
+    if (!this._webglBackend) {
+      throw new Error('WebGL backend is not yet setup');
     }
-    return this._webGlLL;
+    return this._webglBackend;
   }
 
   public ctx: CanvasRenderingContext2D;
@@ -44,15 +44,15 @@ export class CanvasRenderer {
 
   private updated = true;
 
-  private _webGlLL?: WebGLBatchLL;
+  private _webglBackend?: WebGLDrawBackend;
 
   // ---------- Software transform stack ----------
   // Stores the accumulated world→screen transform at each element level.
-  // All canvas drawing goes through Batch.updateViewMatrix() — ctx.setTransform is
+  // All canvas drawing goes through DrawContext.updateViewMatrix() — ctx.setTransform is
   // never used for element transforms, so Canvas2D line widths stay in screen pixels.
   private _transformStack: M3[] = [];
 
-  // When non-null, replaces panningTracker.viewMatrix as the base for batch transforms.
+  // When non-null, replaces panningTracker.viewMatrix as the base for draw transforms.
   // Set by pushScreenTransform / cleared by popScreenTransform.
   private _screenBaseMatrix: M3 | null = null;
   private _savedTransformStack: M3[] | null = null;
@@ -93,7 +93,7 @@ export class CanvasRenderer {
 
   /**
    * Push a screen-space coordinate system.
-   * While active, `renderer.batch()` maps world coordinates through `screenMatrix`
+  * While active, `renderer.draw()` maps world coordinates through `screenMatrix`
    * instead of the world-space panning transform.
    * Children rendered between push/pop live in the coordinate space defined by
    * `makeScreenMatrix()`. Nest as needed (saves/restores cleanly).
@@ -132,7 +132,7 @@ export class CanvasRenderer {
     this.ll.updateViewMatrix(base.multiply(accumulated));
     // WebGL is not supported inside ScreenContainer — leave its matrix at world-space.
     if (!this._screenBaseMatrix) {
-      this._webGlLL?.updateViewMatrix(this.panningTracker.webGLMatrix.multiply(accumulated));
+      this._webglBackend?.updateViewMatrix(this.panningTracker.webGLMatrix.multiply(accumulated));
     }
   }
 
@@ -298,11 +298,11 @@ export class CanvasRenderer {
     this.canvas.style.left = '0px';
     this.canvas.style.zIndex = '1';
 
-    this.webGlCanvas.style.position = 'absolute';
-    this.webGlCanvas.style.top = '0px';
-    this.webGlCanvas.style.left = '0px';
-    this.webGlCanvas.style.pointerEvents = 'none';
-    this.webGlCanvas.style.zIndex = '3';
+    this.webglCanvas.style.position = 'absolute';
+    this.webglCanvas.style.top = '0px';
+    this.webglCanvas.style.left = '0px';
+    this.webglCanvas.style.pointerEvents = 'none';
+    this.webglCanvas.style.zIndex = '3';
 
     this.rootDiv.style.position = 'relative';
     this.rootDiv.style.flex = '1';
@@ -322,15 +322,15 @@ export class CanvasRenderer {
 
   constructor(private readonly simpleEngine: { requestUpdate: () => void }) {
     const canvas = document.createElement('canvas');
-    const webGlCanvas = document.createElement('canvas');
+    const webglCanvas = document.createElement('canvas');
 
     // Set the WebGL canvas to have proper transparency
-    webGlCanvas.style.backgroundColor = 'transparent';
+    webglCanvas.style.backgroundColor = 'transparent';
 
     this.canvas = canvas;
-    this.webGlCanvas = webGlCanvas;
+    this.webglCanvas = webglCanvas;
     this.rootDiv.appendChild(canvas);
-    this.rootDiv.appendChild(webGlCanvas);
+    this.rootDiv.appendChild(webglCanvas);
 
     this.setupStyles();
     const requestUpdate = () => this.simpleEngine.requestUpdate();
@@ -349,10 +349,10 @@ export class CanvasRenderer {
     const ctx = canvas.getContext('2d')!;
     this.ctx = ctx;
 
-    this.ll = new Batch(this.viewMatrix, ctx);
-    this.llScreenSpace = new Batch(M3.identity(), ctx);
+    this.ll = new DrawContext(this.viewMatrix, ctx);
+    this.llScreenSpace = new DrawContext(M3.identity(), ctx);
 
-    this._webGlLL = new WebGLBatchLL(webGlCanvas);
+    this._webglBackend = new WebGLDrawBackend(webglCanvas);
 
     // this.updateShiftMatrix();
     this.setupObserver();
@@ -367,13 +367,13 @@ export class CanvasRenderer {
     this.canvas.style.width = `${x}px`;
     this.canvas.style.height = `${y}px`;
 
-    this.webGlCanvas.width = x * ratio;
-    this.webGlCanvas.height = y * ratio;
+    this.webglCanvas.width = x * ratio;
+    this.webglCanvas.height = y * ratio;
 
-    this._webGlLL?.resize(x * ratio, y * ratio);
+    this._webglBackend?.resize(x * ratio, y * ratio);
 
-    this.webGlCanvas.style.width = `${x}px`;
-    this.webGlCanvas.style.height = `${y}px`;
+    this.webglCanvas.style.width = `${x}px`;
+    this.webglCanvas.style.height = `${y}px`;
 
     this.panningTracker.updateWorldSpaceMatrix(true);
     this.panningTracker.recalculate();
@@ -406,12 +406,12 @@ export class CanvasRenderer {
     this._screenBaseMatrix = null;
     this._styleStack = [];
     this.ll.updateViewMatrix(this.panningTracker.viewMatrix);
-    this._webGlLL?.updateViewMatrix(this.panningTracker.webGLMatrix);
-    this._webGlLL?.prepareRender();
+    this._webglBackend?.updateViewMatrix(this.panningTracker.webGLMatrix);
+    this._webglBackend?.prepareRender();
   }
 
   public postRender(_dt: number) {
-    this._webGlLL?.finishRender();
+    this._webglBackend?.finishRender();
   }
 
   public measureText(text: string) {
@@ -434,15 +434,15 @@ export class CanvasRenderer {
     // )
   }
 
-  public batch(initialColor: string | Color, lineWidth = 1) {
-    // return new Batch(this.ll, initialColor, lineWidth);
-    this.ll.renew(initialColor, lineWidth, {});
-    return this.ll as Batch;
+  public draw(initialColor: string | Color, lineWidth = 1) {
+    // return new DrawContext(this.ll, initialColor, lineWidth);
+    this.ll.begin(initialColor, lineWidth, {});
+    return this.ll;
   }
 
-  public batchScreenSpace(initialColor: string, lineWidth = 1) {
-    // return new Batch(this.llScreenSpace, initialColor, lineWidth);
-    this.llScreenSpace.renew(initialColor, lineWidth);
+  public drawScreenSpace(initialColor: string, lineWidth = 1) {
+    // return new DrawContext(this.llScreenSpace, initialColor, lineWidth);
+    this.llScreenSpace.begin(initialColor, lineWidth);
     return this.llScreenSpace;
   }
 }

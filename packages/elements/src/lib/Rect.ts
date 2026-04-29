@@ -77,20 +77,20 @@ export class RectElement extends LTStyledElement<RectOptions> {
     const r = Math.min(cornerRadius, Math.abs(width) / 2, Math.abs(height) / 2);
 
     if (fillColor) {
-      const b = renderer.batch(fillColor, lineWidth);
+      const b = renderer.draw(fillColor, lineWidth);
       buildRoundedRectPath(b, 0, 0, width, height, r);
       b.ctx2d.fillStyle = fillColor;
       b.fill();
 
       if (stroke) {
-        // Re-build on same batch (beginPath was already called by renew inside batch())
-        // We need a new batch call to get a fresh path for stroke.
-        const bs = renderer.batch(strokeColor, lineWidth);
+        // Rebuild on the same draw context; draw() already started a fresh path.
+        // We need a new draw() call to get a fresh path for stroke.
+        const bs = renderer.draw(strokeColor, lineWidth);
         buildRoundedRectPath(bs, 0, 0, width, height, r);
         bs.stroke();
       }
     } else if (stroke) {
-      const b = renderer.batch(strokeColor, lineWidth);
+      const b = renderer.draw(strokeColor, lineWidth);
       buildRoundedRectPath(b, 0, 0, width, height, r);
       b.stroke();
     }
@@ -103,10 +103,10 @@ export class RectElement extends LTStyledElement<RectOptions> {
  * transform (including Y-flip from ScreenContainer).
  *
  * After calling this, invoke `b.fill()` and/or `b.stroke()` to render.
- * Do NOT call `renderer.batch()` between this and the fill/stroke call
+ * Do NOT call `renderer.draw()` between this and the fill/stroke call
  * (it would clear the path).
  *
- * @param b      Batch returned by `renderer.batch()`
+ * @param b      Draw context returned by `renderer.draw()`
  * @param x      Left edge in local coords
  * @param y      Bottom (or top in CSS-Y-down) edge in local coords
  * @param w      Width in local coords
@@ -114,7 +114,7 @@ export class RectElement extends LTStyledElement<RectOptions> {
  * @param r      Corner radius in local coords (already clamped by caller)
  */
 export function buildRoundedRectPath(
-  b: ReturnType<CanvasRenderer['batch']>,
+  b: ReturnType<CanvasRenderer['draw']>,
   x: number, y: number, w: number, h: number,
   r: number,
 ): void {
