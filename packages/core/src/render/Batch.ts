@@ -350,11 +350,16 @@ export class DrawContext extends LLSoftware {
     }
     const screenTop = this.toPixels(new V2(0, maxY)).y;
     const screenBottom = this.toPixels(new V2(0, yFillTo)).y;
+    const edgeBleedPx = (window.devicePixelRatio || 1) * 2;
+    const screenBottomBleed = screenBottom + (screenBottom >= screenTop ? edgeBleedPx : -edgeBleedPx);
+    const fillTop = Math.min(screenTop, screenBottomBleed);
+    const fillHeight = Math.abs(screenBottomBleed - screenTop);
 
-    const grad = this.ctx.createLinearGradient(0, screenTop, 0, screenBottom);
+    const grad = this.ctx.createLinearGradient(0, screenTop, 0, screenBottomBleed);
     grad.addColorStop(0, new Color(color.r, color.g, color.b, opacity).toString());
     grad.addColorStop(1, new Color(color.r, color.g, color.b, 0).toString());
 
+    this.ctx.save();
     this.ctx.beginPath();
     const p0 = this.toPixels(points[0]);
     this.ctx.moveTo(p0.x, p0.y);
@@ -367,9 +372,11 @@ export class DrawContext extends LLSoftware {
     this.ctx.lineTo(pLast.x, pLast.y);
     this.ctx.lineTo(pFirst.x, pFirst.y);
     this.ctx.closePath();
+    this.ctx.clip();
 
     this.ctx.fillStyle = grad;
-    this.ctx.fill();
+    this.ctx.fillRect(pFirst.x, fillTop, pLast.x - pFirst.x, fillHeight);
+    this.ctx.restore();
   };
 
   point = (p: V2, r = 5) => {

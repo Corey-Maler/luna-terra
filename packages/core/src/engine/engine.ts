@@ -225,6 +225,23 @@ export class LunaTerraEngine {
     this.requestUpdate();
   }
 
+  /** Current viewport center in world space. */
+  public get viewportCenter(): V2 {
+    return this.renderer.viewportCenter;
+  }
+
+  /** Move the viewport center directly without changing zoom. */
+  public moveViewportTo(worldPoint: V2): void {
+    this.renderer.moveViewportTo(worldPoint);
+    this.requestUpdate();
+  }
+
+  /** Offset the viewport center directly without changing zoom. */
+  public moveViewportBy(delta: V2): void {
+    this.renderer.moveViewportBy(delta);
+    this.requestUpdate();
+  }
+
   public set background(value: string | null) {
     this.renderer.background = value;
   }

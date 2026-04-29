@@ -82,6 +82,10 @@ export interface CrosshairOptions {
   xMin: number;
   /** World-space X domain end */
   xMax: number;
+  /** When false, the crosshair X position is controlled manually via setValue(). */
+  followPointer?: boolean;
+  /** Whether to draw the X label text for the indicator (default: true). */
+  showXLabel?: boolean;
   /** World-space Y domain start — vertical line drawn from here */
   yMin: number;
   /** World-space Y domain end — vertical line drawn to here */
@@ -90,6 +94,8 @@ export interface CrosshairOptions {
   labelSize?: number;
   /** Stroke width in screen pixels (default: 1) */
   lineWidth?: number;
+  /** Optional formatter for the hovered X label. */
+  formatXLabel?: (x: number) => string;
   /**
    * Functions to snap to — a filled dot is drawn at (mouseX, fn(mouseX)) for each entry.
    * Skipped when fn returns NaN or ±Infinity.

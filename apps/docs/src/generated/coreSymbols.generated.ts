@@ -56,7 +56,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "new (simpleEngine: { requestUpdate: () => void; }) => CanvasRenderer",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 323,
+        "sourceLine": 340,
         "sourceColumn": 3
       },
       {
@@ -119,7 +119,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "draw(initialColor: string | Color, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 437,
+        "sourceLine": 454,
         "sourceColumn": 3
       },
       {
@@ -128,7 +128,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "drawScreenSpace(initialColor: string, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 443,
+        "sourceLine": 460,
         "sourceColumn": 3
       },
       {
@@ -164,7 +164,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set interactive(value: boolean): void",
         "docs": "Enable or disable mouse/touch pan and zoom input.\nWhen false, the user cannot pan or zoom but programmatic calls still work\nand the page scrolls normally. Defaults to true.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 279,
+        "sourceLine": 296,
         "sourceColumn": 3
       },
       {
@@ -209,7 +209,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "measureText(text: string) => V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 417,
+        "sourceLine": 434,
         "sourceColumn": 3
       },
       {
@@ -231,12 +231,30 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "sourceColumn": 3
       },
       {
+        "name": "moveViewportBy",
+        "kind": "method",
+        "signature": "moveViewportBy(delta: V2) => void",
+        "docs": "Offset the viewport center directly without changing zoom.",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 278,
+        "sourceColumn": 3
+      },
+      {
+        "name": "moveViewportTo",
+        "kind": "method",
+        "signature": "moveViewportTo(worldPoint: V2) => void",
+        "docs": "Move the viewport center directly without changing zoom.",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 272,
+        "sourceColumn": 3
+      },
+      {
         "name": "onCanvasResize",
         "kind": "property",
         "signature": "onCanvasResize: (x: number, y: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 361,
+        "sourceLine": 378,
         "sourceColumn": 3
       },
       {
@@ -272,7 +290,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "postRender(_dt: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 413,
+        "sourceLine": 430,
         "sourceColumn": 3
       },
       {
@@ -281,7 +299,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "prepare() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 391,
+        "sourceLine": 408,
         "sourceColumn": 3
       },
       {
@@ -335,7 +353,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set scrollBounds(bounds: Rect2D | null): void",
         "docs": "Set a scroll boundary in world space.\nSetting to null disables bounds enforcement.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 270,
+        "sourceLine": 287,
         "sourceColumn": 3
       },
       {
@@ -353,7 +371,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "tick(dt: number) => boolean",
         "docs": "Step zoom animation.\nMust be called every frame from the engine.\nReturns true when a re-render was triggered.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 291,
+        "sourceLine": 308,
         "sourceColumn": 3
       },
       {
@@ -372,6 +390,15 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
         "sourceLine": 194,
+        "sourceColumn": 3
+      },
+      {
+        "name": "viewportCenter",
+        "kind": "getter",
+        "signature": "get viewportCenter(): V2",
+        "docs": "Current viewport center in world space.",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 252,
         "sourceColumn": 3
       },
       {
@@ -443,7 +470,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "zoomToPoint(worldPoint: V2, targetZoom: number) => void",
         "docs": "Animate the viewport so that `worldPoint` is centred at the given zoom.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 262,
+        "sourceLine": 267,
         "sourceColumn": 3
       },
       {
@@ -452,7 +479,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "zoomToRect(rect: Rect2D, padding?: number) => void",
         "docs": "Animate the viewport so that `rect` fits in view.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 255,
+        "sourceLine": 260,
         "sourceColumn": 3
       }
     ]
@@ -583,7 +610,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "arc3P: (p0: V2, p1: V2, p2: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/Batch.ts",
-        "sourceLine": 392,
+        "sourceLine": 399,
         "sourceColumn": 3
       },
       {
@@ -592,7 +619,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "arc3PPath: (p0: V2, p1: V2, p2: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/Batch.ts",
-        "sourceLine": 437,
+        "sourceLine": 444,
         "sourceColumn": 3
       },
       {
@@ -736,7 +763,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "magicArc: (p: V2, _radius: number, startAngle: number, endAngle: number, anticlockwise?: boolean) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/Batch.ts",
-        "sourceLine": 487,
+        "sourceLine": 494,
         "sourceColumn": 3
       },
       {
@@ -772,7 +799,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "point: (p: V2, r?: number) => this",
         "docs": "",
         "sourcePath": "packages/core/src/render/Batch.ts",
-        "sourceLine": 375,
+        "sourceLine": 382,
         "sourceColumn": 3
       },
       {
@@ -2706,7 +2733,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set background(value: string | null): void",
         "docs": "",
         "sourcePath": "packages/core/src/engine/engine.ts",
-        "sourceLine": 228,
+        "sourceLine": 245,
         "sourceColumn": 3
       },
       {
@@ -2779,6 +2806,24 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "docs": "",
         "sourcePath": "packages/core/src/engine/engine.ts",
         "sourceLine": 19,
+        "sourceColumn": 3
+      },
+      {
+        "name": "moveViewportBy",
+        "kind": "method",
+        "signature": "moveViewportBy(delta: V2) => void",
+        "docs": "Offset the viewport center directly without changing zoom.",
+        "sourcePath": "packages/core/src/engine/engine.ts",
+        "sourceLine": 240,
+        "sourceColumn": 3
+      },
+      {
+        "name": "moveViewportTo",
+        "kind": "method",
+        "signature": "moveViewportTo(worldPoint: V2) => void",
+        "docs": "Move the viewport center directly without changing zoom.",
+        "sourcePath": "packages/core/src/engine/engine.ts",
+        "sourceLine": 234,
         "sourceColumn": 3
       },
       {
@@ -2868,7 +2913,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set theme(value: LTThemePalette | null): void",
         "docs": "",
         "sourcePath": "packages/core/src/engine/engine.ts",
-        "sourceLine": 236,
+        "sourceLine": 253,
         "sourceColumn": 3
       },
       {
@@ -2887,6 +2932,15 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "docs": "",
         "sourcePath": "packages/core/src/engine/engine.ts",
         "sourceLine": 155,
+        "sourceColumn": 3
+      },
+      {
+        "name": "viewportCenter",
+        "kind": "getter",
+        "signature": "get viewportCenter(): V2",
+        "docs": "Current viewport center in world space.",
+        "sourcePath": "packages/core/src/engine/engine.ts",
+        "sourceLine": 229,
         "sourceColumn": 3
       },
       {

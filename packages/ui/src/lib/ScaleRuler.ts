@@ -18,6 +18,10 @@ export interface ScaleRulerOptions {
   ticks: ScaleRulerTick[];
   /** Current value (continuous, clamped to [ticks[0].value, ticks[last].value]). */
   value: number;
+  /** Optional formatter for the caret badge text. */
+  formatValue?: (value: number, nearestTick: ScaleRulerTick) => string;
+  /** Whether the caret badge renders above or below the track. Default: 'above'. */
+  badgePosition?: 'above' | 'below';
   /** Called on every change while dragging, and after snap-on-release. */
   onChange?: (value: number) => void;
   /** Vertical position of the ruler. Default: 'bottom-center'. */
@@ -339,6 +343,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const valToX = interactionMode === 'scroll-scale'
       ? (v: number) => trackCentreX + ((v - this._value) / (maxVal - minVal)) * trackW
       : (v: number) => trackX0 + ((v - minVal) / (maxVal - minVal)) * trackW;
+    const nearestTick = this._nearestTickData(this._value);
 
     const caretPx = interactionMode === 'scroll-scale' ? trackCentreX : valToX(this._value);
     this._caretScreenX = caretPx;
@@ -421,24 +426,35 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const arrowH    = CARET_ARROW_H * hdpi;
     const arrowW    = CARET_ARROW_W * hdpi;
     const pillX     = caretPx - pillW / 2;
-    // Badge sits above track with a small gap, arrow tip points down
-    const arrowTip  = trackY - 6 * hdpi;
-    const pillBot   = arrowTip - arrowH;
-    const pillTop   = pillBot - pillH;
+    const badgePosition = opts.badgePosition ?? 'above';
+    const arrowGap = 6 * hdpi;
+    const arrowTip = badgePosition === 'below'
+      ? trackY + arrowGap
+      : trackY - arrowGap;
+    const pillTop = badgePosition === 'below'
+      ? arrowTip + arrowH
+      : arrowTip - arrowH - pillH;
+    const pillBot = pillTop + pillH;
 
-    // Badge background (rounded rect + downward arrow triangle)
+    // Badge background (rounded rect + arrow triangle)
     const badge = renderer.drawScreenSpace(badgeBg, 1);
     badge.fillStyle = badgeBg;
     _roundRect(badge, pillX, pillTop, pillW, pillH, pillR);
-    // Arrow triangle
-    badge.moveTo(new V2(caretPx - arrowW / 2, pillBot));
-    badge.lineTo(new V2(caretPx + arrowW / 2, pillBot));
-    badge.lineTo(new V2(caretPx, arrowTip));
-    badge.lineTo(new V2(caretPx - arrowW / 2, pillBot));
+    if (badgePosition === 'below') {
+      badge.moveTo(new V2(caretPx - arrowW / 2, pillTop));
+      badge.lineTo(new V2(caretPx + arrowW / 2, pillTop));
+      badge.lineTo(new V2(caretPx, arrowTip));
+      badge.lineTo(new V2(caretPx - arrowW / 2, pillTop));
+    } else {
+      badge.moveTo(new V2(caretPx - arrowW / 2, pillBot));
+      badge.lineTo(new V2(caretPx + arrowW / 2, pillBot));
+      badge.lineTo(new V2(caretPx, arrowTip));
+      badge.lineTo(new V2(caretPx - arrowW / 2, pillBot));
+    }
     badge.fill();
 
     // Value text centred in badge
-    const valueStr = this._value.toFixed(2);
+    const valueStr = opts.formatValue?.(this._value, nearestTick) ?? this._value.toFixed(2);
     const textY = pillTop + pillH * 0.65;
     renderer.drawScreenSpace(badgeText).renderText(
       valueStr,
@@ -476,6 +492,18 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     for (const tick of ticks) {
       const d = Math.abs(v - tick.value);
       if (d < bestDist) { bestDist = d; best = tick.value; }
+    }
+    return best;
+  }
+
+  /** Return the closest tick object to `v`. */
+  private _nearestTickData(v: number): ScaleRulerTick {
+    const { ticks } = this.options;
+    let best = ticks[0];
+    let bestDist = Math.abs(v - best.value);
+    for (const tick of ticks) {
+      const d = Math.abs(v - tick.value);
+      if (d < bestDist) { bestDist = d; best = tick; }
     }
     return best;
   }

@@ -14,6 +14,8 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     return {
       xMin: -0.4,
       xMax: 0.4,
+      followPointer: true,
+      showXLabel: true,
       yMin: -0.4,
       yMax: 0.4,
       labelSize: 11,
@@ -33,6 +35,8 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
   override setup(engine: LunaTerraEngine): void {
     super.setup(engine);
 
+    if (this.options.followPointer === false) return;
+
     this._unsubscribeMouse = engine.renderer.mouseHandlers.$mousePositionWorld.subscribe((p) => {
       const { xMin, xMax } = this.options;
       const next = p.x >= xMin && p.x <= xMax ? p.x : null;
@@ -48,10 +52,36 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     this._unsubscribeMouse = undefined;
   }
 
+  /** Programmatically set the crosshair X position in world space. */
+  public setValue(x: number | null): void {
+    if (x === null) {
+      if (this._mouseX !== null) {
+        this._mouseX = null;
+        this.engine?.requestUpdate();
+      }
+      return;
+    }
+
+    const clamped = Math.max(this.options.xMin, Math.min(this.options.xMax, x));
+    if (clamped !== this._mouseX) {
+      this._mouseX = clamped;
+      this.engine?.requestUpdate();
+    }
+  }
+
   override render(renderer: CanvasRenderer): void {
     if (this._mouseX === null) return;
 
-    const { yMin, yMax, labelSize = 11, lineWidth = 1, fns = [], series = [] } = this.options;
+    const {
+      yMin,
+      yMax,
+      labelSize = 11,
+      lineWidth = 1,
+      fns = [],
+      series = [],
+      formatXLabel,
+      showXLabel = true,
+    } = this.options;
     const x = this._mouseX;
 
     const { color } = this.computedStyles;
@@ -85,9 +115,11 @@ export class Crosshair extends LTStyledElement<CrosshairOptions> {
     }
 
     // X-value label just below the X axis (below yMin)
-    const labelOffset = renderer.measureScreenInWorld(14);
-    const label = formatValue(x);
-    renderer.draw(colorStr, 1).renderText(label, new V2(x, yMin - labelOffset), labelSize);
+    if (showXLabel) {
+      const labelOffset = renderer.measureScreenInWorld(14);
+      const label = formatXLabel?.(x) ?? formatValue(x);
+      renderer.draw(colorStr, 1).renderText(label, new V2(x, yMin - labelOffset), labelSize);
+    }
   }
 }
 

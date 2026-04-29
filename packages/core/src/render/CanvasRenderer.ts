@@ -248,6 +248,11 @@ export class CanvasRenderer {
     return Math.log2(this.panningTracker.zoom);
   }
 
+  /** Current viewport center in world space. */
+  public get viewportCenter(): V2 {
+    return this.panningTracker.worldCenter;
+  }
+
   /**
    * Animate the viewport so that `rect` fits in view.
    * @param padding 0–1 fraction of the viewport to fill (default 0.85)
@@ -261,6 +266,18 @@ export class CanvasRenderer {
    */
   public zoomToPoint(worldPoint: V2, targetZoom: number): void {
     this.panningTracker.zoomToPoint(worldPoint, targetZoom);
+  }
+
+  /** Move the viewport center directly without changing zoom. */
+  public moveViewportTo(worldPoint: V2): void {
+    this.panningTracker.clearAnimation();
+    this.panningTracker.moveWorldCenterTo(worldPoint);
+  }
+
+  /** Offset the viewport center directly without changing zoom. */
+  public moveViewportBy(delta: V2): void {
+    this.panningTracker.clearAnimation();
+    this.panningTracker.moveWorldCenterBy(delta);
   }
 
   /**

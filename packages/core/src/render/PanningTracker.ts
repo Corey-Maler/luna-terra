@@ -67,6 +67,13 @@ export class PanningTracker {
     return this.viewMatrix.inverse().multiplyV2(p);
   }
 
+  /** Current viewport center expressed in world space. */
+  public get worldCenter(): V2 {
+    return this.screenToWorld(
+      new V2(this.viewPortTracker.width / 2, this.viewPortTracker.height / 2),
+    );
+  }
+
   public moveCenter(x: number, y: number) {
     this.center.x = x;
     this.center.y = y;
@@ -81,6 +88,23 @@ export class PanningTracker {
     this._clampToBounds();
 
     this.updateShiftMatrix();
+  }
+
+  /** Center the viewport on a specific world-space point without changing zoom. */
+  public moveWorldCenterTo(worldPoint: V2) {
+    const target = this._clampCenterToBounds(
+      this._centerForWorldPoint(worldPoint, this.zoom),
+      this.zoom,
+    );
+    this.center.x = target.x;
+    this.center.y = target.y;
+    this.updateShiftMatrix();
+  }
+
+  /** Offset the current viewport center by a world-space delta without changing zoom. */
+  public moveWorldCenterBy(delta: V2) {
+    const current = this.worldCenter;
+    this.moveWorldCenterTo(new V2(current.x + delta.x, current.y + delta.y));
   }
 
   public get viewMatrix(): M3 {

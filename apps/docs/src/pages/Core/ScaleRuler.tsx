@@ -142,7 +142,7 @@ export default function ScaleRulerPage() {
           <code>ZoomControls</code> and <code>ScaleIndicator</code>, it is an{' '}
           <code>LTElement</code> that you simply <code>engine.add()</code> once.
         </p>
-        <DocPage.Pre>{`import { ScaleRuler } from '@lunaterra/core';
+        <DocPage.Pre>{`import { ScaleRuler } from '@lunaterra/ui';
 
 const ruler = new ScaleRuler({
   ticks: [
@@ -153,6 +153,7 @@ const ruler = new ScaleRuler({
     { value: 4, label: 'Galaxy' },
   ],
   value: 2,
+  formatValue: (v) => v.toFixed(1),
   onChange: (v) => scene.setZoom(v),
 });
 engine.add(ruler);`}</DocPage.Pre>
@@ -233,6 +234,7 @@ engine.add(ruler);`}</DocPage.Pre>
             {[
               ['ticks', 'ScaleRulerTick[]', '—', 'Ordered tick stops. Must have ≥ 2 entries.'],
               ['value', 'number', '—', 'Initial displayed value.'],
+              ['formatValue', '(value: number, nearestTick: ScaleRulerTick) => string', 'undefined', 'Optional formatter for the caret badge text. Useful for timelines such as 12:00 / 16:00 / 20:00.'],
               ['onChange', '(v: number) => void', 'undefined', 'Called on every drag move and after snap-on-release.'],
               ['position', "'bottom-center' | 'top-center'", "'bottom-center'", 'Which edge of the canvas to anchor to.'],
               ['edgeOffset', 'number (CSS px)', '24', 'Distance from the canvas edge to the track line.'],
