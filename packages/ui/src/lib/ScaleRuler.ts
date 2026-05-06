@@ -137,25 +137,27 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     super.setup(engine);
 
     // Fade out when pointer leaves the canvas entirely.
+    const canvas = engine.renderer.canvas;
+
     const onLeave = () => {
       this._isNear = false;
       engine.requestUpdate();
     };
-    engine.renderer.canvas.addEventListener('mouseleave', onLeave);
-    this._onMouseLeave = () => engine.renderer.canvas.removeEventListener('mouseleave', onLeave);
+    canvas.addEventListener('mouseleave', onLeave);
+    this._onMouseLeave = () => canvas.removeEventListener('mouseleave', onLeave);
 
-    const mh = engine.renderer.mouseHandlers;
     const mode = this.options.interactionMode ?? 'drag-caret';
 
-    /** Shared: proximity check used by both modes for hover fade. */
-    const checkNear = (worldPt: V2): void => {
-      const renderer = engine.renderer;
+    /** Convert a clientX/Y into physical (hdpi) canvas pixels. */
+    const clientToPhys = (clientX: number, clientY: number): V2 => {
+      const bounds = canvas.getBoundingClientRect();
       const hdpi = window.devicePixelRatio || 1;
-      const screenPt = renderer.worldToScreen(worldPt);
-      const near =
-        Math.abs(screenPt.x - (this._trackX0 + this._trackX1) / 2) <
-          (this._trackX1 - this._trackX0) / 2 + 20 * hdpi &&
-        Math.abs(screenPt.y - this._trackY) < 40 * hdpi;
+      return new V2((clientX - bounds.left) * hdpi, (clientY - bounds.top) * hdpi);
+    };
+
+    /** Update hover state from a physical-pixel position. */
+    const checkNear = (physPt: V2): void => {
+      const near = this._hitTestRuler(physPt) || this._isDragging;
       if (near !== this._isNear) {
         this._isNear = near;
         engine.requestUpdate();
@@ -163,8 +165,42 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       engine.requestUpdate();
     };
 
-    /** Shared: snap-or-release handler used by both modes on drag end. */
+    /** Apply a drag move at a given physical-pixel X. */
+    const applyDragAtPhysX = (physX: number): void => {
+      const { ticks } = this.options;
+      const minVal = ticks[0].value;
+      const maxVal = ticks[ticks.length - 1].value;
+      if (mode === 'drag-caret') {
+        const t = (physX - this._trackX0) / Math.max(1, this._trackX1 - this._trackX0);
+        this._value = _lerp(minVal, maxVal, Math.min(1, Math.max(0, t)));
+        this.options.onChange?.(this._value);
+      } else {
+        // scroll-scale
+        if (this._scrollDragStartX === null || this._scrollDragStartValue === null) return;
+        const dx = physX - this._scrollDragStartX;
+        const trackW = Math.max(1, this._trackX1 - this._trackX0);
+        const valueDelta = (dx / trackW) * (maxVal - minVal);
+        this._value = Math.min(maxVal, Math.max(minVal, this._scrollDragStartValue - valueDelta));
+        this.options.onChange?.(this._value);
+      }
+      engine.requestUpdate();
+    };
+
+    const startDragAtPhys = (physPt: V2): void => {
+      this._isDragging = true;
+      this._snapFrom = null;
+      this._snapTo = null;
+      if (mode === 'drag-caret') {
+        applyDragAtPhysX(physPt.x);
+      } else {
+        this._scrollDragStartX = physPt.x;
+        this._scrollDragStartValue = this._value;
+      }
+      engine.requestUpdate();
+    };
+
     const handleDragEnd = (): void => {
+      if (!this._isDragging) return;
       this._isDragging = false;
       this._scrollDragStartX = null;
       this._scrollDragStartValue = null;
@@ -185,61 +221,59 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       engine.requestUpdate();
     };
 
-    if (mode === 'drag-caret') {
-      this._cancelDrag = mh.activateItemDragMode({
-        hitTest: (screenPt) => this._hitTestRuler(screenPt),
-        onHover: checkNear,
+    // ── Mouse ───────────────────────────────────────────────────────────────
+    const onMouseDown = (e: MouseEvent) => {
+      const physPt = clientToPhys(e.clientX, e.clientY);
+      if (!this._hitTestRuler(physPt)) return;
+      e.preventDefault();
+      startDragAtPhys(physPt);
+    };
 
-        onDragStart: (worldPt) => {
-          this._isDragging = true;
-          this._snapFrom = null;
-          this._snapTo = null;
-          this._applyDragWorld(worldPt, engine);
-          engine.requestUpdate();
-        },
+    const onMouseMove = (e: MouseEvent) => {
+      const physPt = clientToPhys(e.clientX, e.clientY);
+      checkNear(physPt);
+      if (!this._isDragging) return;
+      applyDragAtPhysX(physPt.x);
+    };
 
-        onMove: (worldPt) => {
-          if (!this._isDragging) return;
-          this._applyDragWorld(worldPt, engine);
-          engine.requestUpdate();
-        },
+    const onMouseUp = () => handleDragEnd();
 
-        onDragEnd: handleDragEnd,
-      });
-    } else {
-      // 'scroll-scale': caret fixed at track centre; dragging scrolls the scale.
-      this._cancelDrag = mh.activateItemDragMode({
-        hitTest: (screenPt) => this._hitTestRuler(screenPt),
-        onHover: checkNear,
+    // ── Touch ──────────────────────────────────────────────────────────────
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const physPt = clientToPhys(t.clientX, t.clientY);
+      if (!this._hitTestRuler(physPt)) return;
+      e.preventDefault();
+      startDragAtPhys(physPt);
+    };
 
-        onDragStart: (worldPt) => {
-          this._isDragging = true;
-          this._snapFrom = null;
-          this._snapTo = null;
-          const screenPt = engine.renderer.worldToScreen(worldPt);
-          this._scrollDragStartX = screenPt.x;
-          this._scrollDragStartValue = this._value;
-          engine.requestUpdate();
-        },
+    const onTouchMove = (e: TouchEvent) => {
+      if (!this._isDragging || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      applyDragAtPhysX(clientToPhys(t.clientX, t.clientY).x);
+      e.preventDefault();
+    };
 
-        onMove: (worldPt) => {
-          if (!this._isDragging) return;
-          if (this._scrollDragStartX === null || this._scrollDragStartValue === null) return;
-          const { ticks } = this.options;
-          const minVal = ticks[0].value;
-          const maxVal = ticks[ticks.length - 1].value;
-          const screenPt = engine.renderer.worldToScreen(worldPt);
-          const dx = screenPt.x - this._scrollDragStartX;
-          const trackW = Math.max(1, this._trackX1 - this._trackX0);
-          const valueDelta = (dx / trackW) * (maxVal - minVal);
-          this._value = Math.min(maxVal, Math.max(minVal, this._scrollDragStartValue - valueDelta));
-          this.options.onChange?.(this._value);
-          engine.requestUpdate();
-        },
+    const onTouchEnd = () => handleDragEnd();
 
-        onDragEnd: handleDragEnd,
-      });
-    }
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchEnd);
+
+    this._cancelDrag = () => {
+      canvas.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
+    };
   }
 
   override update(dt: number): void {
@@ -420,11 +454,17 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     }
 
     // ── Caret ─────────────────────────────────────────────────────────────
-    const pillW     = CARET_PILL_W * hdpi;
+    const valueStr = opts.formatValue?.(this._value, nearestTick) ?? this._value.toFixed(2);
+    // Measure text to size the pill dynamically
+    const pillFontSizePx = 10 * hdpi;
+    renderer.ctx.font = `${pillFontSizePx}px Arial`;
+    const textMetrics = renderer.ctx.measureText(valueStr);
+    const pillPadX = 10 * hdpi;  // horizontal padding on each side
+    const pillW     = Math.max(CARET_PILL_W * hdpi, textMetrics.width + pillPadX * 2);
     const pillH     = CARET_PILL_H * hdpi;
     const pillR     = CARET_PILL_R * hdpi;
     const arrowH    = CARET_ARROW_H * hdpi;
-    const arrowW    = CARET_ARROW_W * hdpi;
+    const arrowW    = Math.max(CARET_ARROW_W * hdpi, pillW * 0.3);
     const pillX     = caretPx - pillW / 2;
     const badgePosition = opts.badgePosition ?? 'above';
     const arrowGap = 6 * hdpi;
@@ -454,7 +494,6 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     badge.fill();
 
     // Value text centred in badge
-    const valueStr = opts.formatValue?.(this._value, nearestTick) ?? this._value.toFixed(2);
     const textY = pillTop + pillH * 0.65;
     renderer.drawScreenSpace(badgeText).renderText(
       valueStr,
@@ -469,21 +508,6 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
   // ── Private helpers ──────────────────────────────────────────────────────
 
   /** Map a drag world-point to a track value, emit onChange. */
-  private _applyDragWorld(worldPt: V2, engine: LunaTerraEngine): void {
-    const renderer = engine.renderer;
-    const screenPt = renderer.worldToScreen(worldPt);
-    const physX = screenPt.x;
-
-    const { ticks } = this.options;
-    const minVal = ticks[0].value;
-    const maxVal = ticks[ticks.length - 1].value;
-
-    const t = (physX - this._trackX0) / Math.max(1, this._trackX1 - this._trackX0);
-    const newVal = _lerp(minVal, maxVal, Math.min(1, Math.max(0, t)));
-    this._value = newVal;
-    this.options.onChange?.(newVal);
-  }
-
   /** Return value of the closest tick to `v`. */
   private _nearestTick(v: number): number {
     const { ticks } = this.options;

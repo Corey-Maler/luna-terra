@@ -60,7 +60,8 @@ const MIN_WINDOW_MINUTES = 24 * 60;
 const MID_WINDOW_MINUTES = 3 * 24 * 60;
 const MAX_WINDOW_MINUTES = 7 * 24 * 60;
 const AGGREGATE_BUCKETS = [5, 15, 30] as const;
-const TICK_STEP_CANDIDATES = [60, 120, 240, 360, 720, 1440] as const;
+const TIMELINE_TICK_STEP_CANDIDATES = [1440, 2 * 1440, 3 * 1440, 5 * 1440, 7 * 1440] as const;
+const TIMELINE_MAX_TICKS = 7;
 
 const DATA_START_UTC = Date.UTC(2026, 2, 31, 0, 0, 0);
 const RAW_STEP_MINUTES = 5;
@@ -75,7 +76,7 @@ const LABEL_Y_OFFSET = 0.018;
 const CHART_WIDTH = 500;
 const CHART_HEIGHT = 150;
 const CHART_OFFSET_X = 24;
-const CHART_OFFSET_Y = 22;
+const CHART_OFFSET_Y = 62;
 
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
@@ -357,13 +358,6 @@ function chooseBucketMinutes(windowMinutes: number): (typeof AGGREGATE_BUCKETS)[
   return 30;
 }
 
-function chooseTickStepMinutes(windowMinutes: number): number {
-  for (const step of TICK_STEP_CANDIDATES) {
-    if (windowMinutes / step <= 7) return step;
-  }
-  return TICK_STEP_CANDIDATES[TICK_STEP_CANDIDATES.length - 1];
-}
-
 function aggregateTemperatureBuckets(bucketMinutes: number): TemperatureBucket[] {
   const buckets: TemperatureBucket[] = [];
   let sampleIndex = 0;
@@ -478,7 +472,14 @@ function formatTickLabel(minute: number, tickStepMinutes: number): string {
 
 function makeTimelineTicks(windowMinutes: number) {
   const ticks = [] as Array<{ value: number; label: string }>;
-  const tickStepMinutes = chooseTickStepMinutes(windowMinutes);
+  // Pick a step that gives at most TIMELINE_MAX_TICKS across the full 30-day span
+  let tickStepMinutes = TIMELINE_TICK_STEP_CANDIDATES[TIMELINE_TICK_STEP_CANDIDATES.length - 1];
+  for (const step of TIMELINE_TICK_STEP_CANDIDATES) {
+    if (TOTAL_MINUTES / step <= TIMELINE_MAX_TICKS) {
+      tickStepMinutes = step;
+      break;
+    }
+  }
   const minCenter = windowMinutes / 2;
   const maxCenter = TOTAL_MINUTES - windowMinutes / 2;
   const firstTick = Math.ceil(minCenter / tickStepMinutes) * tickStepMinutes;
