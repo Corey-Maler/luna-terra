@@ -23,6 +23,11 @@ interface TemperatureSample {
   temp: number;
 }
 
+interface HumiditySample {
+  minute: number;
+  humidity: number;
+}
+
 interface TemperatureBucket {
   x: number;
   minTemp: number;
@@ -33,6 +38,17 @@ interface AggregatedSeries {
   buckets: TemperatureBucket[];
   minLine: Array<{ x: number; y: number }>;
   maxLine: Array<{ x: number; y: number }>;
+  humidityLine: Array<{ x: number; y: number }>;
+}
+
+interface DailyExtrema {
+  dayStart: number;
+  minMinute: number;
+  maxMinute: number;
+  minTemp: number;
+  maxTemp: number;
+  minY: number;
+  maxY: number;
 }
 
 interface RangeFillOptions {
@@ -60,11 +76,11 @@ const MIN_WINDOW_MINUTES = 24 * 60;
 const MID_WINDOW_MINUTES = 3 * 24 * 60;
 const MAX_WINDOW_MINUTES = 7 * 24 * 60;
 const AGGREGATE_BUCKETS = [5, 15, 30] as const;
-const TIMELINE_TICK_STEP_CANDIDATES = [1440, 2 * 1440, 3 * 1440, 5 * 1440, 7 * 1440] as const;
-const TIMELINE_MAX_TICKS = 7;
+const WINDOW_TICK_STEP_CANDIDATES = [60, 120, 240, 360, 720, 1440] as const;
 
 const DATA_START_UTC = Date.UTC(2026, 2, 31, 0, 0, 0);
 const RAW_STEP_MINUTES = 5;
+const DAY_MINUTES = 24 * 60;
 const TOTAL_DAYS = 30;
 const TOTAL_MINUTES = TOTAL_DAYS * 24 * 60;
 
@@ -77,6 +93,8 @@ const CHART_WIDTH = 500;
 const CHART_HEIGHT = 150;
 const CHART_OFFSET_X = 24;
 const CHART_OFFSET_Y = 62;
+const DAILY_LABEL_CLEARANCE_PX = 12;
+const DAILY_LABEL_EDGE_PAD_PX = 8;
 
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
@@ -324,13 +342,78 @@ function createTemperatureSamples(): TemperatureSample[] {
   return samples;
 }
 
+function createHumiditySamples(temperatureSamples: TemperatureSample[]): HumiditySample[] {
+  return temperatureSamples.map((sample) => {
+    const day = sample.minute / DAY_MINUTES;
+    const baseline = 52 + Math.sin(day * 0.18 + 0.9) * 10;
+    const antiTemp = (22 - sample.temp) * 1.6;
+    const breeze = signedNoise(sample.minute * 0.21 + 17) * 3.5;
+    const humidity = clamp(baseline + antiTemp + breeze, 28, 88);
+    return { minute: sample.minute, humidity: Number(humidity.toFixed(1)) };
+  });
+}
+
+function createDailyExtrema(samples: TemperatureSample[]): DailyExtrema[] {
+  const days: DailyExtrema[] = [];
+  let sampleIndex = 0;
+
+  for (let dayIndex = 0; dayIndex < TOTAL_DAYS; dayIndex++) {
+    const dayStart = dayIndex * DAY_MINUTES;
+    const dayEnd = dayStart + DAY_MINUTES;
+    let minTemp = Infinity;
+    let maxTemp = -Infinity;
+    let minMinute = dayStart;
+    let maxMinute = dayStart;
+
+    while (sampleIndex < samples.length && samples[sampleIndex].minute < dayEnd) {
+      const minute = samples[sampleIndex].minute;
+      const temp = samples[sampleIndex].temp;
+      if (temp < minTemp) {
+        minTemp = temp;
+        minMinute = minute;
+      }
+      if (temp > maxTemp) {
+        maxTemp = temp;
+        maxMinute = minute;
+      }
+      sampleIndex += 1;
+    }
+
+    if (!isFinite(minTemp) || !isFinite(maxTemp)) continue;
+    days.push({
+      dayStart,
+      minMinute,
+      maxMinute,
+      minTemp,
+      maxTemp,
+      minY: normTemp(minTemp),
+      maxY: normTemp(maxTemp),
+    });
+  }
+
+  return days;
+}
+
 const RAW_TEMPERATURE_SAMPLES = createTemperatureSamples();
+const RAW_HUMIDITY_SAMPLES = createHumiditySamples(RAW_TEMPERATURE_SAMPLES);
 const RAW_TEMP_MIN = Math.min(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) - 0.8;
 const RAW_TEMP_MAX = Math.max(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) + 0.8;
 const RAW_TEMP_RANGE = RAW_TEMP_MAX - RAW_TEMP_MIN;
+const DAILY_EXTREMA = createDailyExtrema(RAW_TEMPERATURE_SAMPLES);
+
+const HUMIDITY_MIN = 20;
+const HUMIDITY_MAX = 90;
+
+function normHumidity(humidity: number): number {
+  return DATA_FLOOR + ((humidity - HUMIDITY_MIN) / (HUMIDITY_MAX - HUMIDITY_MIN)) * (CHART_TOP - DATA_FLOOR);
+}
 
 function normTemp(temp: number): number {
   return DATA_FLOOR + ((temp - RAW_TEMP_MIN) / RAW_TEMP_RANGE) * (CHART_TOP - DATA_FLOOR);
+}
+
+function chartPxToWorldY(px: number): number {
+  return ((CHART_TOP - FILL_BASELINE) * px) / CHART_HEIGHT;
 }
 
 function minuteToDate(minute: number): Date {
@@ -388,6 +471,36 @@ function aggregateTemperatureBuckets(bucketMinutes: number): TemperatureBucket[]
   }
 
   return buckets;
+}
+
+function aggregateHumidityBuckets(bucketMinutes: number): Array<{ x: number; humidity: number }> {
+  const points: Array<{ x: number; humidity: number }> = [];
+  let sampleIndex = 0;
+
+  for (let start = 0; start < TOTAL_MINUTES; start += bucketMinutes) {
+    const end = Math.min(start + bucketMinutes, TOTAL_MINUTES + RAW_STEP_MINUTES);
+    let sum = 0;
+    let count = 0;
+
+    while (
+      sampleIndex < RAW_HUMIDITY_SAMPLES.length &&
+      RAW_HUMIDITY_SAMPLES[sampleIndex].minute < end
+    ) {
+      sum += RAW_HUMIDITY_SAMPLES[sampleIndex].humidity;
+      count += 1;
+      sampleIndex += 1;
+    }
+
+    if (count === 0) continue;
+
+    const width = Math.min(bucketMinutes, TOTAL_MINUTES - start);
+    points.push({
+      x: start + width / 2,
+      humidity: sum / count,
+    });
+  }
+
+  return points;
 }
 
 function interpolateBucketValue(
@@ -470,22 +583,35 @@ function formatTickLabel(minute: number, tickStepMinutes: number): string {
   return `${hh}:${mm}`;
 }
 
-function makeTimelineTicks(windowMinutes: number) {
-  const ticks = [] as Array<{ value: number; label: string }>;
-  // Pick a step that gives at most TIMELINE_MAX_TICKS across the full 30-day span
-  let tickStepMinutes = TIMELINE_TICK_STEP_CANDIDATES[TIMELINE_TICK_STEP_CANDIDATES.length - 1];
-  for (const step of TIMELINE_TICK_STEP_CANDIDATES) {
-    if (TOTAL_MINUTES / step <= TIMELINE_MAX_TICKS) {
-      tickStepMinutes = step;
-      break;
+function chooseWindowTickStep(windowMinutes: number): number {
+  for (const step of WINDOW_TICK_STEP_CANDIDATES) {
+    if (windowMinutes / step <= 7) return step;
+  }
+  return WINDOW_TICK_STEP_CANDIDATES[WINDOW_TICK_STEP_CANDIDATES.length - 1];
+}
+
+/**
+ * Generate ticks within the visible window [center-W/2, center+W/2].
+ * Invisible boundary ticks at the edges define the ruler's value range,
+ * ensuring the ruler's domain exactly matches the chart's visible domain.
+ */
+function makeWindowTicks(center: number, windowMinutes: number) {
+  const xMin = center - windowMinutes / 2;
+  const xMax = center + windowMinutes / 2;
+  const tickStep = chooseWindowTickStep(windowMinutes);
+  const ticks: Array<{ value: number; label: string }> = [];
+
+  // Boundary ticks (empty label) anchor the ruler range to [xMin, xMax]
+  ticks.push({ value: xMin, label: '' });
+
+  const firstTick = Math.ceil(xMin / tickStep) * tickStep;
+  for (let minute = firstTick; minute <= xMax; minute += tickStep) {
+    if (minute - xMin > tickStep * 0.05 && xMax - minute > tickStep * 0.05) {
+      ticks.push({ value: minute, label: formatTickLabel(minute, tickStep) });
     }
   }
-  const minCenter = windowMinutes / 2;
-  const maxCenter = TOTAL_MINUTES - windowMinutes / 2;
-  const firstTick = Math.ceil(minCenter / tickStepMinutes) * tickStepMinutes;
-  for (let minute = firstTick; minute <= maxCenter; minute += tickStepMinutes) {
-    ticks.push({ value: minute, label: formatTickLabel(minute, tickStepMinutes) });
-  }
+
+  ticks.push({ value: xMax, label: '' });
   return ticks;
 }
 
@@ -493,10 +619,12 @@ export default function HomeAssistantPage() {
   const aggregatedByBucket = useMemo<Record<number, AggregatedSeries>>(() => {
     return AGGREGATE_BUCKETS.reduce<Record<number, AggregatedSeries>>((acc, bucketMinutes) => {
       const buckets = aggregateTemperatureBuckets(bucketMinutes);
+      const humidityBuckets = aggregateHumidityBuckets(bucketMinutes);
       acc[bucketMinutes] = {
         buckets,
         minLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.minTemp) })),
         maxLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.maxTemp) })),
+        humidityLine: humidityBuckets.map((bucket) => ({ x: bucket.x, y: normHumidity(bucket.humidity) })),
       };
       return acc;
     }, {});
@@ -546,6 +674,11 @@ export default function HomeAssistantPage() {
     maxLine.styles.color = themeColor('chart.series.secondary');
     chartFrame.appendChild(maxLine);
 
+    const humidityLine = new LineSeries({ data: currentSeries.humidityLine, lineWidth: 1.2 });
+    humidityLine.styles.color = themeColor('chart.series.primary');
+    humidityLine.styles.opacity = 0.85;
+    chartFrame.appendChild(humidityLine);
+
     const crosshair = new Crosshair({
       xMin: 0,
       xMax: TOTAL_MINUTES,
@@ -569,6 +702,24 @@ export default function HomeAssistantPage() {
     minLabel.styles.color = themeColor('chart.series.secondary');
     minLabel.styles.opacity = 0.74;
     chartFrame.appendChild(minLabel);
+
+    const dailyMaxLabels: TextElement[] = DAILY_EXTREMA.map(() => {
+      const label = new TextElement({ text: '', fontSize: 8, align: 'center', baseline: 'bottom' });
+      label.styles.color = themeColor('chart.series.secondary');
+      label.styles.opacity = 0.66;
+      label.visibility = false;
+      chartFrame.appendChild(label);
+      return label;
+    });
+
+    const dailyMinLabels: TextElement[] = DAILY_EXTREMA.map(() => {
+      const label = new TextElement({ text: '', fontSize: 8, align: 'center', baseline: 'top' });
+      label.styles.color = themeColor('chart.series.secondary');
+      label.styles.opacity = 0.56;
+      label.visibility = false;
+      chartFrame.appendChild(label);
+      return label;
+    });
 
     const clampCenter = (minute: number, nextWindowMinutes = windowMinutes) => clamp(
       minute,
@@ -595,6 +746,33 @@ export default function HomeAssistantPage() {
       maxLabel.position = new V2(labelX, interpolateSeriesY(currentSeries.maxLine, minute) + LABEL_Y_OFFSET);
     };
 
+    const updateDailyLabels = () => {
+      const xMin = visibleCenter - windowMinutes / 2;
+      const xMax = visibleCenter + windowMinutes / 2;
+      const clearY = chartPxToWorldY(DAILY_LABEL_CLEARANCE_PX);
+      const edgePadY = chartPxToWorldY(DAILY_LABEL_EDGE_PAD_PX);
+      const yMinSafe = FILL_BASELINE + edgePadY;
+      const yMaxSafe = CHART_TOP - edgePadY;
+
+      for (let i = 0; i < DAILY_EXTREMA.length; i++) {
+        const day = DAILY_EXTREMA[i];
+        const isVisible =
+          (day.minMinute >= xMin && day.minMinute <= xMax) ||
+          (day.maxMinute >= xMin && day.maxMinute <= xMax);
+
+        dailyMaxLabels[i].visibility = isVisible;
+        dailyMinLabels[i].visibility = isVisible;
+        if (!isVisible) continue;
+
+        dailyMaxLabels[i].options.text = `max ${formatTemperature(day.maxTemp)}`;
+        dailyMinLabels[i].options.text = `min ${formatTemperature(day.minTemp)}`;
+        const maxLabelY = clamp(day.maxY + clearY, yMinSafe, yMaxSafe);
+        const minLabelY = clamp(day.minY - clearY, yMinSafe, yMaxSafe);
+        dailyMaxLabels[i].position = new V2(day.maxMinute, maxLabelY);
+        dailyMinLabels[i].position = new V2(day.minMinute, minLabelY);
+      }
+    };
+
     const updateVisibleWindow = (minute: number) => {
       visibleCenter = clampCenter(minute);
       chartFrame.options.worldBounds = {
@@ -604,7 +782,11 @@ export default function HomeAssistantPage() {
         yMax: CHART_TOP,
       };
       updateReadouts(visibleCenter);
+      updateDailyLabels();
       crosshair.setValue(visibleCenter);
+      // Keep bottom ruler domain in sync with the chart window
+      bottomRuler.options.ticks = makeWindowTicks(visibleCenter, windowMinutes);
+      bottomRuler.setValue(visibleCenter);
       engine.requestUpdate();
     };
 
@@ -624,19 +806,19 @@ export default function HomeAssistantPage() {
         rangeFill.options.maxData = currentSeries.maxLine;
         minLine.options.data = currentSeries.minLine;
         maxLine.options.data = currentSeries.maxLine;
+        humidityLine.options.data = currentSeries.humidityLine;
         crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
-        bottomRuler.options.ticks = makeTimelineTicks(windowMinutes);
-        bottomRuler.setValue(clampCenter(visibleCenter));
         updateVisibleWindow(visibleCenter);
       },
     });
     group.appendChild(topRuler);
 
     const bottomRuler = new ScaleRuler({
-      ticks: makeTimelineTicks(windowMinutes),
+      ticks: makeWindowTicks(visibleCenter, windowMinutes),
       value: visibleCenter,
       sticky: false,
       interactionMode: 'scroll-scale',
+      sidePadding: CHART_OFFSET_X,
       formatValue: (value) => formatCursorLabel(value),
       badgePosition: 'below',
       onChange: (minute) => {
@@ -651,7 +833,6 @@ export default function HomeAssistantPage() {
       getVisibleCenter: () => visibleCenter,
       panByMinutes: (deltaMinutes) => {
         updateVisibleWindow(visibleCenter + deltaMinutes);
-        bottomRuler.setValue(visibleCenter);
       },
       zoomAround: (nextWindowMinutes, focusRatio, focusMinute) => {
         windowMinutes = clamp(nextWindowMinutes, MIN_WINDOW_MINUTES, MAX_WINDOW_MINUTES);
@@ -661,6 +842,7 @@ export default function HomeAssistantPage() {
         rangeFill.options.maxData = currentSeries.maxLine;
         minLine.options.data = currentSeries.minLine;
         maxLine.options.data = currentSeries.maxLine;
+        humidityLine.options.data = currentSeries.humidityLine;
         crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
 
         const nextCenter = clampCenter(
@@ -669,8 +851,6 @@ export default function HomeAssistantPage() {
         );
 
         topRuler.setValue(scaleValue);
-        bottomRuler.options.ticks = makeTimelineTicks(windowMinutes);
-        bottomRuler.setValue(nextCenter);
         updateVisibleWindow(nextCenter);
       },
     });
