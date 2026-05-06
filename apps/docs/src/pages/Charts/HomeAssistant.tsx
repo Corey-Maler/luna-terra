@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { V2 } from '@lunaterra/math';
 import {
   LunaTerraEngine,
@@ -11,7 +11,6 @@ import {
 import { Crosshair, LineSeries } from '@lunaterra/charts';
 import { TextElement } from '@lunaterra/elements';
 import { ScaleRuler } from '@lunaterra/ui';
-import { Button } from '../../components/Button/Button';
 import { DocPage } from '../../components/DocPage/DocPage';
 import { LiveCodeScene } from '../../components/LiveCodeScene';
 
@@ -30,12 +29,53 @@ interface TemperatureBucket {
   maxTemp: number;
 }
 
+interface AggregatedSeries {
+  buckets: TemperatureBucket[];
+  minLine: Array<{ x: number; y: number }>;
+  maxLine: Array<{ x: number; y: number }>;
+}
+
 interface RangeFillOptions {
   minData: Array<{ x: number; y: number }>;
   maxData: Array<{ x: number; y: number }>;
   colorPath: string;
   opacity: number;
 }
+
+interface ChartGestureOptions {
+  chartFrame: ScreenContainer;
+  getWindowMinutes: () => number;
+  getVisibleCenter: () => number;
+  panByMinutes: (deltaMinutes: number) => void;
+  zoomAround: (nextWindowMinutes: number, focusRatio: number, focusMinute: number) => void;
+}
+
+const SCALE_RULER_TICKS = [
+  { value: 0, label: 'Hours' },
+  { value: 1, label: 'Days' },
+  { value: 2, label: 'Weeks' },
+] as const;
+
+const MIN_WINDOW_MINUTES = 24 * 60;
+const MID_WINDOW_MINUTES = 3 * 24 * 60;
+const MAX_WINDOW_MINUTES = 7 * 24 * 60;
+const AGGREGATE_BUCKETS = [5, 15, 30] as const;
+const TICK_STEP_CANDIDATES = [60, 120, 240, 360, 720, 1440] as const;
+
+const DATA_START_UTC = Date.UTC(2026, 2, 31, 0, 0, 0);
+const RAW_STEP_MINUTES = 5;
+const TOTAL_DAYS = 30;
+const TOTAL_MINUTES = TOTAL_DAYS * 24 * 60;
+
+const CHART_BASELINE = 0.12;
+const FILL_BASELINE = CHART_BASELINE - 0.04;
+const CHART_TOP = 0.9;
+const DATA_FLOOR = CHART_BASELINE + 0.06;
+const LABEL_Y_OFFSET = 0.018;
+const CHART_WIDTH = 500;
+const CHART_HEIGHT = 150;
+const CHART_OFFSET_X = 24;
+const CHART_OFFSET_Y = 22;
 
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
@@ -69,31 +109,182 @@ class RangeFill extends LTElement<RangeFillOptions> {
   }
 }
 
-type ScaleKey = 'weeks' | 'days' | 'hours';
+class ChartGestureLayer extends LTElement<ChartGestureOptions> {
+  private removeListeners: Array<() => void> = [];
+  private isMouseDragging = false;
+  private lastMouseX = 0;
+  private touchMode: 'none' | 'pan' | 'pinch' = 'none';
+  private lastTouchX = 0;
+  private lastPinchDistance = 0;
 
-interface ScalePreset {
-  label: string;
-  windowMinutes: number;
-  bucketMinutes: number;
-  tickStepMinutes: number;
+  protected defaultOptions(): ChartGestureOptions {
+    return {
+      chartFrame: new ScreenContainer({ anchor: 'top-left', offsetX: 0, offsetY: 0, width: 1, height: 1 }),
+      getWindowMinutes: () => MIN_WINDOW_MINUTES,
+      getVisibleCenter: () => 0,
+      panByMinutes: () => {},
+      zoomAround: () => {},
+    };
+  }
+
+  override setup(engine: LunaTerraEngine): void {
+    super.setup(engine);
+
+    const canvas = engine.renderer.canvas;
+    const onWheel = (event: WheelEvent) => {
+      if (!this.hitClientPoint(event.clientX, event.clientY)) return;
+
+      event.preventDefault();
+      const ratio = this.focusRatioFromClientX(event.clientX);
+      const windowMinutes = this.options.getWindowMinutes();
+      const focusMinute = this.minuteAtRatio(ratio);
+
+      if (event.ctrlKey) {
+        const nextWindow = windowMinutes * Math.exp(event.deltaY * 0.0025);
+        this.options.zoomAround(nextWindow, ratio, focusMinute);
+        return;
+      }
+
+      const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
+      const deltaMinutes = (dominantDelta / chartRect.w) * windowMinutes;
+      this.options.panByMinutes(deltaMinutes);
+    };
+
+    const onMouseDown = (event: MouseEvent) => {
+      if (!this.hitClientPoint(event.clientX, event.clientY)) return;
+      this.isMouseDragging = true;
+      this.lastMouseX = event.clientX;
+      event.preventDefault();
+    };
+
+    const onMouseMove = (event: MouseEvent) => {
+      if (!this.isMouseDragging) return;
+      const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
+      const windowMinutes = this.options.getWindowMinutes();
+      const deltaMinutes = ((event.clientX - this.lastMouseX) / chartRect.w) * windowMinutes;
+      this.lastMouseX = event.clientX;
+      this.options.panByMinutes(-deltaMinutes);
+      event.preventDefault();
+    };
+
+    const onMouseUp = () => {
+      this.isMouseDragging = false;
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        if (!this.hitClientPoint(touch.clientX, touch.clientY)) return;
+        this.touchMode = 'pan';
+        this.lastTouchX = touch.clientX;
+        event.preventDefault();
+        return;
+      }
+
+      if (event.touches.length === 2) {
+        const midpoint = this.touchMidpoint(event.touches);
+        if (!this.hitClientPoint(midpoint.x, midpoint.y)) return;
+        this.touchMode = 'pinch';
+        this.lastPinchDistance = this.touchDistance(event.touches);
+        event.preventDefault();
+      }
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (this.touchMode === 'pan' && event.touches.length === 1) {
+        const touch = event.touches[0];
+        const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
+        const windowMinutes = this.options.getWindowMinutes();
+        const deltaMinutes = ((touch.clientX - this.lastTouchX) / chartRect.w) * windowMinutes;
+        this.lastTouchX = touch.clientX;
+        this.options.panByMinutes(-deltaMinutes);
+        event.preventDefault();
+        return;
+      }
+
+      if (this.touchMode === 'pinch' && event.touches.length === 2) {
+        const midpoint = this.touchMidpoint(event.touches);
+        const ratio = this.focusRatioFromClientX(midpoint.x);
+        const focusMinute = this.minuteAtRatio(ratio);
+        const nextDistance = this.touchDistance(event.touches);
+        const currentWindow = this.options.getWindowMinutes();
+        const nextWindow = currentWindow * (this.lastPinchDistance / nextDistance);
+        this.lastPinchDistance = nextDistance;
+        this.options.zoomAround(nextWindow, ratio, focusMinute);
+        event.preventDefault();
+      }
+    };
+
+    const onTouchEnd = () => {
+      this.touchMode = 'none';
+      this.lastPinchDistance = 0;
+    };
+
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+    this.removeListeners = [
+      () => canvas.removeEventListener('wheel', onWheel),
+      () => canvas.removeEventListener('mousedown', onMouseDown),
+      () => window.removeEventListener('mousemove', onMouseMove),
+      () => window.removeEventListener('mouseup', onMouseUp),
+      () => canvas.removeEventListener('touchstart', onTouchStart),
+      () => canvas.removeEventListener('touchmove', onTouchMove),
+      () => canvas.removeEventListener('touchend', onTouchEnd),
+      () => canvas.removeEventListener('touchcancel', onTouchEnd),
+    ];
+  }
+
+  override destroy(): void {
+    for (const remove of this.removeListeners) remove();
+    this.removeListeners = [];
+  }
+
+  private hitClientPoint(clientX: number, clientY: number): boolean {
+    const renderer = this.engine?.renderer;
+    if (!renderer) return false;
+
+    const chartRect = this.options.chartFrame.getScreenRect(renderer);
+    const bounds = renderer.canvas.getBoundingClientRect();
+    const x = clientX - bounds.left;
+    const y = clientY - bounds.top;
+    return x >= chartRect.x && x <= chartRect.x + chartRect.w && y >= chartRect.y && y <= chartRect.y + chartRect.h;
+  }
+
+  private focusRatioFromClientX(clientX: number): number {
+    const renderer = this.engine?.renderer;
+    if (!renderer) return 0.5;
+
+    const chartRect = this.options.chartFrame.getScreenRect(renderer);
+    const bounds = renderer.canvas.getBoundingClientRect();
+    const x = clientX - bounds.left;
+    return clamp((x - chartRect.x) / chartRect.w, 0, 1);
+  }
+
+  private minuteAtRatio(ratio: number): number {
+    return this.options.getVisibleCenter() + (ratio - 0.5) * this.options.getWindowMinutes();
+  }
+
+  private touchDistance(touches: TouchList): number {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  private touchMidpoint(touches: TouchList): { x: number; y: number } {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  }
 }
-
-const SCALE_PRESETS: Record<ScaleKey, ScalePreset> = {
-  weeks: { label: 'Weeks', windowMinutes: 7 * 24 * 60, bucketMinutes: 30, tickStepMinutes: 24 * 60 },
-  days: { label: 'Days', windowMinutes: 3 * 24 * 60, bucketMinutes: 15, tickStepMinutes: 12 * 60 },
-  hours: { label: 'Hours', windowMinutes: 24 * 60, bucketMinutes: 5, tickStepMinutes: 2 * 60 },
-};
-
-const DATA_START_UTC = Date.UTC(2026, 2, 31, 0, 0, 0);
-const RAW_STEP_MINUTES = 5;
-const TOTAL_DAYS = 30;
-const TOTAL_MINUTES = TOTAL_DAYS * 24 * 60;
-
-const CHART_BASELINE = 0.12;
-const FILL_BASELINE = CHART_BASELINE - 0.04;
-const CHART_TOP = 0.9;
-const DATA_FLOOR = CHART_BASELINE + 0.06;
-const LABEL_Y_OFFSET = 0.018;
 
 function pseudoRandom(seed: number): number {
   const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453123;
@@ -102,6 +293,18 @@ function pseudoRandom(seed: number): number {
 
 function signedNoise(seed: number): number {
   return pseudoRandom(seed) * 2 - 1;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
+
+function lerpLog(minValue: number, maxValue: number, t: number): number {
+  return Math.exp(Math.log(minValue) + (Math.log(maxValue) - Math.log(minValue)) * t);
+}
+
+function invLerpLog(minValue: number, maxValue: number, value: number): number {
+  return (Math.log(value) - Math.log(minValue)) / (Math.log(maxValue) - Math.log(minValue));
 }
 
 function createTemperatureSamples(): TemperatureSample[] {
@@ -124,10 +327,6 @@ const RAW_TEMPERATURE_SAMPLES = createTemperatureSamples();
 const RAW_TEMP_MIN = Math.min(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) - 0.8;
 const RAW_TEMP_MAX = Math.max(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) + 0.8;
 const RAW_TEMP_RANGE = RAW_TEMP_MAX - RAW_TEMP_MIN;
-const CHART_WIDTH = 500;
-const CHART_HEIGHT = 150;
-const CHART_OFFSET_X = 24;
-const CHART_OFFSET_Y = 22;
 
 function normTemp(temp: number): number {
   return DATA_FLOOR + ((temp - RAW_TEMP_MIN) / RAW_TEMP_RANGE) * (CHART_TOP - DATA_FLOOR);
@@ -135,6 +334,34 @@ function normTemp(temp: number): number {
 
 function minuteToDate(minute: number): Date {
   return new Date(DATA_START_UTC + minute * 60_000);
+}
+
+function scaleValueToWindowMinutes(scaleValue: number): number {
+  if (scaleValue <= 1) {
+    return lerpLog(MIN_WINDOW_MINUTES, MID_WINDOW_MINUTES, clamp(scaleValue, 0, 1));
+  }
+  return lerpLog(MID_WINDOW_MINUTES, MAX_WINDOW_MINUTES, clamp(scaleValue - 1, 0, 1));
+}
+
+function windowMinutesToScaleValue(windowMinutes: number): number {
+  const clampedWindow = clamp(windowMinutes, MIN_WINDOW_MINUTES, MAX_WINDOW_MINUTES);
+  if (clampedWindow <= MID_WINDOW_MINUTES) {
+    return invLerpLog(MIN_WINDOW_MINUTES, MID_WINDOW_MINUTES, clampedWindow);
+  }
+  return 1 + invLerpLog(MID_WINDOW_MINUTES, MAX_WINDOW_MINUTES, clampedWindow);
+}
+
+function chooseBucketMinutes(windowMinutes: number): (typeof AGGREGATE_BUCKETS)[number] {
+  if (windowMinutes <= 36 * 60) return 5;
+  if (windowMinutes <= 4 * 24 * 60) return 15;
+  return 30;
+}
+
+function chooseTickStepMinutes(windowMinutes: number): number {
+  for (const step of TICK_STEP_CANDIDATES) {
+    if (windowMinutes / step <= 7) return step;
+  }
+  return TICK_STEP_CANDIDATES[TICK_STEP_CANDIDATES.length - 1];
 }
 
 function aggregateTemperatureBuckets(bucketMinutes: number): TemperatureBucket[] {
@@ -209,6 +436,13 @@ function formatTemperature(value: number): string {
   return `${value.toFixed(1)}C`;
 }
 
+function formatWindowLabel(windowMinutes: number): string {
+  if (windowMinutes < 48 * 60) {
+    return `${(windowMinutes / 60).toFixed(1)}h`;
+  }
+  return `${(windowMinutes / (24 * 60)).toFixed(1)}d`;
+}
+
 function formatCursorLabel(minute: number): string {
   const date = minuteToDate(minute);
   const day = date.toLocaleDateString('en-US', {
@@ -221,16 +455,16 @@ function formatCursorLabel(minute: number): string {
   return `${day}, ${hh}:${mm}`;
 }
 
-function formatTickLabel(minute: number, scale: ScaleKey): string {
+function formatTickLabel(minute: number, tickStepMinutes: number): string {
   const date = minuteToDate(minute);
-  if (scale === 'weeks') {
+  if (tickStepMinutes >= 24 * 60) {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       timeZone: 'UTC',
     });
   }
-  if (scale === 'days') {
+  if (tickStepMinutes >= 12 * 60) {
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       day: 'numeric',
@@ -242,41 +476,37 @@ function formatTickLabel(minute: number, scale: ScaleKey): string {
   return `${hh}:${mm}`;
 }
 
-function makeTimelineTicks(scale: ScaleKey, preset: ScalePreset) {
+function makeTimelineTicks(windowMinutes: number) {
   const ticks = [] as Array<{ value: number; label: string }>;
-  const minCenter = preset.windowMinutes / 2;
-  const maxCenter = TOTAL_MINUTES - preset.windowMinutes / 2;
-  const firstTick = Math.ceil(minCenter / preset.tickStepMinutes) * preset.tickStepMinutes;
-  for (let minute = firstTick; minute <= maxCenter; minute += preset.tickStepMinutes) {
-    ticks.push({ value: minute, label: formatTickLabel(minute, scale) });
+  const tickStepMinutes = chooseTickStepMinutes(windowMinutes);
+  const minCenter = windowMinutes / 2;
+  const maxCenter = TOTAL_MINUTES - windowMinutes / 2;
+  const firstTick = Math.ceil(minCenter / tickStepMinutes) * tickStepMinutes;
+  for (let minute = firstTick; minute <= maxCenter; minute += tickStepMinutes) {
+    ticks.push({ value: minute, label: formatTickLabel(minute, tickStepMinutes) });
   }
   return ticks;
 }
 
 export default function HomeAssistantPage() {
-  const [scale, setScale] = useState<ScaleKey>('weeks');
-  const preset = SCALE_PRESETS[scale];
-
-  const aggregated = useMemo(() => {
-    const buckets = aggregateTemperatureBuckets(preset.bucketMinutes);
-    return {
-      buckets,
-      minLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.minTemp) })),
-      maxLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.maxTemp) })),
-    };
-  }, [preset.bucketMinutes]);
-
-  const timelineTicks = useMemo(() => makeTimelineTicks(scale, preset), [scale, preset]);
-  
-  const centerMinute = TOTAL_MINUTES - preset.windowMinutes / 2;
-  
-  const readoutXOffset = preset.windowMinutes * 0.018;
+  const aggregatedByBucket = useMemo<Record<number, AggregatedSeries>>(() => {
+    return AGGREGATE_BUCKETS.reduce<Record<number, AggregatedSeries>>((acc, bucketMinutes) => {
+      const buckets = aggregateTemperatureBuckets(bucketMinutes);
+      acc[bucketMinutes] = {
+        buckets,
+        minLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.minTemp) })),
+        maxLine: buckets.map((bucket) => ({ x: bucket.x, y: normTemp(bucket.maxTemp) })),
+      };
+      return acc;
+    }, {});
+  }, []);
 
   const buildScene = useCallback((engine: LunaTerraEngine): LTElement => {
     const group = new GroupElement();
-    let visibleCenter = centerMinute;
-    const minValue = interpolateBucketValue(aggregated.buckets, centerMinute, 'minTemp');
-    const maxValue = interpolateBucketValue(aggregated.buckets, centerMinute, 'maxTemp');
+    let scaleValue = 2;
+    let windowMinutes = scaleValueToWindowMinutes(scaleValue);
+    let visibleCenter = TOTAL_MINUTES - windowMinutes / 2;
+    let currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
 
     const title = new TextElement({ text: 'guest room climate', fontSize: 10, align: 'left', baseline: 'top' });
     title.position = new V2(0, 0.98);
@@ -290,8 +520,8 @@ export default function HomeAssistantPage() {
       width: CHART_WIDTH,
       height: CHART_HEIGHT,
       worldBounds: {
-        xMin: centerMinute - preset.windowMinutes / 2,
-        xMax: centerMinute + preset.windowMinutes / 2,
+        xMin: visibleCenter - windowMinutes / 2,
+        xMax: visibleCenter + windowMinutes / 2,
         yMin: FILL_BASELINE,
         yMax: CHART_TOP,
       },
@@ -299,19 +529,19 @@ export default function HomeAssistantPage() {
     group.appendChild(chartFrame);
 
     const rangeFill = new RangeFill({
-      minData: aggregated.minLine,
-      maxData: aggregated.maxLine,
+      minData: currentSeries.minLine,
+      maxData: currentSeries.maxLine,
       colorPath: 'chart.series.secondary',
       opacity: 0.16,
     });
     chartFrame.appendChild(rangeFill);
 
-    const minLine = new LineSeries({ data: aggregated.minLine, lineWidth: 1.1 });
+    const minLine = new LineSeries({ data: currentSeries.minLine, lineWidth: 1.1 });
     minLine.styles.color = themeColor('chart.series.secondary');
     minLine.styles.opacity = 0.62;
     chartFrame.appendChild(minLine);
 
-    const maxLine = new LineSeries({ data: aggregated.maxLine, lineWidth: 1.6 });
+    const maxLine = new LineSeries({ data: currentSeries.maxLine, lineWidth: 1.6 });
     maxLine.styles.color = themeColor('chart.series.secondary');
     chartFrame.appendChild(maxLine);
 
@@ -322,58 +552,88 @@ export default function HomeAssistantPage() {
       showXLabel: false,
       yMin: FILL_BASELINE,
       yMax: CHART_TOP,
-      series: [aggregated.minLine, aggregated.maxLine],
+      series: [currentSeries.minLine, currentSeries.maxLine],
       formatXLabel: (x) => formatCursorLabel(x),
     });
     crosshair.styles.color = themeColor('chart.widget.title');
     crosshair.styles.opacity = 0.58;
-    crosshair.setValue(centerMinute);
+    crosshair.setValue(visibleCenter);
     chartFrame.appendChild(crosshair);
 
-    const maxLabel = new TextElement({ text: `max ${formatTemperature(maxValue)}`, fontSize: 10, align: 'left', baseline: 'middle' });
-    maxLabel.position = new V2(centerMinute + readoutXOffset, interpolateSeriesY(aggregated.maxLine, centerMinute) + LABEL_Y_OFFSET);
+    const maxLabel = new TextElement({ text: '', fontSize: 10, align: 'left', baseline: 'middle' });
     maxLabel.styles.color = themeColor('chart.series.secondary');
     chartFrame.appendChild(maxLabel);
 
-    const minLabel = new TextElement({ text: `min ${formatTemperature(minValue)}`, fontSize: 10, align: 'left', baseline: 'middle' });
-    minLabel.position = new V2(centerMinute + readoutXOffset, interpolateSeriesY(aggregated.minLine, centerMinute) - LABEL_Y_OFFSET);
+    const minLabel = new TextElement({ text: '', fontSize: 10, align: 'left', baseline: 'middle' });
     minLabel.styles.color = themeColor('chart.series.secondary');
     minLabel.styles.opacity = 0.74;
     chartFrame.appendChild(minLabel);
 
-    const clampCenter = (minute: number) => Math.max(
-      preset.windowMinutes / 2,
-      Math.min(minute, TOTAL_MINUTES - preset.windowMinutes / 2),
+    const clampCenter = (minute: number, nextWindowMinutes = windowMinutes) => clamp(
+      minute,
+      nextWindowMinutes / 2,
+      TOTAL_MINUTES - nextWindowMinutes / 2,
     );
+
+    const updateReadouts = (minute: number) => {
+      const currentMin = interpolateBucketValue(currentSeries.buckets, minute, 'minTemp');
+      const currentMax = interpolateBucketValue(currentSeries.buckets, minute, 'maxTemp');
+      const xOffset = windowMinutes * 0.03;
+      const xMin = visibleCenter - windowMinutes / 2;
+      const xMax = visibleCenter + windowMinutes / 2;
+      const placeRight = minute + xOffset <= xMax - windowMinutes * 0.02;
+      const rawX = placeRight ? minute + xOffset : minute - xOffset;
+      const labelX = clamp(rawX, xMin + windowMinutes * 0.04, xMax - windowMinutes * 0.04);
+      const labelAlign = placeRight ? 'left' : 'right';
+
+      minLabel.options.text = `min ${formatTemperature(currentMin)}`;
+      maxLabel.options.text = `max ${formatTemperature(currentMax)}`;
+      minLabel.options.align = labelAlign;
+      maxLabel.options.align = labelAlign;
+      minLabel.position = new V2(labelX, interpolateSeriesY(currentSeries.minLine, minute) - LABEL_Y_OFFSET);
+      maxLabel.position = new V2(labelX, interpolateSeriesY(currentSeries.maxLine, minute) + LABEL_Y_OFFSET);
+    };
 
     const updateVisibleWindow = (minute: number) => {
       visibleCenter = clampCenter(minute);
       chartFrame.options.worldBounds = {
-        xMin: visibleCenter - preset.windowMinutes / 2,
-        xMax: visibleCenter + preset.windowMinutes / 2,
+        xMin: visibleCenter - windowMinutes / 2,
+        xMax: visibleCenter + windowMinutes / 2,
         yMin: FILL_BASELINE,
         yMax: CHART_TOP,
       };
-
-      const currentMin = interpolateBucketValue(aggregated.buckets, visibleCenter, 'minTemp');
-      const currentMax = interpolateBucketValue(aggregated.buckets, visibleCenter, 'maxTemp');
-      minLabel.options.text = `min ${formatTemperature(currentMin)}`;
-      maxLabel.options.text = `max ${formatTemperature(currentMax)}`;
-      minLabel.position = new V2(
-        visibleCenter + readoutXOffset,
-        interpolateSeriesY(aggregated.minLine, visibleCenter) - LABEL_Y_OFFSET,
-      );
-      maxLabel.position = new V2(
-        visibleCenter + readoutXOffset,
-        interpolateSeriesY(aggregated.maxLine, visibleCenter) + LABEL_Y_OFFSET,
-      );
+      updateReadouts(visibleCenter);
       crosshair.setValue(visibleCenter);
       engine.requestUpdate();
     };
 
-    const ruler = new ScaleRuler({
-      ticks: timelineTicks,
-      value: centerMinute,
+    const topRuler = new ScaleRuler({
+      ticks: [...SCALE_RULER_TICKS],
+      value: scaleValue,
+      sticky: false,
+      position: 'top-center',
+      edgeOffset: 8,
+      badgePosition: 'above',
+      formatValue: (value) => formatWindowLabel(scaleValueToWindowMinutes(value)),
+      onChange: (value) => {
+        scaleValue = clamp(value, 0, 2);
+        windowMinutes = scaleValueToWindowMinutes(scaleValue);
+        currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
+        rangeFill.options.minData = currentSeries.minLine;
+        rangeFill.options.maxData = currentSeries.maxLine;
+        minLine.options.data = currentSeries.minLine;
+        maxLine.options.data = currentSeries.maxLine;
+        crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
+        bottomRuler.options.ticks = makeTimelineTicks(windowMinutes);
+        bottomRuler.setValue(clampCenter(visibleCenter));
+        updateVisibleWindow(visibleCenter);
+      },
+    });
+    group.appendChild(topRuler);
+
+    const bottomRuler = new ScaleRuler({
+      ticks: makeTimelineTicks(windowMinutes),
+      value: visibleCenter,
       sticky: false,
       interactionMode: 'scroll-scale',
       formatValue: (value) => formatCursorLabel(value),
@@ -382,38 +642,57 @@ export default function HomeAssistantPage() {
         updateVisibleWindow(minute);
       },
     });
-    group.appendChild(ruler);
+    group.appendChild(bottomRuler);
+
+    const gestureLayer = new ChartGestureLayer({
+      chartFrame,
+      getWindowMinutes: () => windowMinutes,
+      getVisibleCenter: () => visibleCenter,
+      panByMinutes: (deltaMinutes) => {
+        updateVisibleWindow(visibleCenter + deltaMinutes);
+        bottomRuler.setValue(visibleCenter);
+      },
+      zoomAround: (nextWindowMinutes, focusRatio, focusMinute) => {
+        windowMinutes = clamp(nextWindowMinutes, MIN_WINDOW_MINUTES, MAX_WINDOW_MINUTES);
+        scaleValue = windowMinutesToScaleValue(windowMinutes);
+        currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
+        rangeFill.options.minData = currentSeries.minLine;
+        rangeFill.options.maxData = currentSeries.maxLine;
+        minLine.options.data = currentSeries.minLine;
+        maxLine.options.data = currentSeries.maxLine;
+        crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
+
+        const nextCenter = clampCenter(
+          focusMinute + (0.5 - focusRatio) * windowMinutes,
+          windowMinutes,
+        );
+
+        topRuler.setValue(scaleValue);
+        bottomRuler.options.ticks = makeTimelineTicks(windowMinutes);
+        bottomRuler.setValue(nextCenter);
+        updateVisibleWindow(nextCenter);
+      },
+    });
+    group.appendChild(gestureLayer);
 
     engine.interactive = false;
     engine.add(group);
-    updateVisibleWindow(centerMinute);
-    engine.requestUpdate();
+    updateVisibleWindow(visibleCenter);
     return group;
-  }, [aggregated, centerMinute, preset.windowMinutes, timelineTicks, readoutXOffset]);
+  }, [aggregatedByBucket]);
 
   return (
     <DocPage title="Charts/Home Assistant" section="@lunaterra/charts">
       <DocPage.Section id="home-assistant" title="Home Assistant Climate History">
         <p>
-          Switch between week, multi-day, and hourly views while keeping the chart in the same fixed viewport.
-          Drag the ruler at the bottom to scrub through time.
+          The top ruler scales the chart continuously, the bottom ruler scrubs time with adaptive tick density,
+          and the chart itself supports drag, wheel, and touch pinch without using engine camera zoom.
         </p>
         <div style={{ maxWidth: 560 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            {(Object.keys(SCALE_PRESETS) as ScaleKey[]).map((key) => (
-              <Button
-                key={key}
-                variant={key === scale ? 'solid' : 'secondary'}
-                onClick={() => setScale(key)}
-              >
-                {SCALE_PRESETS[key].label}
-              </Button>
-            ))}
-          </div>
           <LiveCodeScene
             buildScene={buildScene}
             defaultConfig={{}}
-            source={`// Fixed chart viewport with switchable time windows\n// Drag the ruler to scrub through time`}
+            source={`// Top ruler scales the chart continuously\n// Bottom ruler scrubs time; chart supports drag, wheel, and pinch`}
             canvasHeight={230}
             zoom={false}
             scrollBounds={null}
