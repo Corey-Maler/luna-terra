@@ -8,8 +8,8 @@ import {
   themeColor,
   type CanvasRenderer,
 } from '@lunaterra/core';
-import { Crosshair, LineSeries } from '@lunaterra/charts';
-import { TextElement } from '@lunaterra/elements';
+import { Crosshair, LineSeries, StateBandSeries } from '@lunaterra/charts';
+import { RectElement, TextElement } from '@lunaterra/elements';
 import { ScaleRuler } from '@lunaterra/ui';
 import { DocPage } from '../../components/DocPage/DocPage';
 import { LiveCodeScene } from '../../components/LiveCodeScene';
@@ -39,16 +39,6 @@ interface AggregatedSeries {
   minLine: Array<{ x: number; y: number }>;
   maxLine: Array<{ x: number; y: number }>;
   humidityLine: Array<{ x: number; y: number }>;
-}
-
-interface DailyExtrema {
-  dayStart: number;
-  minMinute: number;
-  maxMinute: number;
-  minTemp: number;
-  maxTemp: number;
-  minY: number;
-  maxY: number;
 }
 
 interface RangeFillOptions {
@@ -88,13 +78,19 @@ const CHART_BASELINE = 0.12;
 const FILL_BASELINE = CHART_BASELINE - 0.04;
 const CHART_TOP = 0.9;
 const DATA_FLOOR = CHART_BASELINE + 0.06;
-const LABEL_Y_OFFSET = 0.018;
 const CHART_WIDTH = 500;
-const CHART_HEIGHT = 150;
+const CHART_HEIGHT = 140;
 const CHART_OFFSET_X = 24;
 const CHART_OFFSET_Y = 62;
+const HEATING_LANE_Y = CHART_TOP - 0.03;
+const DATA_CEILING = HEATING_LANE_Y - 0.06;
 const DAILY_LABEL_CLEARANCE_PX = 12;
 const DAILY_LABEL_EDGE_PAD_PX = 8;
+const EXTREMA_LABEL_POOL_SIZE = 10;
+const EXTREMA_SMOOTH_MINUTES_MIN = 45;
+const EXTREMA_SMOOTH_MINUTES_MAX = 180;
+const EXTREMA_MIN_PROMINENCE_PX = 2;
+const EXTREMA_SAME_TYPE_MIN_DISTANCE_MINUTES = 10 * 60;
 
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
@@ -353,63 +349,55 @@ function createHumiditySamples(temperatureSamples: TemperatureSample[]): Humidit
   });
 }
 
-function createDailyExtrema(samples: TemperatureSample[]): DailyExtrema[] {
-  const days: DailyExtrema[] = [];
-  let sampleIndex = 0;
+function createHeatingSegments(temperatureSamples: TemperatureSample[]): Array<{ x0: number; x1: number }> {
+  const segments: Array<{ x0: number; x1: number }> = [];
+  const thresholdOn = 19;
+  const thresholdOff = 20;
 
-  for (let dayIndex = 0; dayIndex < TOTAL_DAYS; dayIndex++) {
-    const dayStart = dayIndex * DAY_MINUTES;
-    const dayEnd = dayStart + DAY_MINUTES;
-    let minTemp = Infinity;
-    let maxTemp = -Infinity;
-    let minMinute = dayStart;
-    let maxMinute = dayStart;
+  let isHeatingOn = false;
+  let activeStart = 0;
 
-    while (sampleIndex < samples.length && samples[sampleIndex].minute < dayEnd) {
-      const minute = samples[sampleIndex].minute;
-      const temp = samples[sampleIndex].temp;
-      if (temp < minTemp) {
-        minTemp = temp;
-        minMinute = minute;
-      }
-      if (temp > maxTemp) {
-        maxTemp = temp;
-        maxMinute = minute;
-      }
-      sampleIndex += 1;
+  for (const sample of temperatureSamples) {
+    if (!isHeatingOn && sample.temp <= thresholdOn) {
+      isHeatingOn = true;
+      activeStart = sample.minute;
+      continue;
     }
 
-    if (!isFinite(minTemp) || !isFinite(maxTemp)) continue;
-    days.push({
-      dayStart,
-      minMinute,
-      maxMinute,
-      minTemp,
-      maxTemp,
-      minY: normTemp(minTemp),
-      maxY: normTemp(maxTemp),
-    });
+    if (isHeatingOn && sample.temp >= thresholdOff) {
+      segments.push({ x0: activeStart, x1: sample.minute });
+      isHeatingOn = false;
+    }
   }
 
-  return days;
+  if (isHeatingOn) {
+    segments.push({ x0: activeStart, x1: TOTAL_MINUTES });
+  }
+
+  return segments;
 }
 
 const RAW_TEMPERATURE_SAMPLES = createTemperatureSamples();
 const RAW_HUMIDITY_SAMPLES = createHumiditySamples(RAW_TEMPERATURE_SAMPLES);
+const HEATING_SEGMENTS = createHeatingSegments(RAW_TEMPERATURE_SAMPLES);
 const RAW_TEMP_MIN = Math.min(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) - 0.8;
 const RAW_TEMP_MAX = Math.max(...RAW_TEMPERATURE_SAMPLES.map((sample) => sample.temp)) + 0.8;
 const RAW_TEMP_RANGE = RAW_TEMP_MAX - RAW_TEMP_MIN;
-const DAILY_EXTREMA = createDailyExtrema(RAW_TEMPERATURE_SAMPLES);
 
 const HUMIDITY_MIN = 20;
 const HUMIDITY_MAX = 90;
 
 function normHumidity(humidity: number): number {
-  return DATA_FLOOR + ((humidity - HUMIDITY_MIN) / (HUMIDITY_MAX - HUMIDITY_MIN)) * (CHART_TOP - DATA_FLOOR);
+  return DATA_FLOOR + ((humidity - HUMIDITY_MIN) / (HUMIDITY_MAX - HUMIDITY_MIN)) * (DATA_CEILING - DATA_FLOOR);
+}
+
+function denormHumidity(y: number): number {
+  const t = clamp((y - DATA_FLOOR) / Math.max(1e-6, DATA_CEILING - DATA_FLOOR), 0, 1);
+  return HUMIDITY_MIN + t * (HUMIDITY_MAX - HUMIDITY_MIN);
 }
 
 function normTemp(temp: number): number {
-  return DATA_FLOOR + ((temp - RAW_TEMP_MIN) / RAW_TEMP_RANGE) * (CHART_TOP - DATA_FLOOR);
+  return DATA_FLOOR + ((temp - RAW_TEMP_MIN) / RAW_TEMP_RANGE) * (DATA_CEILING - DATA_FLOOR);
 }
 
 function chartPxToWorldY(px: number): number {
@@ -539,6 +527,106 @@ function interpolateSeriesY(data: Array<{ x: number; y: number }>, x: number): n
   return data[data.length - 1].y;
 }
 
+function smoothSeriesMovingAverage(
+  data: Array<{ x: number; y: number }>,
+  smoothingMinutes: number,
+): Array<{ x: number; y: number }> {
+  if (data.length < 3) return data;
+
+  const avgStepMinutes = (data[data.length - 1].x - data[0].x) / Math.max(1, data.length - 1);
+  const radiusPoints = Math.max(1, Math.round((smoothingMinutes / avgStepMinutes) * 0.5));
+  const out: Array<{ x: number; y: number }> = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - radiusPoints);
+    const end = Math.min(data.length - 1, i + radiusPoints);
+    let sum = 0;
+    let count = 0;
+    for (let j = start; j <= end; j++) {
+      sum += data[j].y;
+      count += 1;
+    }
+    out.push({ x: data[i].x, y: sum / Math.max(1, count) });
+  }
+
+  return out;
+}
+
+function findAdaptiveExtrema(
+  data: Array<{ x: number; y: number }>,
+  xMin: number,
+  xMax: number,
+  type: 'max' | 'min',
+  smoothingMinutes: number,
+  minDistanceMinutes: number,
+  minProminenceWorld: number,
+  maxCount: number,
+): Array<{ x: number; y: number }> {
+  const smoothed = smoothSeriesMovingAverage(data, smoothingMinutes);
+  const visible = smoothed.filter((p) => p.x >= xMin && p.x <= xMax);
+  if (visible.length < 3) return [];
+
+  const candidates: Array<{ x: number; y: number }> = [];
+  for (let i = 1; i < visible.length - 1; i++) {
+    const prev = visible[i - 1];
+    const curr = visible[i];
+    const next = visible[i + 1];
+
+    const isPeak = curr.y >= prev.y && curr.y >= next.y && (curr.y > prev.y || curr.y > next.y);
+    const isTrough = curr.y <= prev.y && curr.y <= next.y && (curr.y < prev.y || curr.y < next.y);
+    if ((type === 'max' && !isPeak) || (type === 'min' && !isTrough)) continue;
+
+    const prominence = type === 'max'
+      ? curr.y - Math.max(prev.y, next.y)
+      : Math.min(prev.y, next.y) - curr.y;
+    if (prominence < minProminenceWorld) continue;
+
+    candidates.push(curr);
+  }
+
+  const selected: Array<{ x: number; y: number }> = [];
+  candidates.sort((a, b) => a.x - b.x);
+  for (const candidate of candidates) {
+    if (selected.length === 0) {
+      selected.push(candidate);
+      if (selected.length >= maxCount) break;
+      continue;
+    }
+
+    const last = selected[selected.length - 1];
+    if (Math.abs(candidate.x - last.x) < minDistanceMinutes) {
+      const shouldReplace = type === 'max' ? candidate.y > last.y : candidate.y < last.y;
+      if (shouldReplace) {
+        selected[selected.length - 1] = candidate;
+      }
+      continue;
+    }
+
+    selected.push(candidate);
+    if (selected.length >= maxCount) break;
+  }
+
+  if (selected.length === 0) {
+    // Monotonic-ish fallback: emit one global extrema in the visible range.
+    let bestRaw = data[0];
+    for (let i = 1; i < data.length; i++) {
+      const p = data[i];
+      if (p.x < xMin || p.x > xMax) continue;
+      if ((type === 'max' && p.y > bestRaw.y) || (type === 'min' && p.y < bestRaw.y)) {
+        bestRaw = p;
+      }
+    }
+    return [bestRaw];
+  }
+
+  // Map selected smoothed extrema x back to raw y for accurate label anchoring.
+  for (let i = 0; i < selected.length; i++) {
+    const x = selected[i].x;
+    selected[i] = { x, y: interpolateSeriesY(data, x) };
+  }
+  return selected;
+}
+
 function formatTemperature(value: number): string {
   return `${value.toFixed(1)}C`;
 }
@@ -635,12 +723,20 @@ export default function HomeAssistantPage() {
     let scaleValue = 2;
     let windowMinutes = scaleValueToWindowMinutes(scaleValue);
     let visibleCenter = TOTAL_MINUTES - windowMinutes / 2;
+    let cursorMinute = TOTAL_MINUTES;
+    let cursorDragging = false;
     let currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
 
     const title = new TextElement({ text: 'guest room climate', fontSize: 10, align: 'left', baseline: 'top' });
     title.position = new V2(0, 0.98);
     title.styles.color = themeColor('chart.widget.title');
     group.appendChild(title);
+
+    const heatingLegend = new TextElement({ text: 'heating on/off', fontSize: 9, align: 'left', baseline: 'top' });
+    heatingLegend.position = new V2(0.52, 0.98);
+    heatingLegend.styles.color = themeColor('chart.series.secondary');
+    heatingLegend.styles.opacity = 0.8;
+    group.appendChild(heatingLegend);
 
     const chartFrame = new ScreenContainer({
       anchor: 'top-left',
@@ -679,6 +775,50 @@ export default function HomeAssistantPage() {
     humidityLine.styles.opacity = 0.85;
     chartFrame.appendChild(humidityLine);
 
+    const heatingLabelPxPad = 4;
+    const heatingLabelMaskPxW = 38;
+    const heatingLabelMaskPxH = 12;
+    const heatingLaneGapPx = 2;
+    const heatingLaneStartPx = heatingLabelPxPad + heatingLabelMaskPxW + heatingLaneGapPx;
+    const heatingLabelWorldPerPxX = windowMinutes / CHART_WIDTH;
+    const heatingLabelWorldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
+    const resolvePanelBgFill = () => {
+      const base = resolveThemeColor(themeColor('ui.zoomControls.panelBg'), engine.renderer.theme);
+      return base?.opaque(0.94).toString() ?? 'rgba(36, 36, 36, 0.94)';
+    };
+    const heatingState = new StateBandSeries({
+      xMin: visibleCenter - windowMinutes / 2 + heatingLaneStartPx * heatingLabelWorldPerPxX,
+      xMax: visibleCenter + windowMinutes / 2,
+      y: HEATING_LANE_Y,
+      onSegments: HEATING_SEGMENTS,
+      offLineWidth: 1,
+      onLineWidth: 6,
+      offOpacity: 0.28,
+    });
+    heatingState.styles.color = themeColor('chart.series.secondary');
+    chartFrame.appendChild(heatingState);
+
+    const heatingLabel = new TextElement({ text: 'heating', fontSize: 8, align: 'left', baseline: 'middle' });
+    const heatingLabelMask = new RectElement({
+      width: heatingLabelMaskPxW * heatingLabelWorldPerPxX,
+      height: heatingLabelMaskPxH * heatingLabelWorldPerPxY,
+      cornerRadius: 0,
+      fillColor: resolvePanelBgFill(),
+      stroke: false,
+    });
+    heatingLabelMask.position = new V2(
+      visibleCenter - windowMinutes / 2 + (heatingLabelPxPad - 1) * heatingLabelWorldPerPxX,
+      HEATING_LANE_Y - (heatingLabelMaskPxH * heatingLabelWorldPerPxY) / 2
+    );
+    chartFrame.appendChild(heatingLabelMask);
+    heatingLabel.position = new V2(
+      visibleCenter - windowMinutes / 2 + heatingLabelPxPad * heatingLabelWorldPerPxX,
+      HEATING_LANE_Y
+    );
+    heatingLabel.styles.color = themeColor('chart.series.secondary');
+    heatingLabel.styles.opacity = 0.86;
+    chartFrame.appendChild(heatingLabel);
+
     const crosshair = new Crosshair({
       xMin: 0,
       xMax: TOTAL_MINUTES,
@@ -691,19 +831,43 @@ export default function HomeAssistantPage() {
     });
     crosshair.styles.color = themeColor('chart.widget.title');
     crosshair.styles.opacity = 0.58;
-    crosshair.setValue(visibleCenter);
+    crosshair.setValue(cursorMinute);
     chartFrame.appendChild(crosshair);
 
-    const maxLabel = new TextElement({ text: '', fontSize: 10, align: 'left', baseline: 'middle' });
-    maxLabel.styles.color = themeColor('chart.series.secondary');
-    chartFrame.appendChild(maxLabel);
+    const readoutPanelPadPx = 6;
+    const readoutPanelWpx = 148;
+    const readoutPanelHpx = 40;
+    const readoutPanelTopPadPx = 10;
+    const readoutLineGapPx = 12;
+    const readoutAnchorOffsetPx = 8;
+    const readoutPanel = new RectElement({
+      width: (windowMinutes / CHART_WIDTH) * readoutPanelWpx,
+      height: ((CHART_TOP - FILL_BASELINE) / CHART_HEIGHT) * readoutPanelHpx,
+      cornerRadius: 0,
+      fillColor: resolvePanelBgFill(),
+      stroke: false,
+    });
+    readoutPanel.visibility = false;
+    chartFrame.appendChild(readoutPanel);
 
-    const minLabel = new TextElement({ text: '', fontSize: 10, align: 'left', baseline: 'middle' });
-    minLabel.styles.color = themeColor('chart.series.secondary');
-    minLabel.styles.opacity = 0.74;
-    chartFrame.appendChild(minLabel);
+    const readoutLine1 = new TextElement({ text: '', fontSize: 9, align: 'left', baseline: 'top' });
+    readoutLine1.styles.color = themeColor('chart.widget.title');
+    readoutLine1.visibility = false;
+    chartFrame.appendChild(readoutLine1);
 
-    const dailyMaxLabels: TextElement[] = DAILY_EXTREMA.map(() => {
+    const readoutLine2 = new TextElement({ text: '', fontSize: 8, align: 'left', baseline: 'top' });
+    readoutLine2.styles.color = themeColor('chart.widget.title');
+    readoutLine2.styles.opacity = 0.84;
+    readoutLine2.visibility = false;
+    chartFrame.appendChild(readoutLine2);
+
+    const readoutLine3 = new TextElement({ text: '', fontSize: 8, align: 'left', baseline: 'top' });
+    readoutLine3.styles.color = themeColor('chart.series.secondary');
+    readoutLine3.styles.opacity = 0.86;
+    readoutLine3.visibility = false;
+    chartFrame.appendChild(readoutLine3);
+
+    const adaptiveMaxLabels: TextElement[] = Array.from({ length: EXTREMA_LABEL_POOL_SIZE }, () => {
       const label = new TextElement({ text: '', fontSize: 8, align: 'center', baseline: 'bottom' });
       label.styles.color = themeColor('chart.series.secondary');
       label.styles.opacity = 0.66;
@@ -712,7 +876,7 @@ export default function HomeAssistantPage() {
       return label;
     });
 
-    const dailyMinLabels: TextElement[] = DAILY_EXTREMA.map(() => {
+    const adaptiveMinLabels: TextElement[] = Array.from({ length: EXTREMA_LABEL_POOL_SIZE }, () => {
       const label = new TextElement({ text: '', fontSize: 8, align: 'center', baseline: 'top' });
       label.styles.color = themeColor('chart.series.secondary');
       label.styles.opacity = 0.56;
@@ -727,49 +891,132 @@ export default function HomeAssistantPage() {
       TOTAL_MINUTES - nextWindowMinutes / 2,
     );
 
+    const clampCursorToWindow = (minute: number) => {
+      const xMin = visibleCenter - windowMinutes / 2;
+      const xMax = visibleCenter + windowMinutes / 2;
+      return clamp(minute, xMin, xMax);
+    };
+
     const updateReadouts = (minute: number) => {
-      const currentMin = interpolateBucketValue(currentSeries.buckets, minute, 'minTemp');
-      const currentMax = interpolateBucketValue(currentSeries.buckets, minute, 'maxTemp');
-      const xOffset = windowMinutes * 0.03;
+      const rawMin = interpolateBucketValue(currentSeries.buckets, minute, 'minTemp');
+      const rawMax = interpolateBucketValue(currentSeries.buckets, minute, 'maxTemp');
+      const currentMin = Math.min(rawMin, rawMax);
+      const currentMax = Math.max(rawMin, rawMax);
+
+      const humidityY = interpolateSeriesY(currentSeries.humidityLine, minute);
+      const humidity = denormHumidity(humidityY);
+      const heaterOn = HEATING_SEGMENTS.some((seg) => minute >= seg.x0 && minute <= seg.x1);
+      const isSingleValueMode = chooseBucketMinutes(windowMinutes) === RAW_STEP_MINUTES;
+
+      const xOffset = (windowMinutes / CHART_WIDTH) * readoutAnchorOffsetPx;
       const xMin = visibleCenter - windowMinutes / 2;
       const xMax = visibleCenter + windowMinutes / 2;
       const placeRight = minute + xOffset <= xMax - windowMinutes * 0.02;
       const rawX = placeRight ? minute + xOffset : minute - xOffset;
-      const labelX = clamp(rawX, xMin + windowMinutes * 0.04, xMax - windowMinutes * 0.04);
-      const labelAlign = placeRight ? 'left' : 'right';
+      const worldPerPxX = windowMinutes / CHART_WIDTH;
+      const worldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
+      const panelW = readoutPanelWpx * worldPerPxX;
+      const panelH = readoutPanelHpx * worldPerPxY;
+      const panelPadX = readoutPanelPadPx * worldPerPxX;
+      const panelTopPadY = readoutPanelTopPadPx * worldPerPxY;
+      const lineGapY = readoutLineGapPx * worldPerPxY;
 
-      minLabel.options.text = `min ${formatTemperature(currentMin)}`;
-      maxLabel.options.text = `max ${formatTemperature(currentMax)}`;
-      minLabel.options.align = labelAlign;
-      maxLabel.options.align = labelAlign;
-      minLabel.position = new V2(labelX, interpolateSeriesY(currentSeries.minLine, minute) - LABEL_Y_OFFSET);
-      maxLabel.position = new V2(labelX, interpolateSeriesY(currentSeries.maxLine, minute) + LABEL_Y_OFFSET);
+      const anchorX = clamp(rawX, xMin + panelW * 0.6, xMax - panelW * 0.6);
+      const panelX = clamp(
+        placeRight ? anchorX : anchorX - panelW,
+        xMin + worldPerPxX * 2,
+        xMax - panelW - worldPerPxX * 2,
+      );
+      const panelY = clamp(
+        DATA_CEILING - panelH - worldPerPxY * 2,
+        DATA_FLOOR + worldPerPxY * 2,
+        DATA_CEILING - panelH - worldPerPxY * 2,
+      );
+
+      readoutPanel.options = {
+        ...readoutPanel.options,
+        width: panelW,
+        height: panelH,
+        fillColor: resolvePanelBgFill(),
+      };
+      readoutPanel.position = new V2(panelX, panelY);
+
+      readoutLine1.options.text = isSingleValueMode
+        ? `temp ${formatTemperature((currentMin + currentMax) * 0.5)}`
+        : `min ${formatTemperature(currentMin)}  max ${formatTemperature(currentMax)}`;
+      readoutLine2.options.text = `humidity ${humidity.toFixed(0)}%`;
+      readoutLine3.options.text = `heater ${heaterOn ? 'on' : 'off'}`;
+
+      readoutLine1.position = new V2(panelX + panelPadX, panelY + panelTopPadY);
+      readoutLine2.position = new V2(panelX + panelPadX, panelY + panelTopPadY + lineGapY);
+      readoutLine3.position = new V2(panelX + panelPadX, panelY + panelTopPadY + lineGapY * 2);
+
+      readoutPanel.visibility = cursorDragging;
+      readoutLine1.visibility = cursorDragging;
+      readoutLine2.visibility = cursorDragging;
+      readoutLine3.visibility = cursorDragging;
     };
 
-    const updateDailyLabels = () => {
+    const updateExtremaLabels = () => {
       const xMin = visibleCenter - windowMinutes / 2;
       const xMax = visibleCenter + windowMinutes / 2;
       const clearY = chartPxToWorldY(DAILY_LABEL_CLEARANCE_PX);
       const edgePadY = chartPxToWorldY(DAILY_LABEL_EDGE_PAD_PX);
-      const yMinSafe = FILL_BASELINE + edgePadY;
-      const yMaxSafe = CHART_TOP - edgePadY;
+      const yMinSafe = DATA_FLOOR + edgePadY;
+      const yMaxSafe = DATA_CEILING - edgePadY;
 
-      for (let i = 0; i < DAILY_EXTREMA.length; i++) {
-        const day = DAILY_EXTREMA[i];
-        const isVisible =
-          (day.minMinute >= xMin && day.minMinute <= xMax) ||
-          (day.maxMinute >= xMin && day.maxMinute <= xMax);
+      const smoothingMinutes = clamp(
+        windowMinutes / 24,
+        EXTREMA_SMOOTH_MINUTES_MIN,
+        EXTREMA_SMOOTH_MINUTES_MAX,
+      );
+      const minProminenceWorld = chartPxToWorldY(EXTREMA_MIN_PROMINENCE_PX);
+      const maxCount = Math.max(1, Math.min(EXTREMA_LABEL_POOL_SIZE, Math.floor(CHART_WIDTH / 90)));
 
-        dailyMaxLabels[i].visibility = isVisible;
-        dailyMinLabels[i].visibility = isVisible;
-        if (!isVisible) continue;
+      const visibleMaxima = findAdaptiveExtrema(
+        currentSeries.maxLine,
+        xMin,
+        xMax,
+        'max',
+        smoothingMinutes,
+        EXTREMA_SAME_TYPE_MIN_DISTANCE_MINUTES,
+        minProminenceWorld,
+        maxCount,
+      );
+      const visibleMinima = findAdaptiveExtrema(
+        currentSeries.minLine,
+        xMin,
+        xMax,
+        'min',
+        smoothingMinutes,
+        EXTREMA_SAME_TYPE_MIN_DISTANCE_MINUTES,
+        minProminenceWorld,
+        maxCount,
+      );
 
-        dailyMaxLabels[i].options.text = `max ${formatTemperature(day.maxTemp)}`;
-        dailyMinLabels[i].options.text = `min ${formatTemperature(day.minTemp)}`;
-        const maxLabelY = clamp(day.maxY + clearY, yMinSafe, yMaxSafe);
-        const minLabelY = clamp(day.minY - clearY, yMinSafe, yMaxSafe);
-        dailyMaxLabels[i].position = new V2(day.maxMinute, maxLabelY);
-        dailyMinLabels[i].position = new V2(day.minMinute, minLabelY);
+      for (let i = 0; i < adaptiveMaxLabels.length; i++) {
+        adaptiveMaxLabels[i].visibility = false;
+      }
+      for (let i = 0; i < adaptiveMinLabels.length; i++) {
+        adaptiveMinLabels[i].visibility = false;
+      }
+
+      for (let i = 0; i < visibleMaxima.length && i < adaptiveMaxLabels.length; i++) {
+        const point = visibleMaxima[i];
+        const label = adaptiveMaxLabels[i];
+        const temp = interpolateBucketValue(currentSeries.buckets, point.x, 'maxTemp');
+        label.options.text = `max ${formatTemperature(temp)}`;
+        label.position = new V2(point.x, clamp(point.y + clearY, yMinSafe, yMaxSafe));
+        label.visibility = true;
+      }
+
+      for (let i = 0; i < visibleMinima.length && i < adaptiveMinLabels.length; i++) {
+        const point = visibleMinima[i];
+        const label = adaptiveMinLabels[i];
+        const temp = interpolateBucketValue(currentSeries.buckets, point.x, 'minTemp');
+        label.options.text = `min ${formatTemperature(temp)}`;
+        label.position = new V2(point.x, clamp(point.y - clearY, yMinSafe, yMaxSafe));
+        label.visibility = true;
       }
     };
 
@@ -781,12 +1028,38 @@ export default function HomeAssistantPage() {
         yMin: FILL_BASELINE,
         yMax: CHART_TOP,
       };
-      updateReadouts(visibleCenter);
-      updateDailyLabels();
-      crosshair.setValue(visibleCenter);
+      cursorMinute = clampCursorToWindow(cursorMinute);
+      updateReadouts(cursorMinute);
+      updateExtremaLabels();
+      crosshair.setValue(cursorMinute);
+      const worldPerPxX = windowMinutes / CHART_WIDTH;
+      const worldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
+      heatingState.options = {
+        ...heatingState.options,
+        xMin: visibleCenter - windowMinutes / 2 + heatingLaneStartPx * worldPerPxX,
+        xMax: visibleCenter + windowMinutes / 2,
+      };
+      heatingLabelMask.options = {
+        ...heatingLabelMask.options,
+        width: heatingLabelMaskPxW * worldPerPxX,
+        height: heatingLabelMaskPxH * worldPerPxY,
+        fillColor: resolvePanelBgFill(),
+      };
+      heatingLabelMask.position = new V2(
+        visibleCenter - windowMinutes / 2 + (heatingLabelPxPad - 1) * worldPerPxX,
+        HEATING_LANE_Y - (heatingLabelMaskPxH * worldPerPxY) / 2
+      );
+      heatingLabel.position = new V2(
+        visibleCenter - windowMinutes / 2 + heatingLabelPxPad * worldPerPxX,
+        HEATING_LANE_Y
+      );
       // Keep bottom ruler domain in sync with the chart window
       bottomRuler.options.ticks = makeWindowTicks(visibleCenter, windowMinutes);
-      bottomRuler.setValue(visibleCenter);
+      bottomRuler.setValue(cursorMinute);
+      readoutPanel.visibility = cursorDragging;
+      readoutLine1.visibility = cursorDragging;
+      readoutLine2.visibility = cursorDragging;
+      readoutLine3.visibility = cursorDragging;
       engine.requestUpdate();
     };
 
@@ -815,14 +1088,27 @@ export default function HomeAssistantPage() {
 
     const bottomRuler = new ScaleRuler({
       ticks: makeWindowTicks(visibleCenter, windowMinutes),
-      value: visibleCenter,
+      value: cursorMinute,
       sticky: false,
-      interactionMode: 'scroll-scale',
+      interactionMode: 'drag-caret',
       sidePadding: CHART_OFFSET_X,
-      formatValue: (value) => formatCursorLabel(value),
+      formatValue: (value) => `||| ${formatCursorLabel(value)}`,
       badgePosition: 'below',
+      onDragStart: () => {
+        cursorDragging = true;
+        updateReadouts(cursorMinute);
+        engine.requestUpdate();
+      },
+      onDragEnd: () => {
+        cursorDragging = false;
+        updateReadouts(cursorMinute);
+        engine.requestUpdate();
+      },
       onChange: (minute) => {
-        updateVisibleWindow(minute);
+        cursorMinute = clampCursorToWindow(minute);
+        updateReadouts(cursorMinute);
+        crosshair.setValue(cursorMinute);
+        engine.requestUpdate();
       },
     });
     group.appendChild(bottomRuler);
@@ -867,14 +1153,14 @@ export default function HomeAssistantPage() {
       <DocPage.Section id="home-assistant" title="Home Assistant Climate History">
         <p>
           The top ruler scales the chart continuously, the bottom ruler scrubs time with adaptive tick density,
-          and the chart itself supports drag, wheel, and touch pinch without using engine camera zoom.
+          and the chart overlays temperature, humidity, plus a heating on/off lane above the lines.
         </p>
         <div style={{ maxWidth: 560 }}>
           <LiveCodeScene
             buildScene={buildScene}
             defaultConfig={{}}
             source={`// Top ruler scales the chart continuously\n// Bottom ruler scrubs time; chart supports drag, wheel, and pinch`}
-            canvasHeight={230}
+            canvasHeight={252}
             zoom={false}
             scrollBounds={null}
           />

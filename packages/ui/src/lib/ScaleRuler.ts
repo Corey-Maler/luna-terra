@@ -24,6 +24,10 @@ export interface ScaleRulerOptions {
   badgePosition?: 'above' | 'below';
   /** Called on every change while dragging, and after snap-on-release. */
   onChange?: (value: number) => void;
+  /** Called when a user drag interaction starts on the ruler/caret. */
+  onDragStart?: () => void;
+  /** Called when a user drag interaction ends (before any snap animation completes). */
+  onDragEnd?: () => void;
   /** Vertical position of the ruler. Default: 'bottom-center'. */
   position?: 'bottom-center' | 'top-center';
   /** Distance from top / bottom canvas edge in CSS px (default 24). */
@@ -190,6 +194,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       this._isDragging = true;
       this._snapFrom = null;
       this._snapTo = null;
+      this.options.onDragStart?.();
       if (mode === 'drag-caret') {
         applyDragAtPhysX(physPt.x);
       } else {
@@ -202,6 +207,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const handleDragEnd = (): void => {
       if (!this._isDragging) return;
       this._isDragging = false;
+      this.options.onDragEnd?.();
       this._scrollDragStartX = null;
       this._scrollDragStartValue = null;
       const sticky = this.options.sticky ?? true;

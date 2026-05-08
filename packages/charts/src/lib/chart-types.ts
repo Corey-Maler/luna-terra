@@ -67,7 +67,7 @@ export interface StackedAreaLayer {
 }
 
 export interface StackedAreaSeriesOptions {
-  /** Ordered layers, bottom → top. Each layer's y values are its own contribution. */
+  /** Ordered layers, bottom -> top. Each layer's y values are its own contribution. */
   layers: StackedAreaLayer[];
   /** Y baseline (default: 0). */
   yBase?: number;
@@ -75,6 +75,23 @@ export interface StackedAreaSeriesOptions {
   lineWidth?: number;
   /** Fill opacity per layer (default: 0.75). */
   fillOpacity?: number;
+}
+
+export interface StateBandSeriesOptions {
+  /** World-space X domain start for the baseline. */
+  xMin: number;
+  /** World-space X domain end for the baseline. */
+  xMax: number;
+  /** World-space Y level where the state lane is rendered. */
+  y: number;
+  /** Active ("on") intervals rendered as rounded thick segments. */
+  onSegments: Array<{ x0: number; x1: number }>;
+  /** Baseline stroke width in screen pixels (default: 1). */
+  offLineWidth?: number;
+  /** Active segment stroke width in screen pixels (default: 6). */
+  onLineWidth?: number;
+  /** Baseline opacity relative to active color (default: 0.4). */
+  offOpacity?: number;
 }
 
 export interface CrosshairOptions {
