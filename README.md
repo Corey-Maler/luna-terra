@@ -49,3 +49,37 @@ Pointer arrows should be implemented via `Line` marker options in `@lunaterra/el
 ## In-development note
 
 The project is still evolving and APIs may shift.
+
+## Publishing packages
+
+This repo is set up to publish each `@lunaterra/*` package independently using Changesets and GitHub Actions.
+
+### One-time setup
+
+1. In npm, open each package and add a Trusted Publisher.
+2. Configure it for this GitHub repository, workflow `release-packages.yml`, environment `github-actions`, and branch `main`.
+3. Ensure your default branch is `main` (or update `.changeset/config.json` and `.github/workflows/release-packages.yml`).
+
+No `NPM_TOKEN` secret is required when using Trusted Publishing.
+
+### Release flow
+
+1. Add a changeset in a feature branch:
+
+```bash
+pnpm changeset
+```
+
+2. Commit the generated file in `.changeset/*.md` with your code changes.
+3. Merge to `main`.
+4. The `Release Packages` workflow will:
+	- create/update a release PR with version bumps when there are pending changesets;
+	- publish changed packages to npm when the release PR is merged.
+
+### Helpful local commands
+
+```bash
+pnpm changeset         # create a release note + bump intent
+pnpm version-packages  # apply all pending version bumps locally
+pnpm release           # publish changed packages (typically CI-only)
+```

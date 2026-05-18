@@ -1,7 +1,21 @@
-# tracing
+# @lunaterra/elements
 
-This library was generated with [Nx](https://nx.dev).
+Reusable drawable elements for Luna-Terra scenes.
 
-## Building
+## Install
 
-Run `nx build tracing` to build the library.
+```bash
+pnpm add @lunaterra/elements
+```
+
+## Highlights
+
+- Line, text, rectangle, and grid primitives.
+- Time controls and marker-capable line rendering.
+- Designed to compose with `@lunaterra/core` scene APIs.
+
+## Build from source
+
+```bash
+pnpm --filter @lunaterra/elements run build
+```

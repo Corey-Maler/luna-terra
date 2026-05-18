@@ -1,11 +1,22 @@
-# core
+# @lunaterra/core
 
-This library was generated with [Nx](https://nx.dev).
+Core Luna-Terra package for scene management, rendering, and interactions.
 
-## Building
+## Install
 
-Run `nx build core` to build the library.
+```bash
+pnpm add @lunaterra/core
+```
 
-## Running unit tests
+## Highlights
 
-Run `nx test core` to execute the unit tests via [Vitest](https://vitest.dev/).
+- `LunaTerraEngine` for lifecycle and scene orchestration.
+- `CanvasRenderer` and drawing context primitives.
+- Element base classes: `LTElement` and `LTStyledElement`.
+- Interaction and constraints helpers for direct manipulation.
+
+## Build from source
+
+```bash
+pnpm --filter @lunaterra/core run build
+```

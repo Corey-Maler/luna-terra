@@ -1,7 +1,21 @@
-# math
+# @lunaterra/math
 
-This library was generated with [Nx](https://nx.dev).
+Math primitives for 2D geometry and transforms in Luna-Terra.
 
-## Building
+## Install
 
-Run `nx build math` to build the library.
+```bash
+pnpm add @lunaterra/math
+```
+
+## Highlights
+
+- `V2` vector math.
+- `M3` 2D transform matrices.
+- Rectangle, angle, and number utilities.
+
+## Build from source
+
+```bash
+pnpm --filter @lunaterra/math run build
+```

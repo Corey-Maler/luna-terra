@@ -1,12 +1,19 @@
 {
   "name": "@lunaterra/elements",
   "version": "0.0.1",
-  "private": true,
+  "description": "Reusable drawable elements for Luna-Terra scenes.",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
+    "prepack": "pnpm build",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

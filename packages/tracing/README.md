@@ -1,7 +1,15 @@
-# tracing
+# @lunaterra/tracing
 
-This library was generated with [Nx](https://nx.dev).
+Lightweight tracing utilities for profiling and performance instrumentation.
 
-## Building
+## Install
 
-Run `nx build tracing` to build the library.
+```bash
+pnpm add @lunaterra/tracing
+```
+
+## Build from source
+
+```bash
+pnpm --filter @lunaterra/tracing run build
+```
