@@ -8,9 +8,9 @@ import {
   themeColor,
   type CanvasRenderer,
 } from '@lunaterra/core';
-import { Crosshair, LineSeries, StateBandSeries } from '@lunaterra/charts';
+import { LineSeries, StateBandSeries } from '@lunaterra/charts';
 import { RectElement, TextElement } from '@lunaterra/elements';
-import { ScaleRuler } from '@lunaterra/ui';
+import { TimelineChartChrome } from '@lunaterra/ui';
 import { DocPage } from '../../components/DocPage/DocPage';
 import { LiveCodeScene } from '../../components/LiveCodeScene';
 
@@ -46,14 +46,6 @@ interface RangeFillOptions {
   maxData: Array<{ x: number; y: number }>;
   colorPath: string;
   opacity: number;
-}
-
-interface ChartGestureOptions {
-  chartFrame: ScreenContainer;
-  getWindowMinutes: () => number;
-  getVisibleCenter: () => number;
-  panByMinutes: (deltaMinutes: number) => void;
-  zoomAround: (nextWindowMinutes: number, focusRatio: number, focusMinute: number) => void;
 }
 
 const SCALE_RULER_TICKS = [
@@ -92,6 +84,49 @@ const EXTREMA_SMOOTH_MINUTES_MAX = 180;
 const EXTREMA_MIN_PROMINENCE_PX = 2;
 const EXTREMA_SAME_TYPE_MIN_DISTANCE_MINUTES = 10 * 60;
 
+const HOME_ASSISTANT_SOURCE = `const timelineChrome = new TimelineChartChrome({
+  chartFrame,
+  scaleTicks: [...SCALE_RULER_TICKS],
+  initialScaleValue: scaleValue,
+  initialVisibleCenter: visibleCenter,
+  initialCursorValue: cursorMinute,
+  domainMin: 0,
+  domainMax: TOTAL_MINUTES,
+  minWindowSize: MIN_WINDOW_MINUTES,
+  maxWindowSize: MAX_WINDOW_MINUTES,
+  scaleValueToWindowSize: scaleValueToWindowMinutes,
+  windowSizeToScaleValue: windowMinutesToScaleValue,
+  windowTickStepCandidates: WINDOW_TICK_STEP_CANDIDATES,
+  formatScaleValue: (value) => formatWindowLabel(scaleValueToWindowMinutes(value)),
+  formatWindowTick: (minute, step) => formatTickLabel(minute, step),
+  formatCursorValue: formatCursorLabel,
+  crosshair: {
+    yMin: FILL_BASELINE,
+    yMax: CHART_TOP,
+    showXLabel: false,
+    getSeries: () => [currentSeries.minLine, currentSeries.maxLine],
+  },
+  tooltip: {
+    widthPx: 148,
+    heightPx: 40,
+    anchorOffsetPx: 8,
+    paddingXPx: 6,
+    paddingTopPx: 10,
+    lineGapPx: 12,
+    getRows: (minute) => [
+      { text: "temp / humidity / heater", fontSize: 9 },
+      { text: "min and max temperature", fontSize: 8, opacity: 0.84 },
+      { text: "heater on/off state", fontSize: 8, opacity: 0.86 },
+    ],
+    getPanelY: (_state, panelHeightWorld) => clamp(DATA_CEILING - panelHeightWorld, DATA_FLOOR, DATA_CEILING - panelHeightWorld),
+  },
+  onStateChange: (state) => {
+    windowMinutes = state.windowSize;
+    visibleCenter = state.visibleCenter;
+    cursorMinute = state.cursorValue;
+  },
+});`;
+
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
     return {
@@ -121,183 +156,6 @@ class RangeFill extends LTElement<RangeFillOptions> {
     fill.ctx2d.closePath();
     fill.ctx2d.fillStyle = fillColor;
     fill.ctx2d.fill();
-  }
-}
-
-class ChartGestureLayer extends LTElement<ChartGestureOptions> {
-  private removeListeners: Array<() => void> = [];
-  private isMouseDragging = false;
-  private lastMouseX = 0;
-  private touchMode: 'none' | 'pan' | 'pinch' = 'none';
-  private lastTouchX = 0;
-  private lastPinchDistance = 0;
-
-  protected defaultOptions(): ChartGestureOptions {
-    return {
-      chartFrame: new ScreenContainer({ anchor: 'top-left', offsetX: 0, offsetY: 0, width: 1, height: 1 }),
-      getWindowMinutes: () => MIN_WINDOW_MINUTES,
-      getVisibleCenter: () => 0,
-      panByMinutes: () => {},
-      zoomAround: () => {},
-    };
-  }
-
-  override setup(engine: LunaTerraEngine): void {
-    super.setup(engine);
-
-    const canvas = engine.renderer.canvas;
-    const onWheel = (event: WheelEvent) => {
-      if (!this.hitClientPoint(event.clientX, event.clientY)) return;
-
-      event.preventDefault();
-      const ratio = this.focusRatioFromClientX(event.clientX);
-      const windowMinutes = this.options.getWindowMinutes();
-      const focusMinute = this.minuteAtRatio(ratio);
-
-      if (event.ctrlKey) {
-        const nextWindow = windowMinutes * Math.exp(event.deltaY * 0.0025);
-        this.options.zoomAround(nextWindow, ratio, focusMinute);
-        return;
-      }
-
-      const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-      const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
-      const deltaMinutes = (dominantDelta / chartRect.w) * windowMinutes;
-      this.options.panByMinutes(deltaMinutes);
-    };
-
-    const onMouseDown = (event: MouseEvent) => {
-      if (!this.hitClientPoint(event.clientX, event.clientY)) return;
-      this.isMouseDragging = true;
-      this.lastMouseX = event.clientX;
-      event.preventDefault();
-    };
-
-    const onMouseMove = (event: MouseEvent) => {
-      if (!this.isMouseDragging) return;
-      const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
-      const windowMinutes = this.options.getWindowMinutes();
-      const deltaMinutes = ((event.clientX - this.lastMouseX) / chartRect.w) * windowMinutes;
-      this.lastMouseX = event.clientX;
-      this.options.panByMinutes(-deltaMinutes);
-      event.preventDefault();
-    };
-
-    const onMouseUp = () => {
-      this.isMouseDragging = false;
-    };
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 1) {
-        const touch = event.touches[0];
-        if (!this.hitClientPoint(touch.clientX, touch.clientY)) return;
-        this.touchMode = 'pan';
-        this.lastTouchX = touch.clientX;
-        event.preventDefault();
-        return;
-      }
-
-      if (event.touches.length === 2) {
-        const midpoint = this.touchMidpoint(event.touches);
-        if (!this.hitClientPoint(midpoint.x, midpoint.y)) return;
-        this.touchMode = 'pinch';
-        this.lastPinchDistance = this.touchDistance(event.touches);
-        event.preventDefault();
-      }
-    };
-
-    const onTouchMove = (event: TouchEvent) => {
-      if (this.touchMode === 'pan' && event.touches.length === 1) {
-        const touch = event.touches[0];
-        const chartRect = this.options.chartFrame.getScreenRect(engine.renderer);
-        const windowMinutes = this.options.getWindowMinutes();
-        const deltaMinutes = ((touch.clientX - this.lastTouchX) / chartRect.w) * windowMinutes;
-        this.lastTouchX = touch.clientX;
-        this.options.panByMinutes(-deltaMinutes);
-        event.preventDefault();
-        return;
-      }
-
-      if (this.touchMode === 'pinch' && event.touches.length === 2) {
-        const midpoint = this.touchMidpoint(event.touches);
-        const ratio = this.focusRatioFromClientX(midpoint.x);
-        const focusMinute = this.minuteAtRatio(ratio);
-        const nextDistance = this.touchDistance(event.touches);
-        const currentWindow = this.options.getWindowMinutes();
-        const nextWindow = currentWindow * (this.lastPinchDistance / nextDistance);
-        this.lastPinchDistance = nextDistance;
-        this.options.zoomAround(nextWindow, ratio, focusMinute);
-        event.preventDefault();
-      }
-    };
-
-    const onTouchEnd = () => {
-      this.touchMode = 'none';
-      this.lastPinchDistance = 0;
-    };
-
-    canvas.addEventListener('wheel', onWheel, { passive: false });
-    canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-    canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
-
-    this.removeListeners = [
-      () => canvas.removeEventListener('wheel', onWheel),
-      () => canvas.removeEventListener('mousedown', onMouseDown),
-      () => window.removeEventListener('mousemove', onMouseMove),
-      () => window.removeEventListener('mouseup', onMouseUp),
-      () => canvas.removeEventListener('touchstart', onTouchStart),
-      () => canvas.removeEventListener('touchmove', onTouchMove),
-      () => canvas.removeEventListener('touchend', onTouchEnd),
-      () => canvas.removeEventListener('touchcancel', onTouchEnd),
-    ];
-  }
-
-  override destroy(): void {
-    for (const remove of this.removeListeners) remove();
-    this.removeListeners = [];
-  }
-
-  private hitClientPoint(clientX: number, clientY: number): boolean {
-    const renderer = this.engine?.renderer;
-    if (!renderer) return false;
-
-    const chartRect = this.options.chartFrame.getScreenRect(renderer);
-    const bounds = renderer.canvas.getBoundingClientRect();
-    const x = clientX - bounds.left;
-    const y = clientY - bounds.top;
-    return x >= chartRect.x && x <= chartRect.x + chartRect.w && y >= chartRect.y && y <= chartRect.y + chartRect.h;
-  }
-
-  private focusRatioFromClientX(clientX: number): number {
-    const renderer = this.engine?.renderer;
-    if (!renderer) return 0.5;
-
-    const chartRect = this.options.chartFrame.getScreenRect(renderer);
-    const bounds = renderer.canvas.getBoundingClientRect();
-    const x = clientX - bounds.left;
-    return clamp((x - chartRect.x) / chartRect.w, 0, 1);
-  }
-
-  private minuteAtRatio(ratio: number): number {
-    return this.options.getVisibleCenter() + (ratio - 0.5) * this.options.getWindowMinutes();
-  }
-
-  private touchDistance(touches: TouchList): number {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.hypot(dx, dy);
-  }
-
-  private touchMidpoint(touches: TouchList): { x: number; y: number } {
-    return {
-      x: (touches[0].clientX + touches[1].clientX) / 2,
-      y: (touches[0].clientY + touches[1].clientY) / 2,
-    };
   }
 }
 
@@ -671,38 +529,6 @@ function formatTickLabel(minute: number, tickStepMinutes: number): string {
   return `${hh}:${mm}`;
 }
 
-function chooseWindowTickStep(windowMinutes: number): number {
-  for (const step of WINDOW_TICK_STEP_CANDIDATES) {
-    if (windowMinutes / step <= 7) return step;
-  }
-  return WINDOW_TICK_STEP_CANDIDATES[WINDOW_TICK_STEP_CANDIDATES.length - 1];
-}
-
-/**
- * Generate ticks within the visible window [center-W/2, center+W/2].
- * Invisible boundary ticks at the edges define the ruler's value range,
- * ensuring the ruler's domain exactly matches the chart's visible domain.
- */
-function makeWindowTicks(center: number, windowMinutes: number) {
-  const xMin = center - windowMinutes / 2;
-  const xMax = center + windowMinutes / 2;
-  const tickStep = chooseWindowTickStep(windowMinutes);
-  const ticks: Array<{ value: number; label: string }> = [];
-
-  // Boundary ticks (empty label) anchor the ruler range to [xMin, xMax]
-  ticks.push({ value: xMin, label: '' });
-
-  const firstTick = Math.ceil(xMin / tickStep) * tickStep;
-  for (let minute = firstTick; minute <= xMax; minute += tickStep) {
-    if (minute - xMin > tickStep * 0.05 && xMax - minute > tickStep * 0.05) {
-      ticks.push({ value: minute, label: formatTickLabel(minute, tickStep) });
-    }
-  }
-
-  ticks.push({ value: xMax, label: '' });
-  return ticks;
-}
-
 export default function HomeAssistantPage() {
   const aggregatedByBucket = useMemo<Record<number, AggregatedSeries>>(() => {
     return AGGREGATE_BUCKETS.reduce<Record<number, AggregatedSeries>>((acc, bucketMinutes) => {
@@ -724,7 +550,6 @@ export default function HomeAssistantPage() {
     let windowMinutes = scaleValueToWindowMinutes(scaleValue);
     let visibleCenter = TOTAL_MINUTES - windowMinutes / 2;
     let cursorMinute = TOTAL_MINUTES;
-    let cursorDragging = false;
     let currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
 
     const title = new TextElement({ text: 'guest room climate', fontSize: 10, align: 'left', baseline: 'top' });
@@ -819,53 +644,12 @@ export default function HomeAssistantPage() {
     heatingLabel.styles.opacity = 0.86;
     chartFrame.appendChild(heatingLabel);
 
-    const crosshair = new Crosshair({
-      xMin: 0,
-      xMax: TOTAL_MINUTES,
-      followPointer: false,
-      showXLabel: false,
-      yMin: FILL_BASELINE,
-      yMax: CHART_TOP,
-      series: [currentSeries.minLine, currentSeries.maxLine],
-      formatXLabel: (x) => formatCursorLabel(x),
-    });
-    crosshair.styles.color = themeColor('chart.widget.title');
-    crosshair.styles.opacity = 0.58;
-    crosshair.setValue(cursorMinute);
-    chartFrame.appendChild(crosshair);
-
     const readoutPanelPadPx = 6;
     const readoutPanelWpx = 148;
     const readoutPanelHpx = 40;
     const readoutPanelTopPadPx = 10;
     const readoutLineGapPx = 12;
     const readoutAnchorOffsetPx = 8;
-    const readoutPanel = new RectElement({
-      width: (windowMinutes / CHART_WIDTH) * readoutPanelWpx,
-      height: ((CHART_TOP - FILL_BASELINE) / CHART_HEIGHT) * readoutPanelHpx,
-      cornerRadius: 0,
-      fillColor: resolvePanelBgFill(),
-      stroke: false,
-    });
-    readoutPanel.visibility = false;
-    chartFrame.appendChild(readoutPanel);
-
-    const readoutLine1 = new TextElement({ text: '', fontSize: 9, align: 'left', baseline: 'top' });
-    readoutLine1.styles.color = themeColor('chart.widget.title');
-    readoutLine1.visibility = false;
-    chartFrame.appendChild(readoutLine1);
-
-    const readoutLine2 = new TextElement({ text: '', fontSize: 8, align: 'left', baseline: 'top' });
-    readoutLine2.styles.color = themeColor('chart.widget.title');
-    readoutLine2.styles.opacity = 0.84;
-    readoutLine2.visibility = false;
-    chartFrame.appendChild(readoutLine2);
-
-    const readoutLine3 = new TextElement({ text: '', fontSize: 8, align: 'left', baseline: 'top' });
-    readoutLine3.styles.color = themeColor('chart.series.secondary');
-    readoutLine3.styles.opacity = 0.86;
-    readoutLine3.visibility = false;
-    chartFrame.appendChild(readoutLine3);
 
     const adaptiveMaxLabels: TextElement[] = Array.from({ length: EXTREMA_LABEL_POOL_SIZE }, () => {
       const label = new TextElement({ text: '', fontSize: 8, align: 'center', baseline: 'bottom' });
@@ -897,7 +681,16 @@ export default function HomeAssistantPage() {
       return clamp(minute, xMin, xMax);
     };
 
-    const updateReadouts = (minute: number) => {
+    const syncSeriesForWindow = () => {
+      currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
+      rangeFill.options.minData = currentSeries.minLine;
+      rangeFill.options.maxData = currentSeries.maxLine;
+      minLine.options.data = currentSeries.minLine;
+      maxLine.options.data = currentSeries.maxLine;
+      humidityLine.options.data = currentSeries.humidityLine;
+    };
+
+    const getTooltipRows = (minute: number) => {
       const rawMin = interpolateBucketValue(currentSeries.buckets, minute, 'minTemp');
       const rawMax = interpolateBucketValue(currentSeries.buckets, minute, 'maxTemp');
       const currentMin = Math.min(rawMin, rawMax);
@@ -907,54 +700,28 @@ export default function HomeAssistantPage() {
       const humidity = denormHumidity(humidityY);
       const heaterOn = HEATING_SEGMENTS.some((seg) => minute >= seg.x0 && minute <= seg.x1);
       const isSingleValueMode = chooseBucketMinutes(windowMinutes) === RAW_STEP_MINUTES;
-
-      const xOffset = (windowMinutes / CHART_WIDTH) * readoutAnchorOffsetPx;
-      const xMin = visibleCenter - windowMinutes / 2;
-      const xMax = visibleCenter + windowMinutes / 2;
-      const placeRight = minute + xOffset <= xMax - windowMinutes * 0.02;
-      const rawX = placeRight ? minute + xOffset : minute - xOffset;
-      const worldPerPxX = windowMinutes / CHART_WIDTH;
-      const worldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
-      const panelW = readoutPanelWpx * worldPerPxX;
-      const panelH = readoutPanelHpx * worldPerPxY;
-      const panelPadX = readoutPanelPadPx * worldPerPxX;
-      const panelTopPadY = readoutPanelTopPadPx * worldPerPxY;
-      const lineGapY = readoutLineGapPx * worldPerPxY;
-
-      const anchorX = clamp(rawX, xMin + panelW * 0.6, xMax - panelW * 0.6);
-      const panelX = clamp(
-        placeRight ? anchorX : anchorX - panelW,
-        xMin + worldPerPxX * 2,
-        xMax - panelW - worldPerPxX * 2,
-      );
-      const panelY = clamp(
-        DATA_CEILING - panelH - worldPerPxY * 2,
-        DATA_FLOOR + worldPerPxY * 2,
-        DATA_CEILING - panelH - worldPerPxY * 2,
-      );
-
-      readoutPanel.options = {
-        ...readoutPanel.options,
-        width: panelW,
-        height: panelH,
-        fillColor: resolvePanelBgFill(),
-      };
-      readoutPanel.position = new V2(panelX, panelY);
-
-      readoutLine1.options.text = isSingleValueMode
-        ? `temp ${formatTemperature((currentMin + currentMax) * 0.5)}`
-        : `min ${formatTemperature(currentMin)}  max ${formatTemperature(currentMax)}`;
-      readoutLine2.options.text = `humidity ${humidity.toFixed(0)}%`;
-      readoutLine3.options.text = `heater ${heaterOn ? 'on' : 'off'}`;
-
-      readoutLine1.position = new V2(panelX + panelPadX, panelY + panelTopPadY);
-      readoutLine2.position = new V2(panelX + panelPadX, panelY + panelTopPadY + lineGapY);
-      readoutLine3.position = new V2(panelX + panelPadX, panelY + panelTopPadY + lineGapY * 2);
-
-      readoutPanel.visibility = cursorDragging;
-      readoutLine1.visibility = cursorDragging;
-      readoutLine2.visibility = cursorDragging;
-      readoutLine3.visibility = cursorDragging;
+      return [
+        {
+          text: isSingleValueMode
+            ? `temp ${formatTemperature((currentMin + currentMax) * 0.5)}`
+            : `min ${formatTemperature(currentMin)}  max ${formatTemperature(currentMax)}`,
+          colorPath: 'chart.widget.title',
+          opacity: 1,
+          fontSize: 9,
+        },
+        {
+          text: `humidity ${humidity.toFixed(0)}%`,
+          colorPath: 'chart.widget.title',
+          opacity: 0.84,
+          fontSize: 8,
+        },
+        {
+          text: `heater ${heaterOn ? 'on' : 'off'}`,
+          colorPath: 'chart.series.secondary',
+          opacity: 0.86,
+          fontSize: 8,
+        },
+      ];
     };
 
     const updateExtremaLabels = () => {
@@ -1029,9 +796,7 @@ export default function HomeAssistantPage() {
         yMax: CHART_TOP,
       };
       cursorMinute = clampCursorToWindow(cursorMinute);
-      updateReadouts(cursorMinute);
       updateExtremaLabels();
-      crosshair.setValue(cursorMinute);
       const worldPerPxX = windowMinutes / CHART_WIDTH;
       const worldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
       heatingState.options = {
@@ -1053,94 +818,63 @@ export default function HomeAssistantPage() {
         visibleCenter - windowMinutes / 2 + heatingLabelPxPad * worldPerPxX,
         HEATING_LANE_Y
       );
-      // Keep bottom ruler domain in sync with the chart window
-      bottomRuler.options.ticks = makeWindowTicks(visibleCenter, windowMinutes);
-      bottomRuler.setValue(cursorMinute);
-      readoutPanel.visibility = cursorDragging;
-      readoutLine1.visibility = cursorDragging;
-      readoutLine2.visibility = cursorDragging;
-      readoutLine3.visibility = cursorDragging;
       engine.requestUpdate();
     };
 
-    const topRuler = new ScaleRuler({
-      ticks: [...SCALE_RULER_TICKS],
-      value: scaleValue,
-      sticky: false,
-      position: 'top-center',
-      edgeOffset: 8,
-      badgePosition: 'above',
-      formatValue: (value) => formatWindowLabel(scaleValueToWindowMinutes(value)),
-      onChange: (value) => {
-        scaleValue = clamp(value, 0, 2);
-        windowMinutes = scaleValueToWindowMinutes(scaleValue);
-        currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
-        rangeFill.options.minData = currentSeries.minLine;
-        rangeFill.options.maxData = currentSeries.maxLine;
-        minLine.options.data = currentSeries.minLine;
-        maxLine.options.data = currentSeries.maxLine;
-        humidityLine.options.data = currentSeries.humidityLine;
-        crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
+    const timelineChrome = new TimelineChartChrome({
+      chartFrame,
+      scaleTicks: [...SCALE_RULER_TICKS],
+      initialScaleValue: scaleValue,
+      initialVisibleCenter: visibleCenter,
+      initialCursorValue: cursorMinute,
+      domainMin: 0,
+      domainMax: TOTAL_MINUTES,
+      minWindowSize: MIN_WINDOW_MINUTES,
+      maxWindowSize: MAX_WINDOW_MINUTES,
+      scaleValueToWindowSize: scaleValueToWindowMinutes,
+      windowSizeToScaleValue: windowMinutesToScaleValue,
+      windowTickStepCandidates: WINDOW_TICK_STEP_CANDIDATES,
+      formatScaleValue: (value) => formatWindowLabel(scaleValueToWindowMinutes(value)),
+      formatWindowTick: (minute, step) => formatTickLabel(minute, step),
+      formatCursorValue: formatCursorLabel,
+      sidePadding: CHART_OFFSET_X,
+      crosshair: {
+        yMin: FILL_BASELINE,
+        yMax: CHART_TOP,
+        showXLabel: false,
+        formatXLabel: formatCursorLabel,
+        colorPath: 'chart.widget.title',
+        opacity: 0.58,
+        getSeries: () => [currentSeries.minLine, currentSeries.maxLine],
+      },
+      tooltip: {
+        widthPx: readoutPanelWpx,
+        heightPx: readoutPanelHpx,
+        anchorOffsetPx: readoutAnchorOffsetPx,
+        paddingXPx: readoutPanelPadPx,
+        paddingTopPx: readoutPanelTopPadPx,
+        lineGapPx: readoutLineGapPx,
+        backgroundOpacity: 0.94,
+        getRows: (minute) => getTooltipRows(minute),
+        getPanelY: (_state, panelHeightWorld) => {
+          const worldPerPxY = (CHART_TOP - FILL_BASELINE) / CHART_HEIGHT;
+          return clamp(
+            DATA_CEILING - panelHeightWorld - worldPerPxY * 2,
+            DATA_FLOOR + worldPerPxY * 2,
+            DATA_CEILING - panelHeightWorld - worldPerPxY * 2,
+          );
+        },
+      },
+      onStateChange: (state) => {
+        scaleValue = state.scaleValue;
+        windowMinutes = state.windowSize;
+        visibleCenter = state.visibleCenter;
+        cursorMinute = state.cursorValue;
+        syncSeriesForWindow();
         updateVisibleWindow(visibleCenter);
       },
     });
-    group.appendChild(topRuler);
-
-    const bottomRuler = new ScaleRuler({
-      ticks: makeWindowTicks(visibleCenter, windowMinutes),
-      value: cursorMinute,
-      sticky: false,
-      interactionMode: 'drag-caret',
-      sidePadding: CHART_OFFSET_X,
-      formatValue: (value) => `||| ${formatCursorLabel(value)}`,
-      badgePosition: 'below',
-      onDragStart: () => {
-        cursorDragging = true;
-        updateReadouts(cursorMinute);
-        engine.requestUpdate();
-      },
-      onDragEnd: () => {
-        cursorDragging = false;
-        updateReadouts(cursorMinute);
-        engine.requestUpdate();
-      },
-      onChange: (minute) => {
-        cursorMinute = clampCursorToWindow(minute);
-        updateReadouts(cursorMinute);
-        crosshair.setValue(cursorMinute);
-        engine.requestUpdate();
-      },
-    });
-    group.appendChild(bottomRuler);
-
-    const gestureLayer = new ChartGestureLayer({
-      chartFrame,
-      getWindowMinutes: () => windowMinutes,
-      getVisibleCenter: () => visibleCenter,
-      panByMinutes: (deltaMinutes) => {
-        updateVisibleWindow(visibleCenter + deltaMinutes);
-      },
-      zoomAround: (nextWindowMinutes, focusRatio, focusMinute) => {
-        windowMinutes = clamp(nextWindowMinutes, MIN_WINDOW_MINUTES, MAX_WINDOW_MINUTES);
-        scaleValue = windowMinutesToScaleValue(windowMinutes);
-        currentSeries = aggregatedByBucket[chooseBucketMinutes(windowMinutes)];
-        rangeFill.options.minData = currentSeries.minLine;
-        rangeFill.options.maxData = currentSeries.maxLine;
-        minLine.options.data = currentSeries.minLine;
-        maxLine.options.data = currentSeries.maxLine;
-        humidityLine.options.data = currentSeries.humidityLine;
-        crosshair.options.series = [currentSeries.minLine, currentSeries.maxLine];
-
-        const nextCenter = clampCenter(
-          focusMinute + (0.5 - focusRatio) * windowMinutes,
-          windowMinutes,
-        );
-
-        topRuler.setValue(scaleValue);
-        updateVisibleWindow(nextCenter);
-      },
-    });
-    group.appendChild(gestureLayer);
+    group.appendChild(timelineChrome);
 
     engine.interactive = false;
     engine.add(group);
@@ -1152,14 +886,14 @@ export default function HomeAssistantPage() {
     <DocPage title="Charts/Home Assistant" section="@lunaterra/charts">
       <DocPage.Section id="home-assistant" title="Home Assistant Climate History">
         <p>
-          The top ruler scales the chart continuously, the bottom ruler scrubs time with adaptive tick density,
-          and the chart overlays temperature, humidity, plus a heating on/off lane above the lines.
+          The top ruler controls the visible time window, the bottom ruler scrubs the cursor, and the shared shell now
+          owns the crosshair plus cursor tooltip. The chart overlays temperature, humidity, and a heating on/off lane.
         </p>
         <div style={{ maxWidth: 560 }}>
           <LiveCodeScene
             buildScene={buildScene}
             defaultConfig={{}}
-            source={`// Top ruler scales the chart continuously\n// Bottom ruler scrubs time; chart supports drag, wheel, and pinch`}
+            source={HOME_ASSISTANT_SOURCE}
             canvasHeight={252}
             zoom={false}
             scrollBounds={null}

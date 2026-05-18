@@ -20,8 +20,14 @@ export interface ScaleRulerOptions {
   value: number;
   /** Optional formatter for the caret badge text. */
   formatValue?: (value: number, nearestTick: ScaleRulerTick) => string;
-  /** Whether the caret badge renders above or below the track. Default: 'above'. */
-  badgePosition?: 'above' | 'below';
+  /**
+   * Caret badge placement.
+   * - 'above': badge above the track with pointer arrow
+   * - 'below': badge below the track with pointer arrow
+   * - 'inline': badge centred on the track line (background fades in on hover)
+   * Default: 'above'.
+   */
+  badgePosition?: 'above' | 'below' | 'inline';
   /** Called on every change while dragging, and after snap-on-release. */
   onChange?: (value: number) => void;
   /** Called when a user drag interaction starts on the ruler/caret. */
@@ -477,31 +483,43 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     const arrowTip = badgePosition === 'below'
       ? trackY + arrowGap
       : trackY - arrowGap;
-    const pillTop = badgePosition === 'below'
-      ? arrowTip + arrowH
-      : arrowTip - arrowH - pillH;
+    const pillTop = badgePosition === 'inline'
+      ? trackY - pillH / 2
+      : badgePosition === 'below'
+        ? arrowTip + arrowH
+        : arrowTip - arrowH - pillH;
     const pillBot = pillTop + pillH;
 
     // Badge background (rounded rect + arrow triangle)
     const badge = renderer.drawScreenSpace(badgeBg, 1);
     badge.fillStyle = badgeBg;
+    if (badgePosition === 'inline') {
+      badge.save();
+      badge.setAlpha(hs);
+    }
     _roundRect(badge, pillX, pillTop, pillW, pillH, pillR);
     if (badgePosition === 'below') {
       badge.moveTo(new V2(caretPx - arrowW / 2, pillTop));
       badge.lineTo(new V2(caretPx + arrowW / 2, pillTop));
       badge.lineTo(new V2(caretPx, arrowTip));
       badge.lineTo(new V2(caretPx - arrowW / 2, pillTop));
-    } else {
+    } else if (badgePosition === 'above') {
       badge.moveTo(new V2(caretPx - arrowW / 2, pillBot));
       badge.lineTo(new V2(caretPx + arrowW / 2, pillBot));
       badge.lineTo(new V2(caretPx, arrowTip));
       badge.lineTo(new V2(caretPx - arrowW / 2, pillBot));
     }
     badge.fill();
+    if (badgePosition === 'inline') {
+      badge.restore();
+    }
 
     // Value text centred in badge
     const textY = pillTop + pillH * 0.65;
-    renderer.drawScreenSpace(badgeText).renderText(
+    const textColor = badgePosition === 'inline'
+      ? (hs > 0.42 ? badgeText : labelColor)
+      : badgeText;
+    renderer.drawScreenSpace(textColor).renderText(
       valueStr,
       new V2(caretPx, textY),
       10,

@@ -45,12 +45,14 @@ function ScaleRulerDemo({
   canvasHeight = 200,
   sticky,
   interactionMode = 'drag-caret',
+  badgePosition = 'above',
 }: {
   ticks: typeof ZOOM_TICKS;
   initial: number;
   canvasHeight?: number;
   sticky?: boolean;
   interactionMode?: 'drag-caret' | 'scroll-scale';
+  badgePosition?: 'above' | 'below' | 'inline';
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rulerRef     = useRef<ScaleRuler | null>(null);
@@ -80,6 +82,7 @@ function ScaleRulerDemo({
       sidePadding: 48,
       sticky,
       interactionMode,
+      badgePosition,
     });
     engine.add(ruler);
     rulerRef.current = ruler;
@@ -117,6 +120,7 @@ function ScaleRulerDemo({
       <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', opacity: 0.6 }}>
         Current value: <strong>{value.toFixed(3)}</strong>
         {' — '}{hint}
+        {badgePosition === 'inline' ? ' — badge background fades in on hover' : ''}
       </p>
     </div>
   );
@@ -193,6 +197,19 @@ engine.add(ruler);`}</DocPage.Pre>
         />
       </DocPage.Section>
 
+      <DocPage.Section id="demo-inline" title="Demo — inline caret badge">
+        <p>
+          With <code>badgePosition: &apos;inline&apos;</code>, the badge sits directly on the ruler line.
+          Its background is transparent when idle and fades in as the ruler becomes active on hover/drag.
+        </p>
+        <ScaleRulerDemo
+          ticks={ZOOM_TICKS}
+          initial={2}
+          canvasHeight={220}
+          badgePosition="inline"
+        />
+      </DocPage.Section>
+
       {/* ── API ───────────────────────────────────────────────────────── */}
       <DocPage.Section id="api" title="API">
 
@@ -237,6 +254,7 @@ engine.add(ruler);`}</DocPage.Pre>
               ['formatValue', '(value: number, nearestTick: ScaleRulerTick) => string', 'undefined', 'Optional formatter for the caret badge text. Useful for timelines such as 12:00 / 16:00 / 20:00.'],
               ['onChange', '(v: number) => void', 'undefined', 'Called on every drag move and after snap-on-release.'],
               ['position', "'bottom-center' | 'top-center'", "'bottom-center'", 'Which edge of the canvas to anchor to.'],
+              ['badgePosition', "'above' | 'below' | 'inline'", "'above'", 'Caret badge placement. inline puts the badge on the ruler line and fades its background in on hover.'],
               ['edgeOffset', 'number (CSS px)', '24', 'Distance from the canvas edge to the track line.'],
               ['sidePadding', 'number (CSS px)', '40', 'Horizontal margin from canvas edges to the track ends.'],
               ['sticky', 'boolean', 'true', 'When true, releasing snaps to the nearest tick. Set false for free continuous ranges.'],
