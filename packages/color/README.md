@@ -1,11 +1,20 @@
-# color
+# @lunaterra/color
 
-This library was generated with [Nx](https://nx.dev).
+Color model and utility helpers used across Luna-Terra packages.
 
-## Building
+## Install
 
-Run `nx build color` to build the library.
+```bash
+pnpm add @lunaterra/color
+```
 
-## Running unit tests
+## Highlights
 
-Run `nx test color` to execute the unit tests via [Vitest](https://vitest.dev/).
+- `Color` model and conversion helpers.
+- Shared color definitions via exported utilities.
+
+## Build from source
+
+```bash
+pnpm --filter @lunaterra/color run build
+```
