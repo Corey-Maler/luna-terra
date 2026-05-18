@@ -263,6 +263,11 @@ export const RouteDefinitions: SectionDefinition[] = [
         tag: 'home-assistant',
         Element: lazy(() => import('./Charts/HomeAssistant')),
       },
+      {
+        title: 'Signal Scope',
+        tag: 'signal-scope',
+        Element: lazy(() => import('./Charts/SignalScope')),
+      },
     ],
   }
 ];

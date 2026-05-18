@@ -4,3 +4,5 @@ export { Panel } from './lib/Panel';
 export type { PanelOptions } from './lib/Panel';
 export { FpsPanel } from './lib/FpsPanel';
 export type { FpsPanelOptions, FpsPanelMode } from './lib/FpsPanel';
+export { TimelineChartChrome } from './lib/TimelineChartChrome';
+export type { TimelineChartChromeOptions, TimelineChartState } from './lib/TimelineChartChrome';
