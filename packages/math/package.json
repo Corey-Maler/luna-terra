@@ -2,6 +2,11 @@
   "name": "@lunaterra/math",
   "version": "0.0.2",
   "description": "2D math primitives and transforms used by Luna-Terra.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/math"
+  },
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

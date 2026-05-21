@@ -2,6 +2,11 @@
   "name": "@lunaterra/charts",
   "version": "0.0.2",
   "description": "Chart components and charting utilities for Luna-Terra.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/charts"
+  },
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

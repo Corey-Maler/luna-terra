@@ -2,6 +2,11 @@
   "name": "@lunaterra/tracing",
   "version": "0.0.2",
   "description": "Lightweight performance tracing helpers for Luna-Terra.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/tracing"
+  },
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
