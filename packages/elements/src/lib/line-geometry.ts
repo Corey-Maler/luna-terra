@@ -1,8 +1,6 @@
 import { V2 } from '@lunaterra/math';
 import {
   type LinePoint,
-  type CubicSegment,
-  type QuadraticSegment,
   isQuadratic,
   isCubic,
   pointDestination,

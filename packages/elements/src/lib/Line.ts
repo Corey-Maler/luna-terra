@@ -120,7 +120,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
   }
 
   override render(renderer: CanvasRenderer): void {
-    const { points, cornerRadius, startMarker, endMarker, closed, glow, flow } = this.options;
+    const { points, cornerRadius, startMarker, endMarker, closed, glow } = this.options;
     if (points.length < 2) return;
 
     const { color, opacity } = this.computedStyles;
@@ -129,7 +129,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
 
     // ── WebGL glow layer (renders behind Canvas2D) ──────────────────────
     if (glow) {
-      this._renderGlow(renderer, colorStr);
+      this._renderGlow(renderer);
     }
 
     // ── Canvas2D crisp line ─────────────────────────────────────────────
@@ -205,7 +205,7 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     }
   }
 
-  private _renderGlow(renderer: CanvasRenderer, _lineColorStr: string): void {
+  private _renderGlow(renderer: CanvasRenderer): void {
     const { points, glow, flow } = this.options;
     if (!glow || points.length < 2) return;
 
