@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/ui",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Canvas overlay UI components for Luna-Terra workflows.",
   "type": "commonjs",
   "main": "./dist/index.js",
