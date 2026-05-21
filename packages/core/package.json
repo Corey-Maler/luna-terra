@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Core Luna-Terra canvas engine, renderer, and interaction primitives.",
   "type": "commonjs",
   "main": "./dist/index.js",

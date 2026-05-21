@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/charts",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Chart components and charting utilities for Luna-Terra.",
   "type": "commonjs",
   "main": "./dist/index.js",
