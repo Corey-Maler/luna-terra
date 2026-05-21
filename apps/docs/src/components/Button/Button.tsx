@@ -1,4 +1,4 @@
-import * as styles from './Button.module.css';
+import styles from './Button.module.css';
 
 export const Button = ({
   children,

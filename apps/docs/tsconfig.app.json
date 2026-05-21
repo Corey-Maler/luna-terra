@@ -2,9 +2,15 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "ES2021.Intl"],
     "types": [
       "node",
-      "vite/client"
+      "vite/client",
+      "react",
+      "react-dom"
     ]
   },
   "exclude": [
