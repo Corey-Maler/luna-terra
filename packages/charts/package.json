@@ -20,7 +20,7 @@
     "clean": "rm -rf dist",
     "build:compile": "tsc -p tsconfig.lib.json",
     "build": "pnpm run clean && pnpm run build:compile",
-    "prepack": "pnpm build",
+    "prepack": "pnpm run build:compile",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
