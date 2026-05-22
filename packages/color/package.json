@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/color",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Color model and color-space utilities for Luna-Terra.",
   "repository": {
     "type": "git",
