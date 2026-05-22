@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/charts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Chart components and charting utilities for Luna-Terra.",
   "repository": {
     "type": "git",
