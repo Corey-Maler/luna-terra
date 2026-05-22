@@ -1,8 +1,18 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "rootDir": "./src",
     "outDir": "./dist",
     "declaration": true,
+    "paths": {
+      "@lunaterra/math": ["packages/math/dist/index.d.ts"],
+      "@lunaterra/core": ["packages/core/dist/index.d.ts"],
+      "@lunaterra/color": ["packages/color/dist/index.d.ts"],
+      "@lunaterra/tracing": ["packages/tracing/dist/index.d.ts"],
+      "@lunaterra/elements": ["packages/elements/dist/index.d.ts"],
+      "@lunaterra/charts": ["packages/charts/dist/index.d.ts"],
+      "@lunaterra/ui": ["packages/ui/dist/index.d.ts"]
+    },
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],

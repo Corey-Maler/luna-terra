@@ -17,7 +17,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json",
+    "clean": "rm -rf dist",
+    "build:compile": "tsc -p tsconfig.lib.json",
+    "build": "pnpm run clean && pnpm run build:compile",
     "prepack": "pnpm build",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
