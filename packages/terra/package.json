@@ -1,0 +1,33 @@
+{
+  "name": "@lunaterra/terra",
+  "version": "0.0.1",
+  "description": "OSM tile map renderer for Luna-Terra.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/terra"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:compile": "tsc -p tsconfig.lib.json",
+    "build": "pnpm run clean && pnpm run build:compile",
+    "prepack": "pnpm run build:compile",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "@lunaterra/core": "workspace:*",
+    "@lunaterra/math": "workspace:*"
+  }
+}

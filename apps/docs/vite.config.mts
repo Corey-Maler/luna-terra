@@ -16,6 +16,7 @@ export default defineConfig(() => ({
       '@lunaterra/elements': fileURLToPath(new URL('../../packages/elements/src/index.ts', import.meta.url)),
       '@lunaterra/charts': fileURLToPath(new URL('../../packages/charts/src/index.ts', import.meta.url)),
       '@lunaterra/ui': fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
+      '@lunaterra/terra': fileURLToPath(new URL('../../packages/terra/src/index.ts', import.meta.url)),
     },
   },
   server: {

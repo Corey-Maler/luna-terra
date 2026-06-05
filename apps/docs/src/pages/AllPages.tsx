@@ -269,5 +269,16 @@ export const RouteDefinitions: SectionDefinition[] = [
         Element: lazy(() => import('./Charts/SignalScope')),
       },
     ],
-  }
+  },
+  {
+    'section-title': 'Terra Map Engine (@lunaterra/terra)',
+    tag: 'terra',
+    pages: [
+      {
+        title: 'Overview',
+        tag: 'overview',
+        Element: lazy(() => import('./Terra/Terra')),
+      },
+    ],
+  },
 ];
