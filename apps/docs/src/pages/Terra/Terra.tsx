@@ -1,3 +1,4 @@
+import { TerraMap } from '@lunaterra/terra';
 import { DocPage } from '../../components/DocPage/DocPage';
 
 export default function Terra() {
@@ -9,14 +10,16 @@ export default function Terra() {
           It provides lazy quadtree tile fetching, coordinate unpacking, and
           geometry rendering on top of <code>@lunaterra/core</code>.
         </p>
+        <p>
+          The tile server must be running on <code>http://localhost:11111</code>.
+          Start it with <code>./serve-tiles.sh</code> from the workspace root.
+        </p>
       </DocPage.Section>
 
-      <DocPage.Section id="status" title="Status">
-        <p>
-          This package is under active development. The tile pipeline
-          (Swift generator → JSON tiles → browser renderer) is being
-          migrated from <code>legacy-fe</code> into this package.
-        </p>
+      <DocPage.Section id="map" title="Live Map">
+        <div style={{ height: '60vh', display: 'flex', flex: '1 1 auto' }}>
+          <TerraMap />
+        </div>
       </DocPage.Section>
     </DocPage>
   );

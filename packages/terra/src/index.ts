@@ -1,1 +1,13 @@
-export const TERRA_VERSION = '0.0.1';
+export { VirtualTree, indFromX, TREE_BITS, MAX_DEPTH } from './VirtualTree';
+export { CommutatorClient } from './Commutator';
+export { GeometryClient, GeometryBase } from './Geometry';
+export { GeometryCollection } from './GeometryCollection';
+export type { OptimizedGroup, OptimizedLines, OptimizedArea } from './GeometryCollection';
+export { isGeometryEnclosed } from './GeometryHelpers';
+export { LazyQuadTree } from './LazyQuadTree';
+export type { LazyQuadTreeContext } from './LazyQuadTree';
+export { MapElement } from './MapElement';
+export { TerraMap } from './React/TerraMap';
+export type { TerraMapProps } from './React/TerraMap';
+export * from './helpers';
+export type { MapyGeometry, SinglePrecisionPoints, DoublePrecisionPoints } from './types/Mapy';

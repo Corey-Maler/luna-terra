@@ -26,8 +26,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "tslib": "^2.3.0",
     "@lunaterra/core": "workspace:*",
-    "@lunaterra/math": "workspace:*"
+    "@lunaterra/elements": "workspace:*",
+    "@lunaterra/math": "workspace:*",
+    "earcut": "^3.0.1",
+    "tslib": "^2.3.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7"
   }
 }

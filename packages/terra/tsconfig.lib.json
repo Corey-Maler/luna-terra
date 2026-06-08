@@ -14,9 +14,9 @@
       "@lunaterra/ui": ["packages/ui/dist/index.d.ts"],
       "@lunaterra/terra": ["packages/terra/dist/index.d.ts"]
     },
-    "types": ["node"]
+    "types": ["node", "react"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",
