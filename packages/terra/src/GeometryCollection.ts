@@ -21,12 +21,19 @@ export interface OptimizedArea {
 
 export type OptimizedGroup = OptimizedLines | OptimizedArea;
 
+export interface GeometryCollectionSource {
+  level: number;
+  index: number;
+}
+
 export class GeometryCollection {
   geometry: GeometryClient[];
   optimizedGroups: OptimizedGroup[] = [];
+  source?: GeometryCollectionSource;
 
-  constructor(geom: GeometryClient[]) {
+  constructor(geom: GeometryClient[], source?: GeometryCollectionSource) {
     this.geometry = geom;
+    this.source = source;
     this.optimizeForWebGL();
   }
 

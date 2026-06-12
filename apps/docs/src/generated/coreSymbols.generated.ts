@@ -56,7 +56,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "new (simpleEngine: { requestUpdate: () => void; }) => CanvasRenderer",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 340,
+        "sourceLine": 346,
         "sourceColumn": 3
       },
       {
@@ -119,7 +119,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "draw(initialColor: string | Color, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 454,
+        "sourceLine": 460,
         "sourceColumn": 3
       },
       {
@@ -128,7 +128,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "drawScreenSpace(initialColor: string, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 460,
+        "sourceLine": 466,
         "sourceColumn": 3
       },
       {
@@ -164,7 +164,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set interactive(value: boolean): void",
         "docs": "Enable or disable mouse/touch pan and zoom input.\nWhen false, the user cannot pan or zoom but programmatic calls still work\nand the page scrolls normally. Defaults to true.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 296,
+        "sourceLine": 302,
         "sourceColumn": 3
       },
       {
@@ -195,6 +195,15 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "sourceColumn": 3
       },
       {
+        "name": "maxZoom",
+        "kind": "getter",
+        "signature": "get maxZoom(): number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 291,
+        "sourceColumn": 3
+      },
+      {
         "name": "measureScreenInWorld",
         "kind": "method",
         "signature": "measureScreenInWorld(x: number) => number",
@@ -209,7 +218,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "measureText(text: string) => V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 434,
+        "sourceLine": 440,
+        "sourceColumn": 3
+      },
+      {
+        "name": "minZoom",
+        "kind": "getter",
+        "signature": "get minZoom(): number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 294,
         "sourceColumn": 3
       },
       {
@@ -254,7 +272,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "onCanvasResize: (x: number, y: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 378,
+        "sourceLine": 384,
         "sourceColumn": 3
       },
       {
@@ -290,7 +308,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "postRender(_dt: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 430,
+        "sourceLine": 436,
         "sourceColumn": 3
       },
       {
@@ -299,7 +317,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "prepare() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 408,
+        "sourceLine": 414,
         "sourceColumn": 3
       },
       {
@@ -371,7 +389,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "tick(dt: number) => boolean",
         "docs": "Step zoom animation.\nMust be called every frame from the engine.\nReturns true when a re-render was triggered.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 308,
+        "sourceLine": 314,
         "sourceColumn": 3
       },
       {

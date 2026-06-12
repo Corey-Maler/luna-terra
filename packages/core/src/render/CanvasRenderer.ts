@@ -288,6 +288,12 @@ export class CanvasRenderer {
     this.panningTracker.panBounds = bounds;
   }
 
+  public get maxZoom(): number { return this.panningTracker.MAX_ZOOM; }
+  public set maxZoom(value: number) { this.panningTracker.MAX_ZOOM = value; }
+
+  public get minZoom(): number { return this.panningTracker.MIN_ZOOM; }
+  public set minZoom(value: number) { this.panningTracker.MIN_ZOOM = value; }
+
   /**
    * Enable or disable mouse/touch pan and zoom input.
    * When false, the user cannot pan or zoom but programmatic calls still work

@@ -1,15 +1,16 @@
 import type { MapyGeometry } from './types/Mapy';
-
-const DEFAULT_TILE_BASE_URL = 'http://localhost:11111';
+import { LegacyJsonTileClient, type TerraTileClient } from './TileClient';
 
 export class CommutatorClient {
-  constructor(private baseUrl = DEFAULT_TILE_BASE_URL) {}
+  private readonly tileClient: TerraTileClient;
+
+  constructor(tileClientOrBaseUrl?: TerraTileClient | string) {
+    this.tileClient = typeof tileClientOrBaseUrl === 'string' || tileClientOrBaseUrl === undefined
+      ? new LegacyJsonTileClient(tileClientOrBaseUrl)
+      : tileClientOrBaseUrl;
+  }
 
   public request = async (index: number, level: number): Promise<MapyGeometry[]> => {
-    const data = await fetch(`${this.baseUrl}/${level}/${index}.json`);
-    if (data.status >= 300) {
-      return [];
-    }
-    return data.json();
+    return await this.tileClient.getTile(level, String(index)) ?? [];
   };
 }

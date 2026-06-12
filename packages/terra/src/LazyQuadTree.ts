@@ -121,7 +121,10 @@ export class LazyQuadTree extends VirtualTree {
     if (amIAGoodCandidate || !this.hasChildren()) {
       printDebugValue('current level', this.level);
       if (!this.geometryCollection) {
-        this.geometryCollection = new GeometryCollection(this.geometry);
+        this.geometryCollection = new GeometryCollection(this.geometry, {
+          level: this.level,
+          index: this.index,
+        });
       }
       return [this.geometryCollection];
     }

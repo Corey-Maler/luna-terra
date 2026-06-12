@@ -1,3 +1,5 @@
+import { isEnclosed } from './helpers';
+
 export const isGeometryEnclosed = (typeid: number) => {
-  return typeid >= 99 && typeid < 300;
+  return isEnclosed(typeid);
 };
