@@ -11,13 +11,16 @@ export interface TerraMapRenderOptions {
   sourceBounds?: TerraManifestBounds | null;
 }
 
-export type TerraMapMode = 'plane' | 'globe';
+export type TerraMapMode = 'auto' | 'plane' | 'globe';
+export type TerraMapSurface = 'plane' | 'globe';
+
+export const TERRA_GLOBE_AUTO_MAX_ZOOM = 2.5;
 
 type TerraMapRenderFrame = {
   anchorWorld: { x: number; y: number };
   camera: Camera3D;
   modelMatrix: M4;
-  surface: TerraMapMode;
+  surface: TerraMapSurface;
   projectPoint: (x: number, y: number) => V3;
 };
 
@@ -77,10 +80,10 @@ export class TerraMapRenderer {
     renderer: CanvasRenderer,
     collections: GeometryCollection[],
     options: TerraMapRenderOptions = {},
-  ) {
+  ): TerraMapSurface {
     const frame = this.buildFrame(
       renderer,
-      options.mapMode ?? 'plane',
+      this.resolveMapSurface(renderer, options.mapMode ?? 'plane'),
       options.pitchDegrees ?? 0,
     );
 
@@ -100,11 +103,20 @@ export class TerraMapRenderer {
     if (options.debugGrid) {
       this.renderDebugGrid(renderer, frame, options.sourceBounds ?? null);
     }
+
+    return frame.surface;
+  }
+
+  public resolveMapSurface(renderer: CanvasRenderer, mapMode: TerraMapMode): TerraMapSurface {
+    if (mapMode === 'auto') {
+      return renderer.zoom <= TERRA_GLOBE_AUTO_MAX_ZOOM ? 'globe' : 'plane';
+    }
+    return mapMode;
   }
 
   private buildFrame(
     renderer: CanvasRenderer,
-    mapMode: TerraMapMode,
+    mapMode: TerraMapSurface,
     pitchDegrees: number,
   ): TerraMapRenderFrame {
     const visibleArea = renderer.visibleArea;

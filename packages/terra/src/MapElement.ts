@@ -7,7 +7,7 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
-import type { TerraMapMode } from './TerraMapRenderer';
+import type { TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
 export interface MapElementOptions {
@@ -26,6 +26,7 @@ export class MapElement extends LTElement {
   private readonly mapRenderer = new TerraMapRenderer();
   private debugGrid = false;
   private mapMode: TerraMapMode = 'plane';
+  private lastSurface: TerraMapSurface = 'plane';
   private sourceBounds: TerraManifestBounds | null = null;
   private pitchDegrees = 0;
   private lastStatsAt = 0;
@@ -76,7 +77,7 @@ export class MapElement extends LTElement {
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
 
-    this.mapRenderer.render(renderer, collections, {
+    this.lastSurface = this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
       mapMode: this.mapMode,
       pitchDegrees: this.pitchDegrees,
@@ -101,7 +102,7 @@ export class MapElement extends LTElement {
     const byType = new Map<number, TerraTypeStats>();
     const visibleArea = renderer.visibleArea;
     stats.zoom = renderer.zoom;
-    stats.renderMode = this.mapMode === 'globe'
+    stats.renderMode = this.lastSurface === 'globe'
       ? 'core-3d-globe'
       : this.pitchDegrees > 0
       ? 'core-3d-pitched-plane'

@@ -96,7 +96,7 @@ export default function Terra() {
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
   const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
   const [debugGrid, setDebugGrid] = useState(false);
-  const [mapMode, setMapMode] = useState<TerraMapMode>('plane');
+  const [mapMode, setMapMode] = useState<TerraMapMode>('auto');
   const [pitchDegrees, setPitchDegrees] = useState(0);
 
   const handleReady = useCallback((engine: LunaTerraEngine) => {
@@ -244,9 +244,21 @@ export default function Terra() {
           >
             <button
               type="button"
+              onClick={() => setMapMode('auto')}
+              style={{
+                border: 0,
+                borderRadius: 0,
+                background: mapMode === 'auto' ? 'var(--surface-container-high)' : 'transparent',
+              }}
+            >
+              Auto
+            </button>
+            <button
+              type="button"
               onClick={() => setMapMode('plane')}
               style={{
                 border: 0,
+                borderLeft: '1px solid var(--border-color)',
                 borderRadius: 0,
                 background: mapMode === 'plane' ? 'var(--surface-container-high)' : 'transparent',
               }}
@@ -302,6 +314,7 @@ export default function Terra() {
           }}
         >
           <Metric label="Zoom" value={stats ? stats.zoom.toFixed(1) : '-'} />
+          <Metric label="Map Mode" value={mapMode} />
           <Metric label="Render Mode" value={stats ? stats.renderMode : '-'} />
           <Metric label="Pitch" value={stats ? `${stats.pitchDegrees.toFixed(0)}°` : '-'} />
           <Metric
