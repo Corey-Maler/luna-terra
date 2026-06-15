@@ -41,7 +41,7 @@ describe('TerraTileStoreClient', () => {
       version: 1,
       projection: 'web-mercator-north-up',
       tileIndex: 'morton-u64-v1',
-      maxLevel: 10,
+      maxLevel: 14,
       bounds: {
         minX: 0.25,
         minY: 0.5,

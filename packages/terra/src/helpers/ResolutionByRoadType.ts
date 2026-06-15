@@ -1,12 +1,13 @@
 export const R = {
-  huge: 0,
-  big: 2,
-  large: 3,
-  medium: 4,
-  small: 6,
-  micro: 7,
-  nano: 8,
-  UNKNOWN: 9,
+  world: 0,
+  huge: 4,
+  big: 6,
+  large: 8,
+  medium: 10,
+  small: 11,
+  micro: 12,
+  nano: 13,
+  UNKNOWN: 14,
   ignore: 55,
 };
 
@@ -81,8 +82,8 @@ export const ResolutionByRoadType: Record<string, number> = {
 };
 
 export const ResolutionByNaturalType: Record<string, number> = {
-  coastline: R.huge,
-  water: R.huge,
+  coastline: R.world,
+  water: R.world,
   wood: R.big,
   beach: R.medium,
   scrub: R.medium,

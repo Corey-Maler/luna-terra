@@ -1,7 +1,7 @@
 import { V2 } from '@lunaterra/math';
 
 export const TREE_BITS = 16;
-export const MAX_DEPTH = 10;
+export const MAX_DEPTH = 14;
 export type TileIndex = number;
 export type TileIndexString = string;
 
