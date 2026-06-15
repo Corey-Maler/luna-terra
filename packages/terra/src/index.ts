@@ -25,4 +25,9 @@ export {
 } from './TileIndex';
 export type { TileIndex, TileIndexString } from './TileIndex';
 export * from './helpers';
-export type { MapyGeometry, SinglePrecisionPoints, DoublePrecisionPoints } from './types/Mapy';
+export type {
+  LegacyDoublePrecisionPoints,
+  LegacySinglePrecisionPoints,
+  MapyGeometry,
+  TilePoints,
+} from './types/Mapy';

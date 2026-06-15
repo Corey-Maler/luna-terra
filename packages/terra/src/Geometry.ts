@@ -29,9 +29,9 @@ export class GeometryClient extends GeometryBase {
     );
 
     const points = obj.points;
-    const resolution = 'lats8' in points ? 255 : 65535;
-    const lats = 'lats8' in points ? points.lats8 : points.lats16;
-    const lons = 'lons8' in points ? points.lons8 : points.lons16;
+    const resolution = 'lats' in points ? 65535 : 'lats8' in points ? 255 : 65535;
+    const lats = 'lats' in points ? points.lats : 'lats8' in points ? points.lats8 : points.lats16;
+    const lons = 'lons' in points ? points.lons : 'lons8' in points ? points.lons8 : points.lons16;
     const scaleX = origin.width;
     const scaleY = origin.height;
     const offsetX = origin.bottomLeft.x;
