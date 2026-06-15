@@ -85,6 +85,7 @@ export default function Terra() {
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
   const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
   const [debugGrid, setDebugGrid] = useState(false);
+  const [pitchDegrees, setPitchDegrees] = useState(0);
 
   const handleReady = useCallback((engine: LunaTerraEngine) => {
     engineRef.current = engine;
@@ -167,6 +168,7 @@ export default function Terra() {
           <TerraMap
             tileClient={tileClient}
             debugGrid={debugGrid}
+            pitchDegrees={pitchDegrees}
             sourceBounds={sourceBounds}
             onReady={handleReady}
             onStats={handleStats}
@@ -201,6 +203,27 @@ export default function Terra() {
             />
             Map grid
           </label>
+          <label
+            style={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              gap: 8,
+              minHeight: 32,
+            }}
+          >
+            Pitch
+            <input
+              type="range"
+              min={0}
+              max={65}
+              step={1}
+              value={pitchDegrees}
+              onChange={(event) => setPitchDegrees(Number(event.currentTarget.value))}
+            />
+            <span style={{ fontVariantNumeric: 'tabular-nums', minWidth: 44 }}>
+              {pitchDegrees}°
+            </span>
+          </label>
         </div>
         <div
           style={{
@@ -213,6 +236,7 @@ export default function Terra() {
         >
           <Metric label="Zoom" value={stats ? stats.zoom.toFixed(1) : '-'} />
           <Metric label="Render Mode" value={stats ? stats.renderMode : '-'} />
+          <Metric label="Pitch" value={stats ? `${stats.pitchDegrees.toFixed(0)}°` : '-'} />
           <Metric
             label="Center X"
             value={stats ? formatWorld(stats.viewportCenter.x) : '-'}

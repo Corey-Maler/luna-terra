@@ -14,6 +14,8 @@ export interface TerraMapProps {
   debugGrid?: boolean;
   /** Optional projected source bounds from tileset manifest. */
   sourceBounds?: TerraManifestBounds | null;
+  /** Pitch the flat map plane in degrees. 0 keeps normal flat map rendering. */
+  pitchDegrees?: number;
   /** Called once after the engine is created and the MapElement is added. */
   onReady?: (engine: LunaTerraEngine) => void;
   /** Called periodically with the geometry volume rendered by the current view. */
@@ -28,6 +30,7 @@ export const TerraMap = ({
   tileClient,
   debugGrid = false,
   sourceBounds = null,
+  pitchDegrees = 0,
   onReady,
   onStats,
 }: TerraMapProps) => {
@@ -36,6 +39,7 @@ export const TerraMap = ({
   const mapElementRef = useRef<MapElement | null>(null);
   const debugGridRef = useRef(debugGrid);
   const sourceBoundsRef = useRef(sourceBounds);
+  const pitchDegreesRef = useRef(pitchDegrees);
 
   useEffect(() => {
     debugGridRef.current = debugGrid;
@@ -49,6 +53,12 @@ export const TerraMap = ({
     engineRef.current?.requestUpdate();
   }, [sourceBounds]);
 
+  useEffect(() => {
+    pitchDegreesRef.current = pitchDegrees;
+    mapElementRef.current?.setPitchDegrees(pitchDegrees);
+    engineRef.current?.requestUpdate();
+  }, [pitchDegrees]);
+
   const mountRef = useCallback(
     (node: HTMLDivElement | null) => {
       if (node !== null) {
@@ -61,6 +71,7 @@ export const TerraMap = ({
           onStats,
           tileClient,
           debugGrid: debugGridRef.current,
+          pitchDegrees: pitchDegreesRef.current,
           sourceBounds: sourceBoundsRef.current,
         });
         mapElementRef.current = mapElement;

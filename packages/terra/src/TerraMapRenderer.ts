@@ -6,6 +6,7 @@ import type { TerraManifestBounds } from './TileClient';
 
 export interface TerraMapRenderOptions {
   debugGrid?: boolean;
+  pitchDegrees?: number;
   sourceBounds?: TerraManifestBounds | null;
 }
 
@@ -64,7 +65,7 @@ export class TerraMapRenderer {
     collections: GeometryCollection[],
     options: TerraMapRenderOptions = {},
   ) {
-    const frame = this.buildFrame(renderer);
+    const frame = this.buildFrame(renderer, options.pitchDegrees ?? 0);
 
     for (const collection of collections) {
       this.renderCollection(renderer, collection, frame);
@@ -75,28 +76,63 @@ export class TerraMapRenderer {
     }
   }
 
-  private buildFrame(renderer: CanvasRenderer) {
+  private buildFrame(renderer: CanvasRenderer, pitchDegrees: number) {
     const visibleArea = renderer.visibleArea;
     const anchorWorld = renderer.viewportCenter;
     const halfWidth = Math.abs(visibleArea.v2.x - visibleArea.v1.x) / 2;
     const halfHeight = Math.abs(visibleArea.v2.y - visibleArea.v1.y) / 2;
+    const pitchRadians = Math.max(0, Math.min(75, pitchDegrees)) * Math.PI / 180;
 
     return {
       anchorWorld,
-      camera: new Camera3D({
-        mode: 'orthographic',
-        eye: new V3(0, 0, 1),
-        target: new V3(0, 0, 0),
-        up: new V3(0, 1, 0),
-        left: -halfWidth,
-        right: halfWidth,
-        bottom: -halfHeight,
-        top: halfHeight,
-        near: 0.1,
-        far: 10,
-      }),
+      camera: pitchRadians === 0
+        ? this.flatCamera(halfWidth, halfHeight)
+        : this.pitchedCamera(halfWidth, halfHeight, renderer, pitchRadians),
       modelMatrix: M4.identity(),
     };
+  }
+
+  private flatCamera(halfWidth: number, halfHeight: number) {
+    return new Camera3D({
+      mode: 'orthographic',
+      eye: new V3(0, 0, 1),
+      target: new V3(0, 0, 0),
+      up: new V3(0, 1, 0),
+      left: -halfWidth,
+      right: halfWidth,
+      bottom: -halfHeight,
+      top: halfHeight,
+      near: 0.1,
+      far: 10,
+    });
+  }
+
+  private pitchedCamera(
+    halfWidth: number,
+    halfHeight: number,
+    renderer: CanvasRenderer,
+    pitchRadians: number,
+  ) {
+    const fovYRadians = Math.PI / 4;
+    const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
+    const tanHalfFov = Math.tan(fovYRadians / 2);
+    const distance = Math.max(halfHeight / tanHalfFov, halfWidth / (aspect * tanHalfFov));
+    const eye = new V3(
+      0,
+      -Math.sin(pitchRadians) * distance,
+      Math.cos(pitchRadians) * distance,
+    );
+
+    return new Camera3D({
+      mode: 'perspective',
+      eye,
+      target: new V3(0, 0, 0),
+      up: new V3(0, 1, 0),
+      fovYRadians,
+      aspect,
+      near: Math.max(distance * 0.001, 1e-7),
+      far: Math.max(distance * 10, 1),
+    });
   }
 
   private renderCollection(

@@ -11,7 +11,12 @@ export interface TerraTypeStats {
 
 export interface TerraRenderStats {
   zoom: number;
-  renderMode: 'world-float32' | 'camera-relative' | 'core-3d-plane';
+  renderMode:
+    | 'world-float32'
+    | 'camera-relative'
+    | 'core-3d-plane'
+    | 'core-3d-pitched-plane';
+  pitchDegrees: number;
   viewportCenter: { x: number; y: number };
   renderAnchor: { x: number; y: number };
   viewportPixels: { width: number; height: number };
@@ -38,6 +43,7 @@ export interface TerraRenderStats {
 export const emptyTerraRenderStats = (): TerraRenderStats => ({
   zoom: 0,
   renderMode: 'world-float32',
+  pitchDegrees: 0,
   viewportCenter: { x: 0, y: 0 },
   renderAnchor: { x: 0, y: 0 },
   viewportPixels: { width: 0, height: 0 },

@@ -14,6 +14,7 @@ export interface MapElementOptions {
   tileClient?: TerraTileClient;
   debugGrid?: boolean;
   sourceBounds?: TerraManifestBounds | null;
+  pitchDegrees?: number;
 }
 
 export class MapElement extends LTElement {
@@ -23,6 +24,7 @@ export class MapElement extends LTElement {
   private readonly mapRenderer = new TerraMapRenderer();
   private debugGrid = false;
   private sourceBounds: TerraManifestBounds | null = null;
+  private pitchDegrees = 0;
   private lastStatsAt = 0;
 
   constructor(tileBaseUrl?: string, options: MapElementOptions = {}) {
@@ -31,6 +33,7 @@ export class MapElement extends LTElement {
     this.onStats = options.onStats;
     this.debugGrid = options.debugGrid ?? false;
     this.sourceBounds = options.sourceBounds ?? null;
+    this.pitchDegrees = options.pitchDegrees ?? 0;
   }
 
   public setDebugGrid(enabled: boolean) {
@@ -39,6 +42,10 @@ export class MapElement extends LTElement {
 
   public setSourceBounds(bounds: TerraManifestBounds | null) {
     this.sourceBounds = bounds;
+  }
+
+  public setPitchDegrees(pitchDegrees: number) {
+    this.pitchDegrees = pitchDegrees;
   }
 
   protected defaultOptions() {
@@ -63,6 +70,7 @@ export class MapElement extends LTElement {
 
     this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
+      pitchDegrees: this.pitchDegrees,
       sourceBounds: this.sourceBounds,
     });
 
@@ -84,7 +92,10 @@ export class MapElement extends LTElement {
     const byType = new Map<number, TerraTypeStats>();
     const visibleArea = renderer.visibleArea;
     stats.zoom = renderer.zoom;
-    stats.renderMode = this.mapRenderer.renderMode;
+    stats.renderMode = this.pitchDegrees > 0
+      ? 'core-3d-pitched-plane'
+      : this.mapRenderer.renderMode;
+    stats.pitchDegrees = this.pitchDegrees;
     stats.viewportCenter = renderer.viewportCenter.toJson();
     stats.renderAnchor = renderer.viewportCenter.toJson();
     stats.viewportPixels = {
