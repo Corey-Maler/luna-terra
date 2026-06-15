@@ -3,6 +3,7 @@ import { LunaTerraEngine } from '@lunaterra/core';
 import { MapElement } from '../MapElement';
 import type { TerraRenderStats } from '../TerraStats';
 import type { TerraTileClient } from '../TileClient';
+import { MAX_DEPTH } from '../TileIndex';
 
 export interface TerraMapProps {
   /** Base URL of the tile server. Defaults to http://localhost:11111 */
@@ -14,6 +15,9 @@ export interface TerraMapProps {
   /** Called periodically with the geometry volume rendered by the current view. */
   onStats?: (stats: TerraRenderStats) => void;
 }
+
+const MAX_TILE_SCREEN_SIZE = 512;
+const TERRA_MAX_ZOOM = 2 ** MAX_DEPTH * MAX_TILE_SCREEN_SIZE;
 
 export const TerraMap = ({ tileBaseUrl, tileClient, onReady, onStats }: TerraMapProps) => {
   const engineRef = useRef<LunaTerraEngine | null>(null);
@@ -28,7 +32,7 @@ export const TerraMap = ({ tileBaseUrl, tileClient, onReady, onStats }: TerraMap
         containerRef.current = node;
 
         engine.add(new MapElement(tileBaseUrl, { onStats, tileClient }));
-        engine.renderer.maxZoom = 2000;
+        engine.renderer.maxZoom = TERRA_MAX_ZOOM;
         engine.requestUpdate();
 
         onReady?.(engine);
