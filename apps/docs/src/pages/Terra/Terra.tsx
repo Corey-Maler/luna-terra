@@ -7,13 +7,21 @@ import {
 } from '@lunaterra/terra';
 import type { LunaTerraEngine } from '@lunaterra/core';
 import { Rect2D, V2 } from '@lunaterra/math';
-import { FpsPanel } from '@lunaterra/ui';
+import { FpsPanel, ScaleRuler } from '@lunaterra/ui';
 import { DocPage } from '../../components/DocPage/DocPage';
 import { useFps } from '../../context/FpsContext';
 
 const formatNumber = (value: number) => Math.round(value).toLocaleString();
 const tileClient = new TerraTileStoreClient();
 const PRECISION_REPRO_ZOOM = 23720.4;
+const PITCH_TICKS = [
+  { value: 0, label: '0°' },
+  { value: 15, label: '15°' },
+  { value: 30, label: '30°' },
+  { value: 45, label: '45°' },
+  { value: 60, label: '60°' },
+  { value: 65, label: '65°' },
+];
 const formatLevels = (stats: TerraRenderStats | null) => {
   if (!stats || stats.minLevel === null || stats.maxLevel === null) {
     return '-';
@@ -80,6 +88,8 @@ export default function Terra() {
   const { fpsEnabled } = useFps();
   const fpsEnabledRef = useRef(fpsEnabled);
   const fpsPanelRef = useRef<FpsPanel | null>(null);
+  const pitchDegreesRef = useRef(0);
+  const pitchRulerRef = useRef<ScaleRuler | null>(null);
   const engineRef = useRef<LunaTerraEngine | null>(null);
   const [stats, setStats] = useState<TerraRenderStats | null>(null);
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
@@ -94,6 +104,31 @@ export default function Terra() {
     engine.add(fpsPanel);
     fpsPanel.setEnabled(fpsEnabledRef.current);
     fpsPanelRef.current = fpsPanel;
+
+    let rulerDragInteractive = engine.interactive;
+    const pitchRuler = new ScaleRuler({
+      ticks: PITCH_TICKS,
+      value: pitchDegreesRef.current,
+      position: 'bottom-center',
+      edgeOffset: 36,
+      sidePadding: 56,
+      sticky: false,
+      badgePosition: 'inline',
+      formatValue: (value) => `${Math.round(value)}°`,
+      onChange: (value) => {
+        const nextPitch = Math.round(value);
+        setPitchDegrees((currentPitch) => currentPitch === nextPitch ? currentPitch : nextPitch);
+      },
+      onDragStart: () => {
+        rulerDragInteractive = engine.interactive;
+        engine.interactive = false;
+      },
+      onDragEnd: () => {
+        engine.interactive = rulerDragInteractive;
+      },
+    });
+    engine.add(pitchRuler);
+    pitchRulerRef.current = pitchRuler;
 
     void tileClient.getManifest().then((manifest) => {
       if (!manifest?.bounds || engineRef.current !== engine) {
@@ -119,6 +154,12 @@ export default function Terra() {
     fpsPanelRef.current?.setEnabled(fpsEnabled);
     engineRef.current?.requestUpdate();
   }, [fpsEnabled]);
+
+  useEffect(() => {
+    pitchDegreesRef.current = pitchDegrees;
+    pitchRulerRef.current?.setValue(pitchDegrees);
+    engineRef.current?.requestUpdate();
+  }, [pitchDegrees]);
 
   const fitDataset = useCallback(() => {
     if (!manifestBounds || !engineRef.current) {
@@ -203,27 +244,16 @@ export default function Terra() {
             />
             Map grid
           </label>
-          <label
+          <span
             style={{
               alignItems: 'center',
               display: 'inline-flex',
-              gap: 8,
+              fontVariantNumeric: 'tabular-nums',
               minHeight: 32,
             }}
           >
-            Pitch
-            <input
-              type="range"
-              min={0}
-              max={65}
-              step={1}
-              value={pitchDegrees}
-              onChange={(event) => setPitchDegrees(Number(event.currentTarget.value))}
-            />
-            <span style={{ fontVariantNumeric: 'tabular-nums', minWidth: 44 }}>
-              {pitchDegrees}°
-            </span>
-          </label>
+            Pitch {pitchDegrees}°
+          </span>
         </div>
         <div
           style={{

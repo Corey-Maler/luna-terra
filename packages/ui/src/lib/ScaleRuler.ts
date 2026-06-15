@@ -238,6 +238,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const physPt = clientToPhys(e.clientX, e.clientY);
       if (!this._hitTestRuler(physPt)) return;
       e.preventDefault();
+      e.stopPropagation();
       startDragAtPhys(physPt);
     };
 
@@ -245,10 +246,18 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const physPt = clientToPhys(e.clientX, e.clientY);
       checkNear(physPt);
       if (!this._isDragging) return;
+      e.preventDefault();
+      e.stopPropagation();
       applyDragAtPhysX(physPt.x);
     };
 
     const onMouseUp = () => handleDragEnd();
+    const onClick = (e: MouseEvent) => {
+      const physPt = clientToPhys(e.clientX, e.clientY);
+      if (!this._hitTestRuler(physPt)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
 
     // ── Touch ──────────────────────────────────────────────────────────────
     const onTouchStart = (e: TouchEvent) => {
@@ -257,6 +266,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const physPt = clientToPhys(t.clientX, t.clientY);
       if (!this._hitTestRuler(physPt)) return;
       e.preventDefault();
+      e.stopPropagation();
       startDragAtPhys(physPt);
     };
 
@@ -265,24 +275,29 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const t = e.touches[0];
       applyDragAtPhysX(clientToPhys(t.clientX, t.clientY).x);
       e.preventDefault();
+      e.stopPropagation();
     };
 
     const onTouchEnd = () => handleDragEnd();
 
-    canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mousedown', onMouseDown, { capture: true });
+    canvas.addEventListener('mousemove', onMouseMove, { capture: true });
+    canvas.addEventListener('click', onClick, { capture: true });
+    window.addEventListener('mousemove', onMouseMove, { capture: true });
     window.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { capture: true, passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
     canvas.addEventListener('touchend', onTouchEnd);
     canvas.addEventListener('touchcancel', onTouchEnd);
 
     this._cancelDrag = () => {
-      canvas.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mousedown', onMouseDown, { capture: true });
+      canvas.removeEventListener('mousemove', onMouseMove, { capture: true });
+      canvas.removeEventListener('click', onClick, { capture: true });
+      window.removeEventListener('mousemove', onMouseMove, { capture: true });
       window.removeEventListener('mouseup', onMouseUp);
-      canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchstart', onTouchStart, { capture: true });
+      canvas.removeEventListener('touchmove', onTouchMove, { capture: true });
       canvas.removeEventListener('touchend', onTouchEnd);
       canvas.removeEventListener('touchcancel', onTouchEnd);
     };
