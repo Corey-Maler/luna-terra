@@ -39,9 +39,15 @@ describe('TerraTileStoreClient', () => {
   it('requests manifest from the tile-store server', async () => {
     const fetchMock = mockFetch({
       version: 1,
-      projection: 'local-raw-latlon',
+      projection: 'web-mercator-north-up',
       tileIndex: 'morton-u64-v1',
       maxLevel: 10,
+      bounds: {
+        minX: 0.25,
+        minY: 0.5,
+        maxX: 0.75,
+        maxY: 0.9,
+      },
       levels: [
         {
           level: 0,

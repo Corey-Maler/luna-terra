@@ -15,7 +15,15 @@ export interface TerraManifest {
   projection: string;
   tileIndex: string;
   maxLevel: number;
+  bounds?: TerraManifestBounds;
   levels: TerraManifestLevel[];
+}
+
+export interface TerraManifestBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 }
 
 export interface TerraTileClient {

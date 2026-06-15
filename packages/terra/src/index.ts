@@ -12,7 +12,12 @@ export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
 export type { TerraRenderStats } from './TerraStats';
 export { LegacyJsonTileClient, TerraTileStoreClient } from './TileClient';
-export type { TerraManifest, TerraManifestLevel, TerraTileClient } from './TileClient';
+export type {
+  TerraManifest,
+  TerraManifestBounds,
+  TerraManifestLevel,
+  TerraTileClient,
+} from './TileClient';
 export {
   MAX_DEPTH,
   TREE_BITS,

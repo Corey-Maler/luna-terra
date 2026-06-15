@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { TerraMap, TerraTileStoreClient, type TerraRenderStats } from '@lunaterra/terra';
 import type { LunaTerraEngine } from '@lunaterra/core';
+import { Rect2D, V2 } from '@lunaterra/math';
 import { FpsPanel } from '@lunaterra/ui';
 import { DocPage } from '../../components/DocPage/DocPage';
 import { useFps } from '../../context/FpsContext';
@@ -30,6 +31,20 @@ export default function Terra() {
     engine.add(fpsPanel);
     fpsPanel.setEnabled(fpsEnabledRef.current);
     fpsPanelRef.current = fpsPanel;
+
+    void tileClient.getManifest().then((manifest) => {
+      if (!manifest?.bounds || engineRef.current !== engine) {
+        return;
+      }
+      engine.zoomToRect(
+        new Rect2D(
+          new V2(manifest.bounds.minX, manifest.bounds.minY),
+          new V2(manifest.bounds.maxX, manifest.bounds.maxY)
+        ),
+        0.75
+      );
+      engine.requestUpdate();
+    });
   }, []);
 
   const handleStats = useCallback((nextStats: TerraRenderStats) => {
