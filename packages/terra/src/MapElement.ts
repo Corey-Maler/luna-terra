@@ -1,11 +1,12 @@
 import { LTElement, CanvasRenderer, LunaTerraEngine } from '@lunaterra/core';
 import { Grid } from '@lunaterra/elements';
-import { getFeatureTypeById, R, ResolutionByRoadType, type TerraFeatureType } from './helpers';
+import { getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
 import { LazyQuadTree } from './LazyQuadTree';
 import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
+import { TerraMapRenderer } from './TerraMapRenderer';
 
 export interface MapElementOptions {
   onStats?: (stats: TerraRenderStats) => void;
@@ -16,6 +17,7 @@ export class MapElement extends LTElement {
   private commutator: CommutatorClient;
   private lazyTreeRoot?: LazyQuadTree;
   private readonly onStats?: (stats: TerraRenderStats) => void;
+  private readonly mapRenderer = new TerraMapRenderer();
   private lastStatsAt = 0;
 
   constructor(tileBaseUrl?: string, options: MapElementOptions = {}) {
@@ -44,9 +46,7 @@ export class MapElement extends LTElement {
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
 
-    for (const geometry of collections) {
-      this.renderGeometryCollection(renderer, geometry);
-    }
+    this.mapRenderer.render(renderer, collections);
 
     this.reportStats(renderer, collections);
   }
@@ -148,141 +148,4 @@ export class MapElement extends LTElement {
     return stats;
   }
 
-  private renderGeometryCollection(renderer: CanvasRenderer, gc: GeometryCollection) {
-    const debugColor = '#666666';
-    const zoom = renderer.zoom;
-    const renderAnchor = renderer.viewportCenter;
-    const waterColor = '#c5d2d9';
-    const vegetationColor = '#c7d0c6';
-    const airportColor = '#a8a5a0';
-    const buildingColor = '#8f8f8f';
-
-    const cls = [
-      '#333333', '#444444', '#555555', '#666666', '#777777',
-      '#888888', '#999999', '#aaaaaa', '#bbbbbb',
-    ];
-
-    for (const go of gc.optimizedGroups) {
-      if ('area' in go) {
-        const color = this.areaColor(go.typeid, {
-          water: waterColor,
-          vegetation: vegetationColor,
-          airport: airportColor,
-          building: buildingColor,
-          fallback: '#cccccc',
-        });
-        renderer.webgl.p3FillRelative(go.points, go.triangles, color, renderAnchor);
-      } else {
-        const feature = getFeatureTypeById(go.typeid);
-        const rr = feature.kind === 'road'
-          ? ResolutionByRoadType[feature.name] ?? 0
-          : feature.zoomLevel;
-        let color = cls[rr] ?? debugColor;
-        let lineWidth = 2;
-
-        if (feature.kind === 'natural') {
-          color = this.isWaterFeature(feature)
-            ? waterColor
-            : this.isVegetationFeature(feature)
-              ? vegetationColor
-              : '#aaaaaa';
-          lineWidth = 1;
-        }
-
-        if (feature.kind === 'waterway') {
-          color = waterColor;
-          lineWidth = 1;
-        } else if (feature.kind === 'landuse') {
-          color = vegetationColor;
-          lineWidth = 1;
-        } else if (feature.kind === 'aeroway') {
-          color = airportColor;
-          lineWidth = 1;
-        } else if (feature.kind === 'building') {
-          color = '#bbbbbb';
-          lineWidth = 1;
-        } else if (feature.kind === 'road') {
-          const lw = (R.nano / (rr || 1)) * (zoom / 200);
-          lineWidth = Math.max(Math.min(5, lw), 1);
-          lineWidth = 2;
-        }
-
-        const colors = new Array(go.offsets.length).fill(color);
-        renderer.webgl.p3Relative(
-          go.points,
-          go.offsets,
-          go.sizes,
-          colors,
-          lineWidth,
-          renderAnchor,
-        );
-      }
-    }
-  }
-
-  private areaColor(
-    typeId: number,
-    colors: {
-      water: string;
-      vegetation: string;
-      airport: string;
-      building: string;
-      fallback: string;
-    }
-  ) {
-    const feature = getFeatureTypeById(typeId);
-
-    if (this.isWaterFeature(feature)) {
-      return colors.water;
-    }
-    if (this.isVegetationFeature(feature)) {
-      return colors.vegetation;
-    }
-    if (feature.kind === 'aeroway') {
-      return colors.airport;
-    }
-    if (feature.kind === 'building') {
-      return colors.building;
-    }
-    return colors.fallback;
-  }
-
-  private isWaterFeature(feature: TerraFeatureType) {
-    return waterFeatureNames.has(feature.name);
-  }
-
-  private isVegetationFeature(feature: TerraFeatureType) {
-    return vegetationFeatureNames.has(feature.name);
-  }
 }
-
-const waterFeatureNames = new Set([
-  'coastline',
-  'water',
-  'river',
-  'stream',
-  'canal',
-  'drain',
-  'ditch',
-  'riverbank',
-  'reservoir',
-  'basin',
-]);
-
-const vegetationFeatureNames = new Set([
-  'wood',
-  'forest',
-  'scrub',
-  'heath',
-  'wetland',
-  'tree_row',
-  'grassland',
-  'grass',
-  'meadow',
-  'farmland',
-  'farmyard',
-  'recreation_ground',
-  'cemetery',
-  'orchard',
-  'vineyard',
-]);
