@@ -7,6 +7,7 @@ export interface TerraManifestLevel {
   indexFile: string;
   dataFile: string;
   tileCount: number;
+  dataFormat?: string;
 }
 
 export interface TerraManifest {

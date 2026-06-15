@@ -42,7 +42,15 @@ describe('TerraTileStoreClient', () => {
       projection: 'local-raw-latlon',
       tileIndex: 'morton-u64-v1',
       maxLevel: 10,
-      levels: [],
+      levels: [
+        {
+          level: 0,
+          indexFile: 'level-0.index.bin',
+          dataFile: 'level-0.data.bin',
+          tileCount: 1,
+          dataFormat: 'binary-json-geometry-v1',
+        },
+      ],
     });
     const client = new TerraTileStoreClient('http://tiles');
 
