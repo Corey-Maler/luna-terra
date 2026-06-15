@@ -8,6 +8,7 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
+import { TERRA_GLOBE_MAX_TILE_LEVEL } from './TerraMapRenderer';
 import type { TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
@@ -82,7 +83,10 @@ export class MapElement extends LTElement {
       ? this.globeQueryArea()
       : renderer.visibleArea;
     const collections = this.lazyTreeRoot
-      ?.getGeometryForArea(queryArea)
+      ?.getGeometryForArea(
+        queryArea,
+        surface === 'globe' ? { maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL } : {},
+      )
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
 

@@ -104,7 +104,10 @@ export class LazyQuadTree extends VirtualTree {
     return eng.width < OPTIMAL_TILE_SIZE * 2;
   }
 
-  public getGeometryForArea(area: Rect2D): Array<GeometryCollection | undefined> {
+  public getGeometryForArea(
+    area: Rect2D,
+    options: { maxLevel?: number } = {},
+  ): Array<GeometryCollection | undefined> {
     if (!this.boundaries.intersects(area)) {
       return [];
     }
@@ -117,7 +120,8 @@ export class LazyQuadTree extends VirtualTree {
       return [this.parent?.geometryCollection];
     }
 
-    const amIAGoodCandidate = this.amIGoodCandidate();
+    const reachedMaxLevel = options.maxLevel !== undefined && this.level >= options.maxLevel;
+    const amIAGoodCandidate = reachedMaxLevel || this.amIGoodCandidate();
 
     if (amIAGoodCandidate || !this.hasChildren()) {
       printDebugValue('current level', this.level);
@@ -135,7 +139,7 @@ export class LazyQuadTree extends VirtualTree {
     }
 
     if (this.subTrees) {
-      return this.subTrees.flatMap((subTree) => subTree.getGeometryForArea(area));
+      return this.subTrees.flatMap((subTree) => subTree.getGeometryForArea(area, options));
     }
 
     return [];

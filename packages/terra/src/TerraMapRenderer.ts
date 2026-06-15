@@ -14,7 +14,8 @@ export interface TerraMapRenderOptions {
 export type TerraMapMode = 'auto' | 'plane' | 'globe';
 export type TerraMapSurface = 'plane' | 'globe';
 
-export const TERRA_GLOBE_AUTO_MAX_ZOOM = 2.5;
+export const TERRA_GLOBE_AUTO_MAX_ZOOM = 64;
+export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
 
 type TerraMapRenderFrame = {
   anchorWorld: { x: number; y: number };
