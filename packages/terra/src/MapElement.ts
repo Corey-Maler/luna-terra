@@ -74,6 +74,10 @@ export class MapElement extends LTElement {
 
   private renderGeometry(renderer: CanvasRenderer) {
     const surface = this.mapRenderer.resolveMapSurface(renderer, this.mapMode);
+    if (surface === 'globe') {
+      this.normalizeGlobeViewport(renderer);
+    }
+
     const queryArea = surface === 'globe'
       ? this.globeQueryArea()
       : renderer.visibleArea;
@@ -101,6 +105,18 @@ export class MapElement extends LTElement {
     }
 
     return new Rect2D(new V2(0, 0), new V2(1, 1));
+  }
+
+  private normalizeGlobeViewport(renderer: CanvasRenderer) {
+    const center = renderer.viewportCenter;
+    const wrappedX = ((center.x % 1) + 1) % 1;
+    const clampedY = Math.max(0, Math.min(1, center.y));
+
+    if (Math.abs(wrappedX - center.x) < 1e-9 && Math.abs(clampedY - center.y) < 1e-9) {
+      return;
+    }
+
+    renderer.moveViewportTo(new V2(wrappedX, clampedY));
   }
 
   private reportStats(renderer: CanvasRenderer, collections: GeometryCollection[]) {
