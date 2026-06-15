@@ -1,5 +1,6 @@
 import { LTElement, CanvasRenderer, LunaTerraEngine } from '@lunaterra/core';
 import { Grid } from '@lunaterra/elements';
+import { Rect2D, V2 } from '@lunaterra/math';
 import { getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
 import { LazyQuadTree } from './LazyQuadTree';
@@ -72,8 +73,12 @@ export class MapElement extends LTElement {
   }
 
   private renderGeometry(renderer: CanvasRenderer) {
+    const surface = this.mapRenderer.resolveMapSurface(renderer, this.mapMode);
+    const queryArea = surface === 'globe'
+      ? this.globeQueryArea()
+      : renderer.visibleArea;
     const collections = this.lazyTreeRoot
-      ?.getGeometryForArea(renderer.visibleArea)
+      ?.getGeometryForArea(queryArea)
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
 
@@ -85,6 +90,17 @@ export class MapElement extends LTElement {
     });
 
     this.reportStats(renderer, collections);
+  }
+
+  private globeQueryArea() {
+    if (this.sourceBounds) {
+      return new Rect2D(
+        new V2(this.sourceBounds.minX, this.sourceBounds.minY),
+        new V2(this.sourceBounds.maxX, this.sourceBounds.maxY),
+      );
+    }
+
+    return new Rect2D(new V2(0, 0), new V2(1, 1));
   }
 
   private reportStats(renderer: CanvasRenderer, collections: GeometryCollection[]) {
