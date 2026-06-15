@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { TerraMap, TerraTileStoreClient, type TerraRenderStats } from '@lunaterra/terra';
+import {
+  TerraMap,
+  TerraTileStoreClient,
+  type TerraManifestBounds,
+  type TerraRenderStats,
+} from '@lunaterra/terra';
 import type { LunaTerraEngine } from '@lunaterra/core';
 import { Rect2D, V2 } from '@lunaterra/math';
 import { FpsPanel } from '@lunaterra/ui';
@@ -78,6 +83,8 @@ export default function Terra() {
   const engineRef = useRef<LunaTerraEngine | null>(null);
   const [stats, setStats] = useState<TerraRenderStats | null>(null);
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
+  const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
+  const [debugGrid, setDebugGrid] = useState(false);
 
   const handleReady = useCallback((engine: LunaTerraEngine) => {
     engineRef.current = engine;
@@ -91,6 +98,7 @@ export default function Terra() {
       if (!manifest?.bounds || engineRef.current !== engine) {
         return;
       }
+      setSourceBounds(manifest.bounds);
       const bounds = new Rect2D(
         new V2(manifest.bounds.minX, manifest.bounds.minY),
         new V2(manifest.bounds.maxX, manifest.bounds.maxY)
@@ -156,7 +164,13 @@ export default function Terra() {
 
       <DocPage.Section id="map" title="Live Map">
         <div style={{ height: '60vh', display: 'flex', flex: '1 1 auto', minHeight: 420 }}>
-          <TerraMap tileClient={tileClient} onReady={handleReady} onStats={handleStats} />
+          <TerraMap
+            tileClient={tileClient}
+            debugGrid={debugGrid}
+            sourceBounds={sourceBounds}
+            onReady={handleReady}
+            onStats={handleStats}
+          />
         </div>
         <div
           style={{
@@ -172,6 +186,21 @@ export default function Terra() {
           <button type="button" onClick={goToPrecisionRepro} disabled={!manifestBounds && !stats}>
             High zoom repro
           </button>
+          <label
+            style={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              gap: 6,
+              minHeight: 32,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={debugGrid}
+              onChange={(event) => setDebugGrid(event.currentTarget.checked)}
+            />
+            Map grid
+          </label>
         </div>
         <div
           style={{

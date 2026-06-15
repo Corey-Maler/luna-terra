@@ -2,6 +2,12 @@ import { Camera3D, type CanvasRenderer } from '@lunaterra/core';
 import { M4, V3 } from '@lunaterra/math';
 import { ResolutionByRoadType, getFeatureTypeById, type TerraFeatureType } from './helpers';
 import type { GeometryCollection, OptimizedArea, OptimizedLines } from './GeometryCollection';
+import type { TerraManifestBounds } from './TileClient';
+
+export interface TerraMapRenderOptions {
+  debugGrid?: boolean;
+  sourceBounds?: TerraManifestBounds | null;
+}
 
 const TERRAIN_COLORS = {
   debug: '#666666',
@@ -53,11 +59,19 @@ const vegetationFeatureNames = new Set([
 export class TerraMapRenderer {
   public readonly renderMode = 'core-3d-plane' as const;
 
-  render(renderer: CanvasRenderer, collections: GeometryCollection[]) {
+  render(
+    renderer: CanvasRenderer,
+    collections: GeometryCollection[],
+    options: TerraMapRenderOptions = {},
+  ) {
     const frame = this.buildFrame(renderer);
 
     for (const collection of collections) {
       this.renderCollection(renderer, collection, frame);
+    }
+
+    if (options.debugGrid) {
+      this.renderDebugGrid(renderer, frame, options.sourceBounds ?? null);
     }
   }
 
@@ -114,6 +128,110 @@ export class TerraMapRenderer {
         style.lineWidth,
       );
     }
+  }
+
+  private renderDebugGrid(
+    renderer: CanvasRenderer,
+    frame: ReturnType<TerraMapRenderer['buildFrame']>,
+    sourceBounds: TerraManifestBounds | null,
+  ) {
+    const visible = renderer.visibleArea;
+    const minX = Math.max(0, Math.min(visible.v1.x, visible.v2.x));
+    const maxX = Math.min(1, Math.max(visible.v1.x, visible.v2.x));
+    const minY = Math.max(0, Math.min(visible.v1.y, visible.v2.y));
+    const maxY = Math.min(1, Math.max(visible.v1.y, visible.v2.y));
+
+    this.drawPolylineSet(renderer, frame, this.rectLines(0, 0, 1, 1), '#6f7882', 2);
+
+    if (maxX > minX && maxY > minY) {
+      const level = this.gridLevel(Math.max(maxX - minX, maxY - minY));
+      const tileSize = 1 / 2 ** level;
+      const lines: number[][] = [];
+
+      for (
+        let x = Math.ceil(minX / tileSize) * tileSize;
+        x <= maxX + tileSize * 0.5;
+        x += tileSize
+      ) {
+        lines.push([x, minY, x, maxY]);
+      }
+
+      for (
+        let y = Math.ceil(minY / tileSize) * tileSize;
+        y <= maxY + tileSize * 0.5;
+        y += tileSize
+      ) {
+        lines.push([minX, y, maxX, y]);
+      }
+
+      this.drawPolylineSet(renderer, frame, lines, '#b7bdc3', 1);
+    }
+
+    if (sourceBounds) {
+      this.drawPolylineSet(
+        renderer,
+        frame,
+        this.rectLines(
+          sourceBounds.minX,
+          sourceBounds.minY,
+          sourceBounds.maxX,
+          sourceBounds.maxY,
+        ),
+        '#7f8f6b',
+        2,
+      );
+    }
+  }
+
+  private gridLevel(visibleSpan: number) {
+    if (visibleSpan <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(15, Math.floor(Math.log2(8 / visibleSpan))));
+  }
+
+  private rectLines(minX: number, minY: number, maxX: number, maxY: number) {
+    return [
+      [minX, minY, maxX, minY],
+      [maxX, minY, maxX, maxY],
+      [maxX, maxY, minX, maxY],
+      [minX, maxY, minX, minY],
+    ];
+  }
+
+  private drawPolylineSet(
+    renderer: CanvasRenderer,
+    frame: ReturnType<TerraMapRenderer['buildFrame']>,
+    lines: number[][],
+    color: string,
+    lineWidth: number,
+  ) {
+    const points = new Float32Array(lines.length * 2 * 3);
+    const offsets: number[] = [];
+    const sizes: number[] = [];
+
+    let pointOffset = 0;
+    for (const line of lines) {
+      offsets.push(pointOffset);
+      sizes.push(2);
+      points[pointOffset * 3] = line[0] - frame.anchorWorld.x;
+      points[pointOffset * 3 + 1] = line[1] - frame.anchorWorld.y;
+      points[pointOffset * 3 + 2] = 0;
+      points[pointOffset * 3 + 3] = line[2] - frame.anchorWorld.x;
+      points[pointOffset * 3 + 4] = line[3] - frame.anchorWorld.y;
+      points[pointOffset * 3 + 5] = 0;
+      pointOffset += 2;
+    }
+
+    renderer.webgl3d.drawLineStrips(
+      points,
+      offsets,
+      sizes,
+      color,
+      frame.camera,
+      frame.modelMatrix,
+      lineWidth,
+    );
   }
 
   private linePoints3D(group: OptimizedLines, anchorWorld: { x: number; y: number }) {

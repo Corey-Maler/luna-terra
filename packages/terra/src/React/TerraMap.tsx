@@ -1,8 +1,8 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { LunaTerraEngine } from '@lunaterra/core';
 import { MapElement } from '../MapElement';
 import type { TerraRenderStats } from '../TerraStats';
-import type { TerraTileClient } from '../TileClient';
+import type { TerraManifestBounds, TerraTileClient } from '../TileClient';
 import { MAX_DEPTH } from '../TileIndex';
 
 export interface TerraMapProps {
@@ -10,6 +10,10 @@ export interface TerraMapProps {
   tileBaseUrl?: string;
   /** Optional tile client. When provided, overrides tileBaseUrl. */
   tileClient?: TerraTileClient;
+  /** Show real Web Mercator world/tile/source debug grid. */
+  debugGrid?: boolean;
+  /** Optional projected source bounds from tileset manifest. */
+  sourceBounds?: TerraManifestBounds | null;
   /** Called once after the engine is created and the MapElement is added. */
   onReady?: (engine: LunaTerraEngine) => void;
   /** Called periodically with the geometry volume rendered by the current view. */
@@ -19,9 +23,31 @@ export interface TerraMapProps {
 const MAX_TILE_SCREEN_SIZE = 512;
 const TERRA_MAX_ZOOM = 2 ** MAX_DEPTH * MAX_TILE_SCREEN_SIZE;
 
-export const TerraMap = ({ tileBaseUrl, tileClient, onReady, onStats }: TerraMapProps) => {
+export const TerraMap = ({
+  tileBaseUrl,
+  tileClient,
+  debugGrid = false,
+  sourceBounds = null,
+  onReady,
+  onStats,
+}: TerraMapProps) => {
   const engineRef = useRef<LunaTerraEngine | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapElementRef = useRef<MapElement | null>(null);
+  const debugGridRef = useRef(debugGrid);
+  const sourceBoundsRef = useRef(sourceBounds);
+
+  useEffect(() => {
+    debugGridRef.current = debugGrid;
+    mapElementRef.current?.setDebugGrid(debugGrid);
+    engineRef.current?.requestUpdate();
+  }, [debugGrid]);
+
+  useEffect(() => {
+    sourceBoundsRef.current = sourceBounds;
+    mapElementRef.current?.setSourceBounds(sourceBounds);
+    engineRef.current?.requestUpdate();
+  }, [sourceBounds]);
 
   const mountRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -31,7 +57,14 @@ export const TerraMap = ({ tileBaseUrl, tileClient, onReady, onStats }: TerraMap
         engineRef.current = engine;
         containerRef.current = node;
 
-        engine.add(new MapElement(tileBaseUrl, { onStats, tileClient }));
+        const mapElement = new MapElement(tileBaseUrl, {
+          onStats,
+          tileClient,
+          debugGrid: debugGridRef.current,
+          sourceBounds: sourceBoundsRef.current,
+        });
+        mapElementRef.current = mapElement;
+        engine.add(mapElement);
         engine.renderer.maxZoom = TERRA_MAX_ZOOM;
         engine.requestUpdate();
 
@@ -43,6 +76,7 @@ export const TerraMap = ({ tileBaseUrl, tileClient, onReady, onStats }: TerraMap
         }
         engineRef.current = null;
         containerRef.current = null;
+        mapElementRef.current = null;
       }
     },
     [onReady, onStats, tileBaseUrl, tileClient]

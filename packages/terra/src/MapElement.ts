@@ -7,10 +7,13 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
+import type { TerraManifestBounds } from './TileClient';
 
 export interface MapElementOptions {
   onStats?: (stats: TerraRenderStats) => void;
   tileClient?: TerraTileClient;
+  debugGrid?: boolean;
+  sourceBounds?: TerraManifestBounds | null;
 }
 
 export class MapElement extends LTElement {
@@ -18,12 +21,24 @@ export class MapElement extends LTElement {
   private lazyTreeRoot?: LazyQuadTree;
   private readonly onStats?: (stats: TerraRenderStats) => void;
   private readonly mapRenderer = new TerraMapRenderer();
+  private debugGrid = false;
+  private sourceBounds: TerraManifestBounds | null = null;
   private lastStatsAt = 0;
 
   constructor(tileBaseUrl?: string, options: MapElementOptions = {}) {
     super();
     this.commutator = new CommutatorClient(options.tileClient ?? tileBaseUrl);
     this.onStats = options.onStats;
+    this.debugGrid = options.debugGrid ?? false;
+    this.sourceBounds = options.sourceBounds ?? null;
+  }
+
+  public setDebugGrid(enabled: boolean) {
+    this.debugGrid = enabled;
+  }
+
+  public setSourceBounds(bounds: TerraManifestBounds | null) {
+    this.sourceBounds = bounds;
   }
 
   protected defaultOptions() {
@@ -46,7 +61,10 @@ export class MapElement extends LTElement {
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
 
-    this.mapRenderer.render(renderer, collections);
+    this.mapRenderer.render(renderer, collections, {
+      debugGrid: this.debugGrid,
+      sourceBounds: this.sourceBounds,
+    });
 
     this.reportStats(renderer, collections);
   }
