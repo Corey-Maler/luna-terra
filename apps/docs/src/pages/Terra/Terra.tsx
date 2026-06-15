@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   TerraMap,
   TerraTileStoreClient,
+  type TerraMapMode,
   type TerraManifestBounds,
   type TerraRenderStats,
 } from '@lunaterra/terra';
@@ -95,6 +96,7 @@ export default function Terra() {
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
   const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
   const [debugGrid, setDebugGrid] = useState(false);
+  const [mapMode, setMapMode] = useState<TerraMapMode>('plane');
   const [pitchDegrees, setPitchDegrees] = useState(0);
 
   const handleReady = useCallback((engine: LunaTerraEngine) => {
@@ -209,6 +211,7 @@ export default function Terra() {
           <TerraMap
             tileClient={tileClient}
             debugGrid={debugGrid}
+            mapMode={mapMode}
             pitchDegrees={pitchDegrees}
             sourceBounds={sourceBounds}
             onReady={handleReady}
@@ -229,6 +232,40 @@ export default function Terra() {
           <button type="button" onClick={goToPrecisionRepro} disabled={!manifestBounds && !stats}>
             High zoom repro
           </button>
+          <div
+            style={{
+              alignItems: 'center',
+              border: '1px solid var(--border-color)',
+              borderRadius: 6,
+              display: 'inline-flex',
+              minHeight: 32,
+              overflow: 'hidden',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setMapMode('plane')}
+              style={{
+                border: 0,
+                borderRadius: 0,
+                background: mapMode === 'plane' ? 'var(--surface-container-high)' : 'transparent',
+              }}
+            >
+              Plane
+            </button>
+            <button
+              type="button"
+              onClick={() => setMapMode('globe')}
+              style={{
+                border: 0,
+                borderLeft: '1px solid var(--border-color)',
+                borderRadius: 0,
+                background: mapMode === 'globe' ? 'var(--surface-container-high)' : 'transparent',
+              }}
+            >
+              Globe
+            </button>
+          </div>
           <label
             style={{
               alignItems: 'center',

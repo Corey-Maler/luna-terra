@@ -11,6 +11,7 @@ export type { MapElementOptions } from './MapElement';
 export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
 export type { TerraRenderStats } from './TerraStats';
+export type { TerraMapMode } from './TerraMapRenderer';
 export { LegacyJsonTileClient, TerraTileStoreClient } from './TileClient';
 export type {
   TerraManifest,

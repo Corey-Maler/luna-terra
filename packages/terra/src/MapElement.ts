@@ -7,12 +7,14 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
+import type { TerraMapMode } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
 export interface MapElementOptions {
   onStats?: (stats: TerraRenderStats) => void;
   tileClient?: TerraTileClient;
   debugGrid?: boolean;
+  mapMode?: TerraMapMode;
   sourceBounds?: TerraManifestBounds | null;
   pitchDegrees?: number;
 }
@@ -23,6 +25,7 @@ export class MapElement extends LTElement {
   private readonly onStats?: (stats: TerraRenderStats) => void;
   private readonly mapRenderer = new TerraMapRenderer();
   private debugGrid = false;
+  private mapMode: TerraMapMode = 'plane';
   private sourceBounds: TerraManifestBounds | null = null;
   private pitchDegrees = 0;
   private lastStatsAt = 0;
@@ -32,12 +35,17 @@ export class MapElement extends LTElement {
     this.commutator = new CommutatorClient(options.tileClient ?? tileBaseUrl);
     this.onStats = options.onStats;
     this.debugGrid = options.debugGrid ?? false;
+    this.mapMode = options.mapMode ?? 'plane';
     this.sourceBounds = options.sourceBounds ?? null;
     this.pitchDegrees = options.pitchDegrees ?? 0;
   }
 
   public setDebugGrid(enabled: boolean) {
     this.debugGrid = enabled;
+  }
+
+  public setMapMode(mapMode: TerraMapMode) {
+    this.mapMode = mapMode;
   }
 
   public setSourceBounds(bounds: TerraManifestBounds | null) {
@@ -70,6 +78,7 @@ export class MapElement extends LTElement {
 
     this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
+      mapMode: this.mapMode,
       pitchDegrees: this.pitchDegrees,
       sourceBounds: this.sourceBounds,
     });
@@ -92,7 +101,9 @@ export class MapElement extends LTElement {
     const byType = new Map<number, TerraTypeStats>();
     const visibleArea = renderer.visibleArea;
     stats.zoom = renderer.zoom;
-    stats.renderMode = this.pitchDegrees > 0
+    stats.renderMode = this.mapMode === 'globe'
+      ? 'core-3d-globe'
+      : this.pitchDegrees > 0
       ? 'core-3d-pitched-plane'
       : this.mapRenderer.renderMode;
     stats.pitchDegrees = this.pitchDegrees;

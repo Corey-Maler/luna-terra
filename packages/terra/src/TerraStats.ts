@@ -15,7 +15,8 @@ export interface TerraRenderStats {
     | 'world-float32'
     | 'camera-relative'
     | 'core-3d-plane'
-    | 'core-3d-pitched-plane';
+    | 'core-3d-pitched-plane'
+    | 'core-3d-globe';
   pitchDegrees: number;
   viewportCenter: { x: number; y: number };
   renderAnchor: { x: number; y: number };

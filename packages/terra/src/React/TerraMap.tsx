@@ -3,6 +3,7 @@ import { LunaTerraEngine } from '@lunaterra/core';
 import { MapElement } from '../MapElement';
 import type { TerraRenderStats } from '../TerraStats';
 import type { TerraManifestBounds, TerraTileClient } from '../TileClient';
+import type { TerraMapMode } from '../TerraMapRenderer';
 import { MAX_DEPTH } from '../TileIndex';
 
 export interface TerraMapProps {
@@ -12,6 +13,8 @@ export interface TerraMapProps {
   tileClient?: TerraTileClient;
   /** Show real Web Mercator world/tile/source debug grid. */
   debugGrid?: boolean;
+  /** Map surface mode. Globe is experimental and intended for low zooms. */
+  mapMode?: TerraMapMode;
   /** Optional projected source bounds from tileset manifest. */
   sourceBounds?: TerraManifestBounds | null;
   /** Pitch the flat map plane in degrees. 0 keeps normal flat map rendering. */
@@ -29,6 +32,7 @@ export const TerraMap = ({
   tileBaseUrl,
   tileClient,
   debugGrid = false,
+  mapMode = 'plane',
   sourceBounds = null,
   pitchDegrees = 0,
   onReady,
@@ -38,6 +42,7 @@ export const TerraMap = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapElementRef = useRef<MapElement | null>(null);
   const debugGridRef = useRef(debugGrid);
+  const mapModeRef = useRef<TerraMapMode>(mapMode);
   const sourceBoundsRef = useRef(sourceBounds);
   const pitchDegreesRef = useRef(pitchDegrees);
 
@@ -46,6 +51,12 @@ export const TerraMap = ({
     mapElementRef.current?.setDebugGrid(debugGrid);
     engineRef.current?.requestUpdate();
   }, [debugGrid]);
+
+  useEffect(() => {
+    mapModeRef.current = mapMode;
+    mapElementRef.current?.setMapMode(mapMode);
+    engineRef.current?.requestUpdate();
+  }, [mapMode]);
 
   useEffect(() => {
     sourceBoundsRef.current = sourceBounds;
@@ -71,6 +82,7 @@ export const TerraMap = ({
           onStats,
           tileClient,
           debugGrid: debugGridRef.current,
+          mapMode: mapModeRef.current,
           pitchDegrees: pitchDegreesRef.current,
           sourceBounds: sourceBoundsRef.current,
         });
