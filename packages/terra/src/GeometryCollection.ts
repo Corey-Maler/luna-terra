@@ -1,5 +1,6 @@
 import { GeometryClient } from './Geometry';
 import { isGeometryEnclosed } from './GeometryHelpers';
+import type { TileIndex } from './TileIndex';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore – earcut v3 ships without bundled type declarations
@@ -23,7 +24,7 @@ export type OptimizedGroup = OptimizedLines | OptimizedArea;
 
 export interface GeometryCollectionSource {
   level: number;
-  index: number;
+  index: TileIndex;
 }
 
 export class GeometryCollection {

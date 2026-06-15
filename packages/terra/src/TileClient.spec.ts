@@ -40,7 +40,7 @@ describe('TerraTileStoreClient', () => {
     const fetchMock = mockFetch({
       version: 1,
       projection: 'local-raw-latlon',
-      tileIndex: 'packed-xy-v1',
+      tileIndex: 'morton-u64-v1',
       maxLevel: 10,
       levels: [],
     });

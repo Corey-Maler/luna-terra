@@ -1,4 +1,4 @@
-export { VirtualTree, indFromX, TREE_BITS, MAX_DEPTH } from './VirtualTree';
+export { VirtualTree } from './VirtualTree';
 export { CommutatorClient } from './Commutator';
 export { GeometryClient, GeometryBase } from './Geometry';
 export { GeometryCollection } from './GeometryCollection';
@@ -13,5 +13,16 @@ export type { TerraMapProps } from './React/TerraMap';
 export type { TerraRenderStats } from './TerraStats';
 export { LegacyJsonTileClient, TerraTileStoreClient } from './TileClient';
 export type { TerraManifest, TerraManifestLevel, TerraTileClient } from './TileClient';
+export {
+  MAX_DEPTH,
+  TREE_BITS,
+  indFromX,
+  mortonChildIndex,
+  mortonTileBit,
+  mortonTileIndexFromCoords,
+  mortonTileXY,
+  tileIndexToString,
+} from './TileIndex';
+export type { TileIndex, TileIndexString } from './TileIndex';
 export * from './helpers';
 export type { MapyGeometry, SinglePrecisionPoints, DoublePrecisionPoints } from './types/Mapy';

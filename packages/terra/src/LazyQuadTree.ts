@@ -6,6 +6,7 @@ import type { MapyGeometry } from './types/Mapy';
 import { CommutatorClient } from './Commutator';
 import { GeometryCollection } from './GeometryCollection';
 import { incDebugValue, printDebugValue } from './debug';
+import type { TileIndex } from './TileIndex';
 
 export interface LazyQuadTreeContext {
   commutator: CommutatorClient;
@@ -33,7 +34,7 @@ export class LazyQuadTree extends VirtualTree {
 
   protected constructor(
     context: LazyQuadTreeContext,
-    index: number,
+    index: TileIndex,
     level: number,
     boundaries: Rect2D,
     parent?: LazyQuadTree

@@ -1,12 +1,17 @@
 import { Rect2D } from '@lunaterra/math';
 import { V2 } from '@lunaterra/math';
-
-export const TREE_BITS = 16;
-export const MAX_DEPTH = 10;
+import {
+  MAX_DEPTH,
+  mortonChildIndex,
+  mortonTileBit,
+  mortonTileIndexFromCoords,
+  mortonTileXY,
+  type TileIndex,
+} from './TileIndex';
 
 export class VirtualTree {
   subTrees: VirtualTree[] | undefined;
-  private ind: number;
+  private ind: TileIndex;
   public get index() {
     return this.ind;
   }
@@ -17,33 +22,30 @@ export class VirtualTree {
     return this.level < MAX_DEPTH;
   }
 
-  constructor(ind: number, level: number, boundaries: Rect2D) {
+  constructor(ind: TileIndex, level: number, boundaries: Rect2D) {
     this.ind = ind;
     this.level = level;
     this.boundaries = boundaries;
   }
 
-  protected generateIndices(ind: number, level: number) {
+  protected generateIndices(ind: TileIndex, level: number) {
     return [
-      generateIndex(ind, level, 0x0, 0x0, TREE_BITS),
-      generateIndex(ind, level, 0x1, 0x0, TREE_BITS),
-      generateIndex(ind, level, 0x1, 0x1, TREE_BITS),
-      generateIndex(ind, level, 0x0, 0x1, TREE_BITS),
+      mortonChildIndex(ind, level, 0x0, 0x0),
+      mortonChildIndex(ind, level, 0x1, 0x0),
+      mortonChildIndex(ind, level, 0x1, 0x1),
+      mortonChildIndex(ind, level, 0x0, 0x1),
     ];
   }
 
   public static coordsToIndex(v2: V2) {
-    const ix = indFromX(v2.x);
-    const iy = indFromX(v2.y);
-    return (ix | (iy << TREE_BITS)) >>> 0;
+    return mortonTileIndexFromCoords(v2);
   }
 
-  public printDebug(ind = 0, indAcc?: number[]) {
+  public printDebug(ind = 0, indAcc?: TileIndex[]) {
     if (indAcc) {
       indAcc.push(this.ind);
     }
-    const yInd = this.ind >> TREE_BITS;
-    const xInd = this.ind & 0xffff;
+    const { x: xInd, y: yInd } = mortonTileXY(this.ind);
     console.log(
       xInd.toString(2).padStart(5 + ind),
       yInd.toString(2).padStart(5),
@@ -53,42 +55,18 @@ export class VirtualTree {
     );
   }
 
-  protected getByIndex(ind: number, level: number): VirtualTree | null {
+  protected getByIndex(ind: TileIndex, level: number): VirtualTree | null {
     if (this.level === level) {
       return this;
     }
 
-    const nextL = this.level;
-    const nextLevelX = (ind >>> nextL) & 0x1;
-    const nextLevelY = (ind >>> (nextL + TREE_BITS)) & 0x1;
+    const nextLevel = mortonTileBit(ind, this.level);
 
-    const nextLevelQuadrant = (nextLevelX << 1) | nextLevelY;
+    const nextLevelQuadrant = (nextLevel.x << 1) | nextLevel.y;
     const quadrantFromXY = [0, 3, 1, 2];
 
     const subTree = this.subTrees?.[quadrantFromXY[nextLevelQuadrant]];
 
     return subTree?.getByIndex(ind, level) ?? null;
   }
-}
-
-function generateIndex(
-  ind: number,
-  level: number,
-  x: number,
-  y: number,
-  TREE_BITS: number
-): number {
-  const ix = ind | (x << level);
-  const iy = ind | (y << (level + TREE_BITS));
-  return ix | iy;
-}
-
-export function indFromX(_x: number) {
-  const alternative = Math.floor(_x * Math.pow(2, TREE_BITS))
-    .toString(2)
-    .padStart(TREE_BITS, '0')
-    .split('')
-    .reverse()
-    .join('');
-  return parseInt(alternative, 2);
 }
