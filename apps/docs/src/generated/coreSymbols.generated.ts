@@ -4630,6 +4630,15 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "sourceColumn": 3
       },
       {
+        "name": "drawLineStrips",
+        "kind": "method",
+        "signature": "drawLineStrips(points: Float32Array, offsets: number[], sizes: number[], color: string, camera: Camera3D, modelMatrix?: M4, lineWidth?: number) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
+        "sourceLine": 123,
+        "sourceColumn": 3
+      },
+      {
         "name": "drawTriangles",
         "kind": "method",
         "signature": "drawTriangles(points: Float32Array, color: string, camera: Camera3D, modelMatrix?: M4) => void",

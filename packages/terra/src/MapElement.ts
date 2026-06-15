@@ -66,7 +66,7 @@ export class MapElement extends LTElement {
     const byType = new Map<number, TerraTypeStats>();
     const visibleArea = renderer.visibleArea;
     stats.zoom = renderer.zoom;
-    stats.renderMode = 'camera-relative';
+    stats.renderMode = this.mapRenderer.renderMode;
     stats.viewportCenter = renderer.viewportCenter.toJson();
     stats.renderAnchor = renderer.viewportCenter.toJson();
     stats.viewportPixels = {

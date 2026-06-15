@@ -11,7 +11,7 @@ export interface TerraTypeStats {
 
 export interface TerraRenderStats {
   zoom: number;
-  renderMode: 'world-float32' | 'camera-relative';
+  renderMode: 'world-float32' | 'camera-relative' | 'core-3d-plane';
   viewportCenter: { x: number; y: number };
   renderAnchor: { x: number; y: number };
   viewportPixels: { width: number; height: number };

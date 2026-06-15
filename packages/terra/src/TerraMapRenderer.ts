@@ -1,6 +1,7 @@
-import type { CanvasRenderer } from '@lunaterra/core';
+import { Camera3D, type CanvasRenderer } from '@lunaterra/core';
+import { M4, V3 } from '@lunaterra/math';
 import { ResolutionByRoadType, getFeatureTypeById, type TerraFeatureType } from './helpers';
-import type { GeometryCollection } from './GeometryCollection';
+import type { GeometryCollection, OptimizedArea, OptimizedLines } from './GeometryCollection';
 
 const TERRAIN_COLORS = {
   debug: '#666666',
@@ -50,6 +51,8 @@ const vegetationFeatureNames = new Set([
 ]);
 
 export class TerraMapRenderer {
+  public readonly renderMode = 'core-3d-plane' as const;
+
   render(renderer: CanvasRenderer, collections: GeometryCollection[]) {
     const frame = this.buildFrame(renderer);
 
@@ -59,8 +62,26 @@ export class TerraMapRenderer {
   }
 
   private buildFrame(renderer: CanvasRenderer) {
+    const visibleArea = renderer.visibleArea;
+    const anchorWorld = renderer.viewportCenter;
+    const halfWidth = Math.abs(visibleArea.v2.x - visibleArea.v1.x) / 2;
+    const halfHeight = Math.abs(visibleArea.v2.y - visibleArea.v1.y) / 2;
+
     return {
-      anchorWorld: renderer.viewportCenter,
+      anchorWorld,
+      camera: new Camera3D({
+        mode: 'orthographic',
+        eye: new V3(0, 0, 1),
+        target: new V3(0, 0, 0),
+        up: new V3(0, 1, 0),
+        left: -halfWidth,
+        right: halfWidth,
+        bottom: -halfHeight,
+        top: halfHeight,
+        near: 0.1,
+        far: 10,
+      }),
+      modelMatrix: M4.identity(),
     };
   }
 
@@ -73,26 +94,48 @@ export class TerraMapRenderer {
       const feature = getFeatureTypeById(group.typeid);
 
       if ('area' in group) {
-        renderer.webgl.p3FillRelative(
-          group.points,
-          group.triangles,
+        renderer.webgl3d.drawTriangles(
+          this.areaPoints3D(group, frame.anchorWorld),
           this.areaColor(feature),
-          frame.anchorWorld,
+          frame.camera,
+          frame.modelMatrix,
         );
         continue;
       }
 
       const style = this.lineStyle(feature);
-      const colors = new Array(group.offsets.length).fill(style.color);
-      renderer.webgl.p3Relative(
-        group.points,
+      renderer.webgl3d.drawLineStrips(
+        this.linePoints3D(group, frame.anchorWorld),
         group.offsets,
         group.sizes,
-        colors,
+        style.color,
+        frame.camera,
+        frame.modelMatrix,
         style.lineWidth,
-        frame.anchorWorld,
       );
     }
+  }
+
+  private linePoints3D(group: OptimizedLines, anchorWorld: { x: number; y: number }) {
+    const points = new Float32Array((group.points.length / 2) * 3);
+    for (let source = 0, target = 0; source < group.points.length; source += 2, target += 3) {
+      points[target] = group.points[source] - anchorWorld.x;
+      points[target + 1] = group.points[source + 1] - anchorWorld.y;
+      points[target + 2] = 0;
+    }
+    return points;
+  }
+
+  private areaPoints3D(group: OptimizedArea, anchorWorld: { x: number; y: number }) {
+    const points = new Float32Array(group.triangles.length * 3);
+    for (let i = 0; i < group.triangles.length; i += 1) {
+      const source = group.triangles[i] * 2;
+      const target = i * 3;
+      points[target] = group.points[source] - anchorWorld.x;
+      points[target + 1] = group.points[source + 1] - anchorWorld.y;
+      points[target + 2] = 0;
+    }
+    return points;
   }
 
   private areaColor(feature: TerraFeatureType) {

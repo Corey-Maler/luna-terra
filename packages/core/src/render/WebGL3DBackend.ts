@@ -117,6 +117,48 @@ export class WebGL3DBackend {
     camera: Camera3D,
     modelMatrix = M4.identity(),
   ) {
+    this.draw(points, color, camera, modelMatrix, this.gl.TRIANGLES, 0, points.length / 3);
+  }
+
+  public drawLineStrips(
+    points: Float32Array,
+    offsets: number[],
+    sizes: number[],
+    color: string,
+    camera: Camera3D,
+    modelMatrix = M4.identity(),
+    lineWidth = 1,
+  ) {
+    const gl = this.gl;
+    this.prepareDraw(points, color, camera, modelMatrix);
+    gl.lineWidth(lineWidth);
+    for (let i = 0; i < offsets.length; i += 1) {
+      gl.drawArrays(gl.LINE_STRIP, offsets[i], sizes[i]);
+    }
+    gl.disable(gl.DEPTH_TEST);
+  }
+
+  private draw(
+    points: Float32Array,
+    color: string,
+    camera: Camera3D,
+    modelMatrix: M4,
+    mode: number,
+    offset: number,
+    count: number,
+  ) {
+    const gl = this.gl;
+    this.prepareDraw(points, color, camera, modelMatrix);
+    gl.drawArrays(mode, offset, count);
+    gl.disable(gl.DEPTH_TEST);
+  }
+
+  private prepareDraw(
+    points: Float32Array,
+    color: string,
+    camera: Camera3D,
+    modelMatrix: M4,
+  ) {
     const gl = this.gl;
 
     gl.enable(gl.DEPTH_TEST);
@@ -143,7 +185,7 @@ export class WebGL3DBackend {
       parsedColor[3],
     );
 
-    gl.drawArrays(gl.TRIANGLES, 0, points.length / 3);
-    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   }
 }
