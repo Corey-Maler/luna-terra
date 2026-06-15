@@ -95,6 +95,10 @@ export class WebGLDrawBackend {
   private viewMatrix: M3 = new M3();
   private colorCache: ColorCache;
 
+  public get context() {
+    return this.gl;
+  }
+
   // Grid shader instance
   private gridShader: GridShader;
 
@@ -105,7 +109,7 @@ export class WebGLDrawBackend {
     const gl = this.gl;
     // Clear with fully transparent background (r,g,b,alpha)
     gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram(this.program);
@@ -220,6 +224,7 @@ export class WebGLDrawBackend {
     lineWidth = 1,
   ) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Bind the VAO
     gl.bindVertexArray(this.vao);
@@ -257,6 +262,7 @@ export class WebGLDrawBackend {
 
   p3Fill(points: Float32Array, triangles: Uint16Array, _color: string) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Bind the VAO
     gl.bindVertexArray(this.vao);
@@ -314,6 +320,7 @@ export class WebGLDrawBackend {
   }
 
   private applyViewMatrix(matrix: M3) {
+    this.gl.useProgram(this.program);
     this.gl.uniformMatrix3fv(
       this.viewMatrixLocation,
       false,
@@ -343,6 +350,7 @@ export class WebGLDrawBackend {
    */
   public renderPoints(points: Float32Array, color: string, pointSize = 1) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Ensure the blend function is properly set for transparency
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
