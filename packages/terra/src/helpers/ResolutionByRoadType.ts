@@ -113,6 +113,37 @@ export const ResolutionByNaturalType: Record<string, number> = {
   gully: R.ignore,
 };
 
+export const ResolutionByWaterwayType: Record<string, number> = {
+  river: R.medium,
+  stream: R.small,
+  canal: R.medium,
+  drain: R.nano,
+  ditch: R.nano,
+  riverbank: R.medium,
+};
+
+export const ResolutionByLanduseType: Record<string, number> = {
+  forest: R.big,
+  meadow: R.medium,
+  grass: R.medium,
+  farmland: R.medium,
+  farmyard: R.medium,
+  reservoir: R.big,
+  basin: R.big,
+  recreation_ground: R.medium,
+  cemetery: R.medium,
+  orchard: R.small,
+  vineyard: R.small,
+};
+
+export const ResolutionByAerowayType: Record<string, number> = {
+  aerodrome: R.big,
+  runway: R.medium,
+  taxiway: R.medium,
+  apron: R.medium,
+  helipad: R.medium,
+};
+
 const buildingTypes = [
   'yes', 'mall', 'school', 'retail', 'government', 'office', 'transportation',
   'hotel', 'university', 'apartments', 'construction', 'stadium', 'church',
@@ -136,6 +167,14 @@ const buildingTypes = [
 
 const hwTypes = Object.keys(ResolutionByRoadType);
 const naturalTypes = Object.keys(ResolutionByNaturalType);
+const waterwayTypes = Object.keys(ResolutionByWaterwayType);
+const landuseTypes = Object.keys(ResolutionByLanduseType);
+const aerowayTypes = Object.keys(ResolutionByAerowayType);
+const NATURAL_OFFSET = 100;
+const BUILDING_OFFSET = 200;
+const WATERWAY_OFFSET = 400;
+const LANDUSE_OFFSET = 500;
+const AEROWAY_OFFSET = 600;
 
 const padding = 100 - hwTypes.length;
 for (let i = 0; i < padding; i++) {
@@ -150,28 +189,112 @@ for (let i = 0; i < padding2; i++) {
 }
 
 export const highwayTypes = [...h2, ...buildingTypes];
+while (highwayTypes.length < 400) {
+  highwayTypes.push(`unknown${highwayTypes.length}`);
+}
+highwayTypes.push(...waterwayTypes);
+while (highwayTypes.length < 500) {
+  highwayTypes.push(`unknown${highwayTypes.length}`);
+}
+highwayTypes.push(...landuseTypes);
+while (highwayTypes.length < 600) {
+  highwayTypes.push(`unknown${highwayTypes.length}`);
+}
+highwayTypes.push(...aerowayTypes);
 
-const enclosed = new Set(['water', 'wood', ...buildingTypes]);
+const enclosed = new Set([
+  'water',
+  'wood',
+  'riverbank',
+  ...buildingTypes,
+  ...landuseTypes,
+  'aerodrome',
+  'apron',
+  'helipad',
+]);
 
 export const isEnclosed = (metaType: number) =>
   metaType >= 100 && enclosed.has(highwayTypes[metaType]);
 
 export const typeidByTags = (tags: Record<string, string>) => {
   if ('highway' in tags) {
-    return highwayTypes.findIndex((type) => type === tags.highway) ?? -1;
+    return hwTypes.indexOf(tags.highway);
+  }
+  if ('natural' in tags) {
+    const index = naturalTypes.indexOf(tags.natural);
+    return index < 0 ? -1 : 100 + index;
   }
   if ('building' in tags) {
-    return highwayTypes.findIndex((type) => type === tags.building) ?? -1;
+    const index = buildingTypes.indexOf(tags.building);
+    return index < 0 ? -1 : BUILDING_OFFSET + index;
+  }
+  if ('waterway' in tags) {
+    const index = waterwayTypes.indexOf(tags.waterway);
+    return index < 0 ? -1 : WATERWAY_OFFSET + index;
+  }
+  if ('landuse' in tags) {
+    const index = landuseTypes.indexOf(tags.landuse);
+    return index < 0 ? -1 : LANDUSE_OFFSET + index;
+  }
+  if ('aeroway' in tags) {
+    const index = aerowayTypes.indexOf(tags.aeroway);
+    return index < 0 ? -1 : AEROWAY_OFFSET + index;
   }
   return 1;
 };
 
 export const getZoomLevelByTypeId = (typeId: number) => {
   if (typeId < 0) return R.UNKNOWN;
-  if (typeId < 100) return ResolutionByRoadType[highwayTypes[typeId]] ?? R.UNKNOWN;
-  if (typeId < 200) return ResolutionByNaturalType[highwayTypes[typeId]] ?? R.UNKNOWN;
-  if (typeId < 300) return R.nano;
+  if (typeId < NATURAL_OFFSET) return ResolutionByRoadType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId < BUILDING_OFFSET) return ResolutionByNaturalType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId < WATERWAY_OFFSET) return R.nano;
+  if (typeId < LANDUSE_OFFSET) return ResolutionByWaterwayType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId < AEROWAY_OFFSET) return ResolutionByLanduseType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId < 700) return ResolutionByAerowayType[highwayTypes[typeId]] ?? R.UNKNOWN;
   return R.UNKNOWN;
+};
+
+export type TerraFeatureKind =
+  | 'road'
+  | 'natural'
+  | 'building'
+  | 'waterway'
+  | 'landuse'
+  | 'aeroway'
+  | 'unknown';
+
+export interface TerraFeatureType {
+  typeId: number;
+  kind: TerraFeatureKind;
+  name: string;
+  zoomLevel: number;
+  enclosed: boolean;
+}
+
+export const getFeatureTypeById = (typeId: number): TerraFeatureType => {
+  let kind: TerraFeatureKind = 'unknown';
+
+  if (typeId >= 0 && typeId < NATURAL_OFFSET) {
+    kind = 'road';
+  } else if (typeId < BUILDING_OFFSET) {
+    kind = 'natural';
+  } else if (typeId < WATERWAY_OFFSET) {
+    kind = 'building';
+  } else if (typeId < LANDUSE_OFFSET) {
+    kind = 'waterway';
+  } else if (typeId < AEROWAY_OFFSET) {
+    kind = 'landuse';
+  } else if (typeId < 700) {
+    kind = 'aeroway';
+  }
+
+  return {
+    typeId,
+    kind,
+    name: highwayTypes[typeId] ?? `type ${typeId}`,
+    zoomLevel: getZoomLevelByTypeId(typeId),
+    enclosed: isEnclosed(typeId),
+  };
 };
 
 export const getZoomLevelByTags = (tags: Record<string, string>) => {
@@ -183,6 +306,15 @@ export const getZoomLevelByTags = (tags: Record<string, string>) => {
   }
   if ('building' in tags) {
     return R.nano;
+  }
+  if ('waterway' in tags) {
+    return ResolutionByWaterwayType[tags.waterway] ?? R.UNKNOWN;
+  }
+  if ('landuse' in tags) {
+    return ResolutionByLanduseType[tags.landuse] ?? R.UNKNOWN;
+  }
+  if ('aeroway' in tags) {
+    return ResolutionByAerowayType[tags.aeroway] ?? R.UNKNOWN;
   }
   return R.UNKNOWN;
 };

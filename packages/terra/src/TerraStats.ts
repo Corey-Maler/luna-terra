@@ -11,6 +11,16 @@ export interface TerraTypeStats {
 
 export interface TerraRenderStats {
   zoom: number;
+  renderMode: 'world-float32' | 'camera-relative';
+  viewportCenter: { x: number; y: number };
+  renderAnchor: { x: number; y: number };
+  viewportPixels: { width: number; height: number };
+  visibleArea: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  };
   minLevel: number | null;
   maxLevel: number | null;
   visibleCollections: number;
@@ -27,6 +37,16 @@ export interface TerraRenderStats {
 
 export const emptyTerraRenderStats = (): TerraRenderStats => ({
   zoom: 0,
+  renderMode: 'world-float32',
+  viewportCenter: { x: 0, y: 0 },
+  renderAnchor: { x: 0, y: 0 },
+  viewportPixels: { width: 0, height: 0 },
+  visibleArea: {
+    minX: 0,
+    minY: 0,
+    maxX: 0,
+    maxY: 0,
+  },
   minLevel: null,
   maxLevel: null,
   visibleCollections: 0,

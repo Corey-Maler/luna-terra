@@ -4287,7 +4287,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "new (canvas: HTMLCanvasElement) => WebGLDrawBackend",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 126,
+        "sourceLine": 122,
         "sourceColumn": 3
       },
       {
@@ -4296,7 +4296,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "arc(v: V2, radius: number, startAngle?: number, endAngle?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 340,
+        "sourceLine": 389,
         "sourceColumn": 3
       },
       {
@@ -4305,7 +4305,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "beginPath() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 349,
+        "sourceLine": 398,
         "sourceColumn": 3
       },
       {
@@ -4314,7 +4314,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "fill() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 357,
+        "sourceLine": 406,
         "sourceColumn": 3
       },
       {
@@ -4323,7 +4323,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set fillStyle(color: string): void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 365,
+        "sourceLine": 414,
         "sourceColumn": 3
       },
       {
@@ -4332,7 +4332,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "fillText(text: string, p: V2, color?: string, fontSize?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 361,
+        "sourceLine": 410,
         "sourceColumn": 3
       },
       {
@@ -4341,7 +4341,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "finishRender() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 122,
+        "sourceLine": 118,
         "sourceColumn": 3
       },
       {
@@ -4350,7 +4350,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "lineTo(v: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 336,
+        "sourceLine": 385,
         "sourceColumn": 3
       },
       {
@@ -4359,7 +4359,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "moveTo(v: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 331,
+        "sourceLine": 380,
         "sourceColumn": 3
       },
       {
@@ -4368,7 +4368,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "p(points: number[]) => void",
         "docs": "Implements the 'p' method required by the LL interface",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 278,
+        "sourceLine": 327,
         "sourceColumn": 3
       },
       {
@@ -4377,7 +4377,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "p3(points: Float32Array, offsets: number[], sizes: number[], colors: string[], lineWidth?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 219,
+        "sourceLine": 215,
         "sourceColumn": 3
       },
       {
@@ -4386,7 +4386,25 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "p3Fill(points: Float32Array, triangles: Uint16Array, _color: string) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 249,
+        "sourceLine": 258,
+        "sourceColumn": 3
+      },
+      {
+        "name": "p3FillRelative",
+        "kind": "method",
+        "signature": "p3FillRelative(points: Float32Array, triangles: Uint16Array, color: string, anchor: V2) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGLBatch.ts",
+        "sourceLine": 284,
+        "sourceColumn": 3
+      },
+      {
+        "name": "p3Relative",
+        "kind": "method",
+        "signature": "p3Relative(points: Float32Array, offsets: number[], sizes: number[], colors: string[], lineWidth: number, anchor: V2) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGLBatch.ts",
+        "sourceLine": 245,
         "sourceColumn": 3
       },
       {
@@ -4404,7 +4422,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderGlowLine(points: Float32Array, parametric: Float32Array, options: GlowLineOptions) => void",
         "docs": "Render a glowing line using an SDF-based fragment shader.",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 414,
+        "sourceLine": 463,
         "sourceColumn": 3
       },
       {
@@ -4413,7 +4431,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderGridDots(viewArea: Rect2D, density?: number, gridColor?: string, subgridColor?: string, subgridOpacity?: number, dotSize?: number) => void",
         "docs": "Renders grid dots directly using a dedicated shader",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 382,
+        "sourceLine": 431,
         "sourceColumn": 3
       },
       {
@@ -4422,7 +4440,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderPoints(points: Float32Array, color: string, pointSize?: number) => void",
         "docs": "Renders an array of points using WebGL's GL_POINTS primitive",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 295,
+        "sourceLine": 344,
         "sourceColumn": 3
       },
       {
@@ -4431,7 +4449,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "resize(w: number, h: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 327,
+        "sourceLine": 376,
         "sourceColumn": 3
       },
       {
@@ -4440,7 +4458,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "stroke() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 353,
+        "sourceLine": 402,
         "sourceColumn": 3
       },
       {
@@ -4449,7 +4467,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set strokeStyle(color: string): void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 369,
+        "sourceLine": 418,
         "sourceColumn": 3
       },
       {
@@ -4458,7 +4476,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "updateViewMatrix(vm: M3) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 344,
+        "sourceLine": 393,
         "sourceColumn": 3
       }
     ]

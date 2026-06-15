@@ -112,11 +112,7 @@ export class WebGLDrawBackend {
     gl.bindVertexArray(this.vao);
 
     // Set the view matrix uniform once for the entire render
-    gl.uniformMatrix3fv(
-      this.viewMatrixLocation,
-      false,
-      this.viewMatrix.getFloatArray(),
-    );
+    this.applyViewMatrix(this.viewMatrix);
   }
 
   public finishRender() {
@@ -246,6 +242,19 @@ export class WebGLDrawBackend {
     }
   }
 
+  p3Relative(
+    points: Float32Array,
+    offsets: number[],
+    sizes: number[],
+    colors: string[],
+    lineWidth: number,
+    anchor: V2,
+  ) {
+    this.applyViewMatrix(this.relativeViewMatrix(anchor));
+    this.p3(this.rebasePoints(points, anchor), offsets, sizes, colors, lineWidth);
+    this.applyViewMatrix(this.viewMatrix);
+  }
+
   p3Fill(points: Float32Array, triangles: Uint16Array, _color: string) {
     const gl = this.gl;
 
@@ -270,6 +279,46 @@ export class WebGLDrawBackend {
 
     // Clean up
     gl.deleteBuffer(elementBuffer);
+  }
+
+  p3FillRelative(
+    points: Float32Array,
+    triangles: Uint16Array,
+    color: string,
+    anchor: V2,
+  ) {
+    this.applyViewMatrix(this.relativeViewMatrix(anchor));
+    this.p3Fill(this.rebasePoints(points, anchor), triangles, color);
+    this.applyViewMatrix(this.viewMatrix);
+  }
+
+  private rebasePoints(points: Float32Array, anchor: V2) {
+    const rebased = new Float32Array(points.length);
+    for (let i = 0; i < points.length; i += 2) {
+      rebased[i] = points[i] - anchor.x;
+      rebased[i + 1] = points[i + 1] - anchor.y;
+    }
+    return rebased;
+  }
+
+  private relativeViewMatrix(anchor: V2) {
+    const matrix = this.viewMatrix.copy();
+    const indexes = M3.indexes;
+    matrix.matrix[indexes.M20] +=
+      anchor.x * matrix.matrix[indexes.M00] +
+      anchor.y * matrix.matrix[indexes.M10];
+    matrix.matrix[indexes.M21] +=
+      anchor.x * matrix.matrix[indexes.M01] +
+      anchor.y * matrix.matrix[indexes.M11];
+    return matrix;
+  }
+
+  private applyViewMatrix(matrix: M3) {
+    this.gl.uniformMatrix3fv(
+      this.viewMatrixLocation,
+      false,
+      matrix.getFloatArray(),
+    );
   }
 
   /**
