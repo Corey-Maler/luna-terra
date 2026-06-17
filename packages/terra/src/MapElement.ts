@@ -79,13 +79,13 @@ export class MapElement extends LTElement {
       this.normalizeGlobeViewport(renderer);
     }
 
-    const queryArea = surface === 'globe'
+    const queryArea = surface !== 'plane'
       ? this.globeQueryArea()
       : renderer.visibleArea;
     const collections = this.lazyTreeRoot
       ?.getGeometryForArea(
         queryArea,
-        surface === 'globe' ? { maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL } : {},
+        surface !== 'plane' ? { maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL } : {},
       )
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
