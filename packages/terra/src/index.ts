@@ -12,6 +12,7 @@ export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
 export type { TerraRenderStats } from './TerraStats';
 export {
+  TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP,
   TERRA_GLOBE_AUTO_MAX_ZOOM,
   TERRA_GLOBE_MAX_TILE_LEVEL,
   TERRA_UNWRAP_FULL_ZOOM,

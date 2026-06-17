@@ -8,7 +8,11 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
-import { TERRA_GLOBE_MAX_TILE_LEVEL, terraUnwrapAmount } from './TerraMapRenderer';
+import {
+  TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP,
+  TERRA_GLOBE_MAX_TILE_LEVEL,
+  terraUnwrapAmount,
+} from './TerraMapRenderer';
 import type { TerraDebugTile, TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
@@ -164,7 +168,7 @@ export class MapElement extends LTElement {
     }
 
     const unwrap = this.unwrapAmount(renderer.zoom, surface);
-    if (unwrap > 0.85) {
+    if (unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP) {
       return undefined;
     }
 

@@ -19,6 +19,7 @@ export type TerraMapSurface = 'plane' | 'globe' | 'unwrap';
 export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
 export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
+export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 
 export function terraUnwrapAmount(zoom: number) {
   const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
@@ -60,7 +61,6 @@ const TERRAIN_COLORS = {
 };
 
 const MAP_SURFACE_Z = 1.01;
-const DEBUG_HEMISPHERE_CULL_MAX_UNWRAP = 0.85;
 const TANGENT_SURFACE_Z = MAP_SURFACE_Z;
 const TANGENT_CAMERA_ZOOM_SCALE = 12;
 const TANGENT_CAMERA_MIN_GAP = 0.0000001;
@@ -391,7 +391,7 @@ export class TerraMapRenderer {
     maxX: number,
     maxY: number,
   ) {
-    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
+    if (frame.surface === 'plane' || frame.unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP) {
       return true;
     }
     const centerX = (minX + maxX) / 2;
@@ -400,7 +400,7 @@ export class TerraMapRenderer {
   }
 
   private isLineVisibleOnSurface(frame: TerraMapRenderFrame, line: number[]) {
-    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
+    if (frame.surface === 'plane' || frame.unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP) {
       return true;
     }
     const midX = (line[0] + line[2]) / 2;
@@ -419,7 +419,7 @@ export class TerraMapRenderer {
     maxX: number,
     maxY: number,
   ) {
-    const subdivisions = frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP
+    const subdivisions = frame.surface === 'plane' || frame.unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP
       ? 1
       : SURFACE_DEBUG_TILE_SUBDIVISIONS;
     const points: number[] = [];
@@ -459,7 +459,7 @@ export class TerraMapRenderer {
     maxX: number,
     maxY: number,
   ) {
-    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
+    if (frame.surface === 'plane' || frame.unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP) {
       return true;
     }
     const centerX = (minX + maxX) / 2;
