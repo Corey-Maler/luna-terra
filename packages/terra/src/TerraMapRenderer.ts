@@ -26,6 +26,7 @@ type TerraMapRenderFrame = {
   surface: TerraMapSurface;
   unwrap: number;
   projectPoint: (x: number, y: number) => V3;
+  globeDepth: (x: number, y: number) => number;
 };
 
 const TERRAIN_COLORS = {
@@ -97,15 +98,6 @@ export class TerraMapRenderer {
       options.pitchDegrees ?? 0,
     );
 
-    if (frame.surface !== 'plane' && frame.unwrap <= SPHERE_DRAW_MAX_UNWRAP) {
-      renderer.webgl3d.drawTriangles(
-        this.globeSpherePoints(),
-        TERRAIN_COLORS.globe,
-        frame.camera,
-        frame.modelMatrix,
-      );
-    }
-
     if (options.debugTileFill) {
       this.renderTileFill(renderer, collections, frame);
     } else {
@@ -149,6 +141,7 @@ export class TerraMapRenderer {
         modelMatrix: M4.identity(),
         surface: mapMode,
         unwrap,
+        globeDepth: (x, y) => projector(x, y, 1).z,
         projectPoint: (x, y) => {
           const globe = projector(x, y, MAP_SURFACE_Z);
           const tangent = tangentProjector(x, y, TANGENT_SURFACE_Z);
@@ -165,6 +158,7 @@ export class TerraMapRenderer {
       modelMatrix: M4.identity(),
       surface: 'plane',
       unwrap: 1,
+      globeDepth: () => 1,
       projectPoint: (x, y) => new V3(x - anchorWorld.x, y - anchorWorld.y, 0),
     };
   }
@@ -346,6 +340,9 @@ export class TerraMapRenderer {
       const minY = xy.y * size;
       const maxX = minX + size;
       const maxY = minY + size;
+      if (!this.isTileVisibleOnSurface(frame, minX, minY, maxX, maxY)) {
+        continue;
+      }
 
       renderer.webgl3d.drawTriangles(
         this.tileRectTriangles(frame, minX, minY, maxX, maxY),
@@ -354,6 +351,34 @@ export class TerraMapRenderer {
         frame.modelMatrix,
       );
     }
+  }
+
+  private isTileVisibleOnSurface(
+    frame: TerraMapRenderFrame,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ) {
+    if (frame.surface === 'plane' || frame.unwrap > SPHERE_DRAW_MAX_UNWRAP) {
+      return true;
+    }
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    return frame.globeDepth(centerX, centerY) >= -0.03;
+  }
+
+  private isLineVisibleOnSurface(frame: TerraMapRenderFrame, line: number[]) {
+    if (frame.surface === 'plane' || frame.unwrap > SPHERE_DRAW_MAX_UNWRAP) {
+      return true;
+    }
+    const midX = (line[0] + line[2]) / 2;
+    const midY = (line[1] + line[3]) / 2;
+    return (
+      frame.globeDepth(line[0], line[1]) >= -0.03 ||
+      frame.globeDepth(line[2], line[3]) >= -0.03 ||
+      frame.globeDepth(midX, midY) >= -0.03
+    );
   }
 
   private tileRectTriangles(
@@ -394,8 +419,10 @@ export class TerraMapRenderer {
     hash ^= hash >>> 15;
     hash = Math.imul(hash, 0x846ca68b) >>> 0;
     hash ^= hash >>> 16;
-    const hue = hash % 360;
-    return `hsla(${hue}, 72%, 58%, 0.72)`;
+    const r = 64 + (hash & 0x7f);
+    const g = 64 + ((hash >>> 8) & 0x7f);
+    const b = 64 + ((hash >>> 16) & 0x7f);
+    return `rgba(${r}, ${g}, ${b}, 0.78)`;
   }
 
   private gridLevel(visibleSpan: number) {
@@ -427,6 +454,9 @@ export class TerraMapRenderer {
 
     let pointOffset = 0;
     for (const line of lines) {
+      if (!this.isLineVisibleOnSurface(frame, line)) {
+        continue;
+      }
       offsets.push(pointOffset);
       pointOffset = this.pushProjectedLine(points, pointOffset, frame, line);
       sizes.push(pointOffset - offsets[offsets.length - 1]);
