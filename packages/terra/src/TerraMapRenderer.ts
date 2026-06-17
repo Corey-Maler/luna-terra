@@ -12,16 +12,18 @@ export interface TerraMapRenderOptions {
 }
 
 export type TerraMapMode = 'auto' | 'plane' | 'globe';
-export type TerraMapSurface = 'plane' | 'globe';
+export type TerraMapSurface = 'plane' | 'globe' | 'unwrap';
 
-export const TERRA_GLOBE_AUTO_MAX_ZOOM = 64;
+export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
 export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
+export const TERRA_UNWRAP_FULL_ZOOM = 512;
 
 type TerraMapRenderFrame = {
   anchorWorld: { x: number; y: number };
   camera: Camera3D;
   modelMatrix: M4;
   surface: TerraMapSurface;
+  unwrap: number;
   projectPoint: (x: number, y: number) => V3;
 };
 
@@ -88,7 +90,7 @@ export class TerraMapRenderer {
       options.pitchDegrees ?? 0,
     );
 
-    if (frame.surface === 'globe') {
+    if (frame.surface !== 'plane') {
       renderer.webgl3d.drawTriangles(
         this.globeSpherePoints(),
         TERRAIN_COLORS.globe,
@@ -110,7 +112,7 @@ export class TerraMapRenderer {
 
   public resolveMapSurface(renderer: CanvasRenderer, mapMode: TerraMapMode): TerraMapSurface {
     if (mapMode === 'auto') {
-      return renderer.zoom <= TERRA_GLOBE_AUTO_MAX_ZOOM ? 'globe' : 'plane';
+      return renderer.zoom <= TERRA_GLOBE_AUTO_MAX_ZOOM ? 'globe' : 'unwrap';
     }
     return mapMode;
   }
@@ -126,14 +128,21 @@ export class TerraMapRenderer {
     const halfHeight = Math.abs(visibleArea.v2.y - visibleArea.v1.y) / 2;
     const pitchRadians = Math.max(0, Math.min(75, pitchDegrees)) * Math.PI / 180;
 
-    if (mapMode === 'globe') {
+    if (mapMode !== 'plane') {
+      const unwrap = mapMode === 'unwrap' ? this.unwrapAmount(renderer.zoom) : 0;
       const projector = this.globeProjector(anchorWorld.x, anchorWorld.y);
+      const tangentProjector = this.tangentProjector(anchorWorld.x, anchorWorld.y);
       return {
         anchorWorld,
-        camera: this.globeCamera(renderer),
+        camera: this.globeCamera(renderer, unwrap),
         modelMatrix: M4.identity(),
-        surface: 'globe',
-        projectPoint: (x, y) => projector(x, y, 1.003),
+        surface: mapMode,
+        unwrap,
+        projectPoint: (x, y) => {
+          const globe = projector(x, y, 1.003);
+          const tangent = tangentProjector(x, y, 1.003);
+          return this.lerpV3(globe, tangent, unwrap);
+        },
       };
     }
 
@@ -144,6 +153,7 @@ export class TerraMapRenderer {
         : this.pitchedCamera(halfWidth, halfHeight, renderer, pitchRadians),
       modelMatrix: M4.identity(),
       surface: 'plane',
+      unwrap: 1,
       projectPoint: (x, y) => new V3(x - anchorWorld.x, y - anchorWorld.y, 0),
     };
   }
@@ -191,10 +201,12 @@ export class TerraMapRenderer {
     });
   }
 
-  private globeCamera(renderer: CanvasRenderer) {
+  private globeCamera(renderer: CanvasRenderer, unwrap = 0) {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
     const normalizedZoom = Math.max(0, Math.log2(Math.max(renderer.zoom, 1)) / 12);
-    const distance = Math.max(1.45, 3.2 - normalizedZoom * 1.4);
+    const globeDistance = Math.max(1.45, 3.2 - normalizedZoom * 1.4);
+    const tangentDistance = 1.003 + Math.max(0.035, 0.7 / Math.sqrt(Math.max(renderer.zoom, 1)));
+    const distance = globeDistance + (tangentDistance - globeDistance) * unwrap;
 
     return new Camera3D({
       mode: 'perspective',
@@ -246,16 +258,16 @@ export class TerraMapRenderer {
     sourceBounds: TerraManifestBounds | null,
   ) {
     const visible = renderer.visibleArea;
-    const minX = frame.surface === 'globe'
+    const minX = frame.surface !== 'plane'
       ? 0
       : Math.max(0, Math.min(visible.v1.x, visible.v2.x));
-    const maxX = frame.surface === 'globe'
+    const maxX = frame.surface !== 'plane'
       ? 1
       : Math.min(1, Math.max(visible.v1.x, visible.v2.x));
-    const minY = frame.surface === 'globe'
+    const minY = frame.surface !== 'plane'
       ? 0
       : Math.max(0, Math.min(visible.v1.y, visible.v2.y));
-    const maxY = frame.surface === 'globe'
+    const maxY = frame.surface !== 'plane'
       ? 1
       : Math.min(1, Math.max(visible.v1.y, visible.v2.y));
 
@@ -357,7 +369,7 @@ export class TerraMapRenderer {
     line: number[],
     skipFirst = false,
   ) {
-    const subdivisions = frame.surface === 'globe'
+    const subdivisions = frame.surface !== 'plane'
       ? Math.max(1, Math.ceil(Math.max(Math.abs(line[2] - line[0]), Math.abs(line[3] - line[1])) / 0.01))
       : 1;
 
@@ -377,7 +389,7 @@ export class TerraMapRenderer {
   }
 
   private linePoints3D(group: OptimizedLines, frame: TerraMapRenderFrame) {
-    if (frame.surface === 'plane') {
+    if (frame.surface === 'plane' || frame.unwrap >= 0.999) {
       const points = new Float32Array((group.points.length / 2) * 3);
       for (let source = 0, target = 0; source < group.points.length; source += 2, target += 3) {
         const p = frame.projectPoint(group.points[source], group.points[source + 1]);
@@ -461,6 +473,37 @@ export class TerraMapRenderer {
         point.dot(forward) * radius,
       );
     };
+  }
+
+  private tangentProjector(centerX: number, centerY: number) {
+    const centerLat = this.worldYToLatRad(centerY);
+    const centerCosLat = Math.max(0.08, Math.cos(centerLat));
+
+    return (x: number, y: number, z: number) => {
+      const dx = this.wrapDelta(x - centerX) * Math.PI * 2 * centerCosLat;
+      const dy = this.worldYToLatRad(y) - centerLat;
+      return new V3(dx, dy, z);
+    };
+  }
+
+  private unwrapAmount(zoom: number) {
+    const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
+    const end = Math.log2(TERRA_UNWRAP_FULL_ZOOM);
+    const t = (Math.log2(Math.max(zoom, 1)) - start) / Math.max(1e-6, end - start);
+    const clamped = Math.max(0, Math.min(1, t));
+    return clamped * clamped * (3 - 2 * clamped);
+  }
+
+  private wrapDelta(delta: number) {
+    return delta - Math.round(delta);
+  }
+
+  private lerpV3(a: V3, b: V3, t: number) {
+    return new V3(
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t,
+      a.z + (b.z - a.z) * t,
+    );
   }
 
   private worldXToLonRad(x: number) {

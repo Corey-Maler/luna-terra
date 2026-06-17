@@ -75,7 +75,7 @@ export class MapElement extends LTElement {
 
   private renderGeometry(renderer: CanvasRenderer) {
     const surface = this.mapRenderer.resolveMapSurface(renderer, this.mapMode);
-    if (surface === 'globe') {
+    if (surface !== 'plane') {
       this.normalizeGlobeViewport(renderer);
     }
 
@@ -140,6 +140,8 @@ export class MapElement extends LTElement {
     stats.zoom = renderer.zoom;
     stats.renderMode = this.lastSurface === 'globe'
       ? 'core-3d-globe'
+      : this.lastSurface === 'unwrap'
+      ? 'core-3d-unwrap'
       : this.pitchDegrees > 0
       ? 'core-3d-pitched-plane'
       : this.mapRenderer.renderMode;

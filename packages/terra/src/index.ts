@@ -11,7 +11,11 @@ export type { MapElementOptions } from './MapElement';
 export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
 export type { TerraRenderStats } from './TerraStats';
-export { TERRA_GLOBE_AUTO_MAX_ZOOM, TERRA_GLOBE_MAX_TILE_LEVEL } from './TerraMapRenderer';
+export {
+  TERRA_GLOBE_AUTO_MAX_ZOOM,
+  TERRA_GLOBE_MAX_TILE_LEVEL,
+  TERRA_UNWRAP_FULL_ZOOM,
+} from './TerraMapRenderer';
 export type { TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 export { LegacyJsonTileClient, TerraTileStoreClient } from './TileClient';
 export type {
