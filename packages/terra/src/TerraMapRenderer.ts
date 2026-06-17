@@ -6,6 +6,7 @@ import type { TerraManifestBounds } from './TileClient';
 
 export interface TerraMapRenderOptions {
   debugGrid?: boolean;
+  debugTileFill?: boolean;
   mapMode?: TerraMapMode;
   pitchDegrees?: number;
   sourceBounds?: TerraManifestBounds | null;
@@ -105,8 +106,12 @@ export class TerraMapRenderer {
       );
     }
 
-    for (const collection of collections) {
-      this.renderCollection(renderer, collection, frame);
+    if (options.debugTileFill) {
+      this.renderTileFill(renderer, collections, frame);
+    } else {
+      for (const collection of collections) {
+        this.renderCollection(renderer, collection, frame);
+      }
     }
 
     if (options.debugGrid) {
@@ -323,6 +328,74 @@ export class TerraMapRenderer {
         2,
       );
     }
+  }
+
+  private renderTileFill(
+    renderer: CanvasRenderer,
+    collections: GeometryCollection[],
+    frame: TerraMapRenderFrame,
+  ) {
+    for (const collection of collections) {
+      if (!collection.source) {
+        continue;
+      }
+
+      const size = 1 / 2 ** collection.source.level;
+      const xy = this.tileXY(collection.source.index, collection.source.level);
+      const minX = xy.x * size;
+      const minY = xy.y * size;
+      const maxX = minX + size;
+      const maxY = minY + size;
+
+      renderer.webgl3d.drawTriangles(
+        this.tileRectTriangles(frame, minX, minY, maxX, maxY),
+        this.stableTileColor(collection.source.level, collection.source.index),
+        frame.camera,
+        frame.modelMatrix,
+      );
+    }
+  }
+
+  private tileRectTriangles(
+    frame: TerraMapRenderFrame,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ) {
+    const p0 = frame.projectPoint(minX, minY);
+    const p1 = frame.projectPoint(maxX, minY);
+    const p2 = frame.projectPoint(maxX, maxY);
+    const p3 = frame.projectPoint(minX, maxY);
+    return new Float32Array([
+      p0.x, p0.y, p0.z,
+      p1.x, p1.y, p1.z,
+      p2.x, p2.y, p2.z,
+      p0.x, p0.y, p0.z,
+      p2.x, p2.y, p2.z,
+      p3.x, p3.y, p3.z,
+    ]);
+  }
+
+  private tileXY(index: number, level: number) {
+    let x = 0;
+    let y = 0;
+    for (let bit = 0; bit < level; bit += 1) {
+      x += (Math.floor(index / 2 ** (bit * 2)) % 2) * 2 ** bit;
+      y += (Math.floor(index / 2 ** (bit * 2 + 1)) % 2) * 2 ** bit;
+    }
+    return { x, y };
+  }
+
+  private stableTileColor(level: number, index: number) {
+    let hash = (index ^ (level * 0x9e3779b1)) >>> 0;
+    hash ^= hash >>> 16;
+    hash = Math.imul(hash, 0x7feb352d) >>> 0;
+    hash ^= hash >>> 15;
+    hash = Math.imul(hash, 0x846ca68b) >>> 0;
+    hash ^= hash >>> 16;
+    const hue = hash % 360;
+    return `hsla(${hue}, 72%, 58%, 0.72)`;
   }
 
   private gridLevel(visibleSpan: number) {

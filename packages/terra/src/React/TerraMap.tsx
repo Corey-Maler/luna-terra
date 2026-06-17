@@ -13,6 +13,8 @@ export interface TerraMapProps {
   tileClient?: TerraTileClient;
   /** Show real Web Mercator world/tile/source debug grid. */
   debugGrid?: boolean;
+  /** Replace real geometry with stable-color selected tile rectangles. */
+  debugTileFill?: boolean;
   /** Map surface mode. Globe is experimental and intended for low zooms. */
   mapMode?: TerraMapMode;
   /** Optional projected source bounds from tileset manifest. */
@@ -32,6 +34,7 @@ export const TerraMap = ({
   tileBaseUrl,
   tileClient,
   debugGrid = false,
+  debugTileFill = false,
   mapMode = 'plane',
   sourceBounds = null,
   pitchDegrees = 0,
@@ -42,6 +45,7 @@ export const TerraMap = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapElementRef = useRef<MapElement | null>(null);
   const debugGridRef = useRef(debugGrid);
+  const debugTileFillRef = useRef(debugTileFill);
   const mapModeRef = useRef<TerraMapMode>(mapMode);
   const sourceBoundsRef = useRef(sourceBounds);
   const pitchDegreesRef = useRef(pitchDegrees);
@@ -51,6 +55,12 @@ export const TerraMap = ({
     mapElementRef.current?.setDebugGrid(debugGrid);
     engineRef.current?.requestUpdate();
   }, [debugGrid]);
+
+  useEffect(() => {
+    debugTileFillRef.current = debugTileFill;
+    mapElementRef.current?.setDebugTileFill(debugTileFill);
+    engineRef.current?.requestUpdate();
+  }, [debugTileFill]);
 
   useEffect(() => {
     mapModeRef.current = mapMode;
@@ -82,6 +92,7 @@ export const TerraMap = ({
           onStats,
           tileClient,
           debugGrid: debugGridRef.current,
+          debugTileFill: debugTileFillRef.current,
           mapMode: mapModeRef.current,
           pitchDegrees: pitchDegreesRef.current,
           sourceBounds: sourceBoundsRef.current,

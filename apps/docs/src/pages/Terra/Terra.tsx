@@ -96,6 +96,7 @@ export default function Terra() {
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
   const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
   const [debugGrid, setDebugGrid] = useState(false);
+  const [debugTileFill, setDebugTileFill] = useState(false);
   const [mapMode, setMapMode] = useState<TerraMapMode>('auto');
   const [pitchDegrees, setPitchDegrees] = useState(0);
 
@@ -211,6 +212,7 @@ export default function Terra() {
           <TerraMap
             tileClient={tileClient}
             debugGrid={debugGrid}
+            debugTileFill={debugTileFill}
             mapMode={mapMode}
             pitchDegrees={pitchDegrees}
             sourceBounds={sourceBounds}
@@ -292,6 +294,21 @@ export default function Terra() {
               onChange={(event) => setDebugGrid(event.currentTarget.checked)}
             />
             Map grid
+          </label>
+          <label
+            style={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              gap: 6,
+              minHeight: 32,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={debugTileFill}
+              onChange={(event) => setDebugTileFill(event.currentTarget.checked)}
+            />
+            Tile fill
           </label>
           <span
             style={{

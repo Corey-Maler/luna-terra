@@ -16,6 +16,7 @@ export interface MapElementOptions {
   onStats?: (stats: TerraRenderStats) => void;
   tileClient?: TerraTileClient;
   debugGrid?: boolean;
+  debugTileFill?: boolean;
   mapMode?: TerraMapMode;
   sourceBounds?: TerraManifestBounds | null;
   pitchDegrees?: number;
@@ -27,6 +28,7 @@ export class MapElement extends LTElement {
   private readonly onStats?: (stats: TerraRenderStats) => void;
   private readonly mapRenderer = new TerraMapRenderer();
   private debugGrid = false;
+  private debugTileFill = false;
   private mapMode: TerraMapMode = 'plane';
   private lastSurface: TerraMapSurface = 'plane';
   private sourceBounds: TerraManifestBounds | null = null;
@@ -38,6 +40,7 @@ export class MapElement extends LTElement {
     this.commutator = new CommutatorClient(options.tileClient ?? tileBaseUrl);
     this.onStats = options.onStats;
     this.debugGrid = options.debugGrid ?? false;
+    this.debugTileFill = options.debugTileFill ?? false;
     this.mapMode = options.mapMode ?? 'plane';
     this.sourceBounds = options.sourceBounds ?? null;
     this.pitchDegrees = options.pitchDegrees ?? 0;
@@ -45,6 +48,10 @@ export class MapElement extends LTElement {
 
   public setDebugGrid(enabled: boolean) {
     this.debugGrid = enabled;
+  }
+
+  public setDebugTileFill(enabled: boolean) {
+    this.debugTileFill = enabled;
   }
 
   public setMapMode(mapMode: TerraMapMode) {
@@ -94,6 +101,7 @@ export class MapElement extends LTElement {
 
     this.lastSurface = this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
+      debugTileFill: this.debugTileFill,
       mapMode: this.mapMode,
       pitchDegrees: this.pitchDegrees,
       sourceBounds: this.sourceBounds,
