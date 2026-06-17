@@ -9,7 +9,7 @@ import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } fro
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
 import { TERRA_GLOBE_MAX_TILE_LEVEL } from './TerraMapRenderer';
-import type { TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
+import type { TerraDebugTile, TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
 export interface MapElementOptions {
@@ -101,6 +101,7 @@ export class MapElement extends LTElement {
 
     this.lastSurface = this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
+      debugTiles: this.debugTileFill ? this.debugTilesForSurface(renderer, surface) : undefined,
       debugTileFill: this.debugTileFill,
       mapMode: this.mapMode,
       pitchDegrees: this.pitchDegrees,
@@ -152,6 +153,87 @@ export class MapElement extends LTElement {
     }
 
     renderer.moveViewportTo(new V2(wrappedX, clampedY));
+  }
+
+  private debugTilesForSurface(
+    renderer: CanvasRenderer,
+    surface: TerraMapSurface,
+  ): TerraDebugTile[] | undefined {
+    if (surface !== 'globe') {
+      return undefined;
+    }
+
+    const center = renderer.viewportCenter;
+    const centerVector = this.worldToSphere(center.x, center.y);
+    const tiles: TerraDebugTile[] = [];
+
+    const visit = (x: number, y: number, level: number) => {
+      const tileSize = 1 / 2 ** level;
+      const centerX = (x + 0.5) * tileSize;
+      const centerY = (y + 0.5) * tileSize;
+      const depth = this.sphereDot(this.worldToSphere(centerX, centerY), centerVector);
+      const targetLevel = this.globeDebugTileLevel(depth);
+
+      if (level >= targetLevel) {
+        tiles.push({
+          level,
+          index: this.tileIndexFromXY(x, y, level),
+          minX: x * tileSize,
+          minY: y * tileSize,
+          maxX: (x + 1) * tileSize,
+          maxY: (y + 1) * tileSize,
+        });
+        return;
+      }
+
+      const nextLevel = level + 1;
+      const nextX = x * 2;
+      const nextY = y * 2;
+      visit(nextX, nextY, nextLevel);
+      visit(nextX + 1, nextY, nextLevel);
+      visit(nextX, nextY + 1, nextLevel);
+      visit(nextX + 1, nextY + 1, nextLevel);
+    };
+
+    visit(0, 0, 0);
+    return tiles;
+  }
+
+  private globeDebugTileLevel(depth: number) {
+    if (depth > 0.72) {
+      return TERRA_GLOBE_MAX_TILE_LEVEL;
+    }
+    if (depth > 0.42) {
+      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 1);
+    }
+    if (depth > 0.12) {
+      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 2);
+    }
+    return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 3);
+  }
+
+  private tileIndexFromXY(x: number, y: number, level: number) {
+    let index = 0;
+    for (let bit = 0; bit < level; bit += 1) {
+      index += (Math.floor(x / 2 ** bit) % 2) * 2 ** (bit * 2);
+      index += (Math.floor(y / 2 ** bit) % 2) * 2 ** (bit * 2 + 1);
+    }
+    return index;
+  }
+
+  private worldToSphere(x: number, y: number) {
+    const lon = (((x % 1) + 1) % 1) * Math.PI * 2 - Math.PI;
+    const lat = Math.atan(Math.sinh(Math.PI * (2 * Math.max(0, Math.min(1, y)) - 1)));
+    const cosLat = Math.cos(lat);
+    return {
+      x: cosLat * Math.cos(lon),
+      y: Math.sin(lat),
+      z: cosLat * Math.sin(lon),
+    };
+  }
+
+  private sphereDot(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
   }
 
   private reportStats(renderer: CanvasRenderer, collections: GeometryCollection[]) {

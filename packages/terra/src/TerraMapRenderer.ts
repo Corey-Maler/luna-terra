@@ -6,6 +6,7 @@ import type { TerraManifestBounds } from './TileClient';
 
 export interface TerraMapRenderOptions {
   debugGrid?: boolean;
+  debugTiles?: TerraDebugTile[];
   debugTileFill?: boolean;
   mapMode?: TerraMapMode;
   pitchDegrees?: number;
@@ -18,6 +19,15 @@ export type TerraMapSurface = 'plane' | 'globe' | 'unwrap';
 export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
 export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
+
+export interface TerraDebugTile {
+  level: number;
+  index: number;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
 
 type TerraMapRenderFrame = {
   anchorWorld: { x: number; y: number };
@@ -99,7 +109,7 @@ export class TerraMapRenderer {
     );
 
     if (options.debugTileFill) {
-      this.renderTileFill(renderer, collections, frame);
+      this.renderTileFill(renderer, collections, frame, options.debugTiles);
     } else {
       for (const collection of collections) {
         this.renderCollection(renderer, collection, frame);
@@ -328,25 +338,32 @@ export class TerraMapRenderer {
     renderer: CanvasRenderer,
     collections: GeometryCollection[],
     frame: TerraMapRenderFrame,
+    debugTiles?: TerraDebugTile[],
   ) {
-    for (const collection of collections) {
+    const tiles = debugTiles ?? collections.flatMap((collection): TerraDebugTile[] => {
       if (!collection.source) {
-        continue;
+        return [];
       }
-
       const size = 1 / 2 ** collection.source.level;
       const xy = this.tileXY(collection.source.index, collection.source.level);
-      const minX = xy.x * size;
-      const minY = xy.y * size;
-      const maxX = minX + size;
-      const maxY = minY + size;
-      if (!this.isTileVisibleOnSurface(frame, minX, minY, maxX, maxY)) {
+      return [{
+        level: collection.source.level,
+        index: collection.source.index,
+        minX: xy.x * size,
+        minY: xy.y * size,
+        maxX: (xy.x + 1) * size,
+        maxY: (xy.y + 1) * size,
+      }];
+    });
+
+    for (const tile of tiles) {
+      if (!this.isTileVisibleOnSurface(frame, tile.minX, tile.minY, tile.maxX, tile.maxY)) {
         continue;
       }
 
       renderer.webgl3d.drawTriangles(
-        this.tileRectTriangles(frame, minX, minY, maxX, maxY),
-        this.stableTileColor(collection.source.level, collection.source.index),
+        this.tileRectTriangles(frame, tile.minX, tile.minY, tile.maxX, tile.maxY),
+        this.stableTileColor(tile.level, tile.index),
         frame.camera,
         frame.modelMatrix,
       );
