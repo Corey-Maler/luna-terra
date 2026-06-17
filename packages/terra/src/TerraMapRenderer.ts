@@ -41,7 +41,7 @@ const TERRAIN_COLORS = {
 
 const TANGENT_SURFACE_Z = 1.003;
 const TANGENT_CAMERA_ZOOM_SCALE = 12;
-const TANGENT_CAMERA_MIN_GAP = 0.0008;
+const TANGENT_CAMERA_MIN_GAP = 0.0000001;
 
 const roadLodColors = [
   '#333333', '#444444', '#555555', '#666666', '#777777',
@@ -221,7 +221,7 @@ export class TerraMapRenderer {
       up: new V3(0, 1, 0),
       fovYRadians: Math.PI / 4,
       aspect,
-      near: 0.0001,
+      near: 0.00000001,
       far: 10,
     });
   }

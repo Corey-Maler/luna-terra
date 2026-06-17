@@ -79,13 +79,15 @@ export class MapElement extends LTElement {
       this.normalizeGlobeViewport(renderer);
     }
 
-    const queryArea = surface !== 'plane'
+    const queryArea = surface === 'globe'
       ? this.globeQueryArea()
+      : surface === 'unwrap'
+      ? this.unwrapQueryArea(renderer)
       : renderer.visibleArea;
     const collections = this.lazyTreeRoot
       ?.getGeometryForArea(
         queryArea,
-        surface !== 'plane' ? { maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL } : {},
+        surface === 'globe' ? { maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL } : {},
       )
       .filter((el, ind, original) => original.indexOf(el) === ind)
       .filter((geometry): geometry is GeometryCollection => geometry !== undefined) ?? [];
@@ -109,6 +111,27 @@ export class MapElement extends LTElement {
     }
 
     return new Rect2D(new V2(0, 0), new V2(1, 1));
+  }
+
+  private unwrapQueryArea(renderer: CanvasRenderer) {
+    const visible = renderer.visibleArea;
+    const minX = Math.min(visible.v1.x, visible.v2.x);
+    const maxX = Math.max(visible.v1.x, visible.v2.x);
+    const minY = Math.min(visible.v1.y, visible.v2.y);
+    const maxY = Math.max(visible.v1.y, visible.v2.y);
+    const marginX = Math.max((maxX - minX) * 1.5, 1e-6);
+    const marginY = Math.max((maxY - minY) * 1.5, 1e-6);
+
+    return new Rect2D(
+      new V2(
+        Math.max(0, minX - marginX),
+        Math.max(0, minY - marginY),
+      ),
+      new V2(
+        Math.min(1, maxX + marginX),
+        Math.min(1, maxY + marginY),
+      ),
+    );
   }
 
   private normalizeGlobeViewport(renderer: CanvasRenderer) {
