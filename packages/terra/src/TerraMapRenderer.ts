@@ -39,6 +39,10 @@ const TERRAIN_COLORS = {
   globe: '#f4f6f4',
 };
 
+const TANGENT_SURFACE_Z = 1.003;
+const TANGENT_CAMERA_ZOOM_SCALE = 12;
+const TANGENT_CAMERA_MIN_GAP = 0.0008;
+
 const roadLodColors = [
   '#333333', '#444444', '#555555', '#666666', '#777777',
   '#888888', '#999999', '#aaaaaa', '#bbbbbb',
@@ -140,7 +144,7 @@ export class TerraMapRenderer {
         unwrap,
         projectPoint: (x, y) => {
           const globe = projector(x, y, 1.003);
-          const tangent = tangentProjector(x, y, 1.003);
+          const tangent = tangentProjector(x, y, TANGENT_SURFACE_Z);
           return this.lerpV3(globe, tangent, unwrap);
         },
       };
@@ -205,7 +209,9 @@ export class TerraMapRenderer {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
     const normalizedZoom = Math.max(0, Math.log2(Math.max(renderer.zoom, 1)) / 12);
     const globeDistance = Math.max(1.45, 3.2 - normalizedZoom * 1.4);
-    const tangentDistance = 1.003 + Math.max(0.035, 0.7 / Math.sqrt(Math.max(renderer.zoom, 1)));
+    const tangentDistance =
+      TANGENT_SURFACE_Z +
+      Math.max(TANGENT_CAMERA_MIN_GAP, TANGENT_CAMERA_ZOOM_SCALE / Math.max(renderer.zoom, 1));
     const distance = globeDistance + (tangentDistance - globeDistance) * unwrap;
 
     return new Camera3D({
@@ -215,7 +221,7 @@ export class TerraMapRenderer {
       up: new V3(0, 1, 0),
       fovYRadians: Math.PI / 4,
       aspect,
-      near: 0.01,
+      near: 0.0001,
       far: 10,
     });
   }
