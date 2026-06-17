@@ -60,10 +60,11 @@ const TERRAIN_COLORS = {
 };
 
 const MAP_SURFACE_Z = 1.01;
-const SPHERE_DRAW_MAX_UNWRAP = 0.08;
+const DEBUG_HEMISPHERE_CULL_MAX_UNWRAP = 0.85;
 const TANGENT_SURFACE_Z = MAP_SURFACE_Z;
 const TANGENT_CAMERA_ZOOM_SCALE = 12;
 const TANGENT_CAMERA_MIN_GAP = 0.0000001;
+const SURFACE_DEBUG_TILE_SUBDIVISIONS = 4;
 
 const roadLodColors = [
   '#333333', '#444444', '#555555', '#666666', '#777777',
@@ -369,8 +370,13 @@ export class TerraMapRenderer {
         continue;
       }
 
+      const points = this.tileRectTriangles(frame, tile.minX, tile.minY, tile.maxX, tile.maxY);
+      if (points.length === 0) {
+        continue;
+      }
+
       renderer.webgl3d.drawTriangles(
-        this.tileRectTriangles(frame, tile.minX, tile.minY, tile.maxX, tile.maxY),
+        points,
         this.stableTileColor(tile.level, tile.index),
         frame.camera,
         frame.modelMatrix,
@@ -385,7 +391,7 @@ export class TerraMapRenderer {
     maxX: number,
     maxY: number,
   ) {
-    if (frame.surface === 'plane' || frame.unwrap > SPHERE_DRAW_MAX_UNWRAP) {
+    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
       return true;
     }
     const centerX = (minX + maxX) / 2;
@@ -394,7 +400,7 @@ export class TerraMapRenderer {
   }
 
   private isLineVisibleOnSurface(frame: TerraMapRenderFrame, line: number[]) {
-    if (frame.surface === 'plane' || frame.unwrap > SPHERE_DRAW_MAX_UNWRAP) {
+    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
       return true;
     }
     const midX = (line[0] + line[2]) / 2;
@@ -413,18 +419,52 @@ export class TerraMapRenderer {
     maxX: number,
     maxY: number,
   ) {
-    const p0 = frame.projectPoint(minX, minY);
-    const p1 = frame.projectPoint(maxX, minY);
-    const p2 = frame.projectPoint(maxX, maxY);
-    const p3 = frame.projectPoint(minX, maxY);
-    return new Float32Array([
-      p0.x, p0.y, p0.z,
-      p1.x, p1.y, p1.z,
-      p2.x, p2.y, p2.z,
-      p0.x, p0.y, p0.z,
-      p2.x, p2.y, p2.z,
-      p3.x, p3.y, p3.z,
-    ]);
+    const subdivisions = frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP
+      ? 1
+      : SURFACE_DEBUG_TILE_SUBDIVISIONS;
+    const points: number[] = [];
+
+    for (let y = 0; y < subdivisions; y += 1) {
+      const y0 = minY + (maxY - minY) * (y / subdivisions);
+      const y1 = minY + (maxY - minY) * ((y + 1) / subdivisions);
+      for (let x = 0; x < subdivisions; x += 1) {
+        const x0 = minX + (maxX - minX) * (x / subdivisions);
+        const x1 = minX + (maxX - minX) * ((x + 1) / subdivisions);
+        if (!this.isTileCellVisibleOnSurface(frame, x0, y0, x1, y1)) {
+          continue;
+        }
+
+        const p0 = frame.projectPoint(x0, y0);
+        const p1 = frame.projectPoint(x1, y0);
+        const p2 = frame.projectPoint(x1, y1);
+        const p3 = frame.projectPoint(x0, y1);
+        points.push(
+          p0.x, p0.y, p0.z,
+          p1.x, p1.y, p1.z,
+          p2.x, p2.y, p2.z,
+          p0.x, p0.y, p0.z,
+          p2.x, p2.y, p2.z,
+          p3.x, p3.y, p3.z,
+        );
+      }
+    }
+
+    return new Float32Array(points);
+  }
+
+  private isTileCellVisibleOnSurface(
+    frame: TerraMapRenderFrame,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number,
+  ) {
+    if (frame.surface === 'plane' || frame.unwrap > DEBUG_HEMISPHERE_CULL_MAX_UNWRAP) {
+      return true;
+    }
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    return frame.globeDepth(centerX, centerY) > 0.005;
   }
 
   private tileXY(index: number, level: number) {
