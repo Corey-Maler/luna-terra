@@ -39,7 +39,9 @@ const TERRAIN_COLORS = {
   globe: '#f4f6f4',
 };
 
-const TANGENT_SURFACE_Z = 1.003;
+const MAP_SURFACE_Z = 1.01;
+const SPHERE_DRAW_MAX_UNWRAP = 0.08;
+const TANGENT_SURFACE_Z = MAP_SURFACE_Z;
 const TANGENT_CAMERA_ZOOM_SCALE = 12;
 const TANGENT_CAMERA_MIN_GAP = 0.0000001;
 
@@ -94,7 +96,7 @@ export class TerraMapRenderer {
       options.pitchDegrees ?? 0,
     );
 
-    if (frame.surface !== 'plane') {
+    if (frame.surface !== 'plane' && frame.unwrap <= SPHERE_DRAW_MAX_UNWRAP) {
       renderer.webgl3d.drawTriangles(
         this.globeSpherePoints(),
         TERRAIN_COLORS.globe,
@@ -143,7 +145,7 @@ export class TerraMapRenderer {
         surface: mapMode,
         unwrap,
         projectPoint: (x, y) => {
-          const globe = projector(x, y, 1.003);
+          const globe = projector(x, y, MAP_SURFACE_Z);
           const tangent = tangentProjector(x, y, TANGENT_SURFACE_Z);
           return this.lerpV3(globe, tangent, unwrap);
         },
