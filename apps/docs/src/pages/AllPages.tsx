@@ -323,6 +323,11 @@ export const RouteDefinitions: SectionDefinition[] = [
         tag: 'overview',
         Element: lazy(() => import('./Terra/Terra')),
       },
+      {
+        title: 'Surface Model',
+        tag: 'surface-model',
+        Element: lazy(() => import('./Terra/SurfaceModel')),
+      },
     ],
   },
 ];

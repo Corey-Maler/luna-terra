@@ -10,6 +10,23 @@ export { MapElement } from './MapElement';
 export type { MapElementOptions } from './MapElement';
 export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
+export {
+  TerraSurfaceModel,
+  clamp01,
+  latitudeRadiansToWorldV,
+  longitudeRadiansToWorldU,
+  worldUToLongitudeRadians,
+  worldVToLatitudeRadians,
+  wrap01,
+  wrapDelta,
+} from './TerraSurfaceModel';
+export type {
+  TerraSurfaceOptions,
+  TerraSurfaceSample,
+  TerraSurfaceTileBounds,
+  TerraSurfaceTileEvaluation,
+  TerraSurfaceTileEvaluateOptions,
+} from './TerraSurfaceModel';
 export type { TerraRenderStats } from './TerraStats';
 export {
   TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP,
