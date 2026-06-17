@@ -15,6 +15,7 @@ export {
   TERRA_GLOBE_AUTO_MAX_ZOOM,
   TERRA_GLOBE_MAX_TILE_LEVEL,
   TERRA_UNWRAP_FULL_ZOOM,
+  terraUnwrapAmount,
 } from './TerraMapRenderer';
 export type { TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 export { LegacyJsonTileClient, TerraTileStoreClient } from './TileClient';

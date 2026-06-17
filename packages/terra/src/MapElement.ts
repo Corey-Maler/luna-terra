@@ -8,7 +8,7 @@ import { GeometryCollection } from './GeometryCollection';
 import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
-import { TERRA_GLOBE_MAX_TILE_LEVEL } from './TerraMapRenderer';
+import { TERRA_GLOBE_MAX_TILE_LEVEL, terraUnwrapAmount } from './TerraMapRenderer';
 import type { TerraDebugTile, TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
 import type { TerraManifestBounds } from './TileClient';
 
@@ -159,7 +159,12 @@ export class MapElement extends LTElement {
     renderer: CanvasRenderer,
     surface: TerraMapSurface,
   ): TerraDebugTile[] | undefined {
-    if (surface !== 'globe') {
+    if (surface === 'plane') {
+      return undefined;
+    }
+
+    const unwrap = this.unwrapAmount(renderer.zoom, surface);
+    if (unwrap > 0.85) {
       return undefined;
     }
 
@@ -172,7 +177,7 @@ export class MapElement extends LTElement {
       const centerX = (x + 0.5) * tileSize;
       const centerY = (y + 0.5) * tileSize;
       const depth = this.sphereDot(this.worldToSphere(centerX, centerY), centerVector);
-      const targetLevel = this.globeDebugTileLevel(depth);
+      const targetLevel = this.globeDebugTileLevel(depth, unwrap);
 
       if (level >= targetLevel) {
         tiles.push({
@@ -199,17 +204,25 @@ export class MapElement extends LTElement {
     return tiles;
   }
 
-  private globeDebugTileLevel(depth: number) {
+  private globeDebugTileLevel(depth: number, unwrap: number) {
+    const unwrapBoost = Math.floor(unwrap * 2);
     if (depth > 0.72) {
-      return TERRA_GLOBE_MAX_TILE_LEVEL;
+      return TERRA_GLOBE_MAX_TILE_LEVEL + unwrapBoost;
     }
     if (depth > 0.42) {
-      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 1);
+      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 1 + unwrapBoost);
     }
     if (depth > 0.12) {
-      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 2);
+      return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 2 + unwrapBoost);
     }
-    return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 3);
+    return Math.max(0, TERRA_GLOBE_MAX_TILE_LEVEL - 3 + unwrapBoost);
+  }
+
+  private unwrapAmount(zoom: number, surface: TerraMapSurface) {
+    if (surface === 'globe') {
+      return 0;
+    }
+    return terraUnwrapAmount(zoom);
   }
 
   private tileIndexFromXY(x: number, y: number, level: number) {

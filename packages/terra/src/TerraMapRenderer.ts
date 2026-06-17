@@ -20,6 +20,14 @@ export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
 export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
 
+export function terraUnwrapAmount(zoom: number) {
+  const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
+  const end = Math.log2(TERRA_UNWRAP_FULL_ZOOM);
+  const t = (Math.log2(Math.max(zoom, 1)) - start) / Math.max(1e-6, end - start);
+  const clamped = Math.max(0, Math.min(1, t));
+  return clamped * clamped * (3 - 2 * clamped);
+}
+
 export interface TerraDebugTile {
   level: number;
   index: number;
@@ -615,11 +623,7 @@ export class TerraMapRenderer {
   }
 
   private unwrapAmount(zoom: number) {
-    const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
-    const end = Math.log2(TERRA_UNWRAP_FULL_ZOOM);
-    const t = (Math.log2(Math.max(zoom, 1)) - start) / Math.max(1e-6, end - start);
-    const clamped = Math.max(0, Math.min(1, t));
-    return clamped * clamped * (3 - 2 * clamped);
+    return terraUnwrapAmount(zoom);
   }
 
   private wrapDelta(delta: number) {
