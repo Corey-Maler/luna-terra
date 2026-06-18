@@ -7,6 +7,7 @@ import {
   worldUToLongitudeRadians,
   worldVToLatitudeRadians,
   wrap01,
+  wrapRadians,
 } from './TerraSurfaceModel';
 
 export interface TerraGeoPoint {
@@ -182,9 +183,9 @@ export class TerraGlobeLocalFrame {
       includeProjectedPoint(local);
     }
 
-    if (containsTarget) {
+    if (frontFacingSamples > 0 || containsTarget) {
       frontFacingSamples = Math.max(frontFacingSamples, 1);
-      for (const local of this.targetTileFootprint(tile)) {
+      for (const local of this.tileTangentFootprint(tile)) {
         includeProjectedPoint(local);
       }
     }
@@ -230,20 +231,33 @@ export class TerraGlobeLocalFrame {
     return containsU && containsV;
   }
 
-  private targetTileFootprint(tile: TerraGlobeTile) {
+  private tileTangentFootprint(tile: TerraGlobeTile) {
     const longitudeSpan = Math.max(0, tile.maxU - tile.minU) * Math.PI * 2;
     const minLatitude = worldVToLatitudeRadians(tile.minV);
     const maxLatitude = worldVToLatitudeRadians(tile.maxV);
     const latitudeSpan = Math.abs(maxLatitude - minLatitude);
+    const referenceU = Math.max(tile.minU, Math.min(tile.maxU, this.targetU));
+    const referenceV = Math.max(tile.minV, Math.min(tile.maxV, this.targetV));
+    const referenceLongitude = referenceU * Math.PI * 2 - Math.PI;
+    const referenceLatitude = worldVToLatitudeRadians(referenceV);
+    const centerX =
+      wrapRadians(referenceLongitude - this.longitudeRadians) *
+      Math.max(0.08, Math.cos(this.latitudeRadians)) *
+      this.radius;
+    const centerY = (referenceLatitude - this.latitudeRadians) * this.radius;
     const longitudeWidth = longitudeSpan * Math.max(0.08, Math.cos(this.latitudeRadians));
     const halfWidth = longitudeWidth * this.radius / 2;
     const halfHeight = latitudeSpan * this.radius / 2;
     return [
-      new V3(0, 0, 0),
-      new V3(-halfWidth, 0, 0),
-      new V3(halfWidth, 0, 0),
-      new V3(0, -halfHeight, 0),
-      new V3(0, halfHeight, 0),
+      new V3(centerX, centerY, 0),
+      new V3(centerX - halfWidth, centerY - halfHeight, 0),
+      new V3(centerX + halfWidth, centerY - halfHeight, 0),
+      new V3(centerX + halfWidth, centerY + halfHeight, 0),
+      new V3(centerX - halfWidth, centerY + halfHeight, 0),
+      new V3(centerX - halfWidth, centerY, 0),
+      new V3(centerX + halfWidth, centerY, 0),
+      new V3(centerX, centerY - halfHeight, 0),
+      new V3(centerX, centerY + halfHeight, 0),
     ];
   }
 
