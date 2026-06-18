@@ -91,6 +91,7 @@ class GlobeLocalFrameScene extends LTElement {
       viewState.latitude,
     );
     const view = this.view(renderer, viewState.zoom);
+    const targetLevel = stableTargetLevelForView(renderer, view, this.config.maxLevel, 256);
     const selection = frame.selectTiles({
       camera: view.camera,
       viewportWidth: renderer.width,
@@ -98,6 +99,7 @@ class GlobeLocalFrameScene extends LTElement {
       targetPixels: 256,
       samplesPerEdge: 5,
       maxLevel: this.config.maxLevel,
+      targetLevel,
       modelMatrix: view.modelMatrix,
     });
     this.latestSelection = selection;
@@ -159,6 +161,7 @@ class GlobeLocalFrameScene extends LTElement {
     return {
       camera,
       modelMatrix: M4.identity().scale(renderScale, renderScale, renderScale),
+      distance,
       renderScale,
     };
   }
@@ -598,6 +601,21 @@ function projectWorld(frame: TerraGlobeLocalFrame, u: number, v: number) {
 
 function longitudeDegreesToWorldU(longitudeDegrees: number) {
   return ((longitudeDegrees + 180) / 360 % 1 + 1) % 1;
+}
+
+function stableTargetLevelForView(
+  renderer: CanvasRenderer,
+  view: { distance: number; renderScale: number },
+  maxLevel: number,
+  targetPixels: number,
+) {
+  const pixelsPerLocalUnit =
+    renderer.height / (2 * Math.tan(Math.PI / 8) * view.distance) *
+    view.renderScale;
+  const rootPixels = Math.PI * 2 * pixelsPerLocalUnit;
+  const threshold = targetPixels * 2;
+  const level = Math.ceil(Math.log2(Math.max(1, rootPixels / threshold)));
+  return Math.max(0, Math.min(maxLevel, level));
 }
 
 function stableTileColor(tile: TerraGlobeTile) {

@@ -51,6 +51,7 @@ export interface TerraGlobeTileEvaluateOptions {
 
 export interface TerraGlobeTileSelectionOptions extends TerraGlobeTileEvaluateOptions {
   maxLevel?: number;
+  targetLevel?: number;
 }
 
 export interface TerraGlobeTileSelection {
@@ -287,7 +288,13 @@ export class TerraGlobeLocalFrame {
 
   public selectTiles(options: TerraGlobeTileSelectionOptions): TerraGlobeTileSelection {
     const maxLevel = options.maxLevel ?? 8;
-    const targetLevel = this.targetLevelForView(options, maxLevel);
+    const targetLevel = Math.max(
+      0,
+      Math.min(
+        maxLevel,
+        Math.floor(options.targetLevel ?? this.targetLevelForView(options, maxLevel)),
+      ),
+    );
     const tiles: TerraGlobeTile[] = [];
     let visited = 0;
     let hidden = 0;
