@@ -42,10 +42,10 @@ class TerraSurfaceScene extends LTElement {
 
   override render(renderer: CanvasRenderer) {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const distance = Math.max(1.35, 4.2 / this.config.zoom);
+    const distance = Math.max(1.05, 4.2 / this.config.zoom);
     const camera = new Camera3D({
       mode: 'perspective',
-      eye: new V3(0, 0.18, distance),
+      eye: new V3(0, 0, distance),
       target: new V3(0, 0, 0),
       up: new V3(0, 1, 0),
       fovYRadians: Math.PI / 4,
