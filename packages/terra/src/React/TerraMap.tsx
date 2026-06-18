@@ -19,6 +19,8 @@ export interface TerraMapProps {
   mapMode?: TerraMapMode;
   /** Optional projected source bounds from tileset manifest. */
   sourceBounds?: TerraManifestBounds | null;
+  /** Optional maximum tile level from the tileset manifest. */
+  maxTileLevel?: number | null;
   /** Pitch the flat map plane in degrees. 0 keeps normal flat map rendering. */
   pitchDegrees?: number;
   /** Called once after the engine is created and the MapElement is added. */
@@ -37,6 +39,7 @@ export const TerraMap = ({
   debugTileFill = false,
   mapMode = 'plane',
   sourceBounds = null,
+  maxTileLevel = null,
   pitchDegrees = 0,
   onReady,
   onStats,
@@ -48,6 +51,7 @@ export const TerraMap = ({
   const debugTileFillRef = useRef(debugTileFill);
   const mapModeRef = useRef<TerraMapMode>(mapMode);
   const sourceBoundsRef = useRef(sourceBounds);
+  const maxTileLevelRef = useRef(maxTileLevel);
   const pitchDegreesRef = useRef(pitchDegrees);
 
   useEffect(() => {
@@ -75,6 +79,12 @@ export const TerraMap = ({
   }, [sourceBounds]);
 
   useEffect(() => {
+    maxTileLevelRef.current = maxTileLevel;
+    mapElementRef.current?.setMaxTileLevel(maxTileLevel);
+    engineRef.current?.requestUpdate();
+  }, [maxTileLevel]);
+
+  useEffect(() => {
     pitchDegreesRef.current = pitchDegrees;
     mapElementRef.current?.setPitchDegrees(pitchDegrees);
     engineRef.current?.requestUpdate();
@@ -96,6 +106,7 @@ export const TerraMap = ({
           mapMode: mapModeRef.current,
           pitchDegrees: pitchDegreesRef.current,
           sourceBounds: sourceBoundsRef.current,
+          maxTileLevel: maxTileLevelRef.current,
         });
         mapElementRef.current = mapElement;
         engine.add(mapElement);

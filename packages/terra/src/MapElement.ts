@@ -34,6 +34,7 @@ export interface MapElementOptions {
   debugTileFill?: boolean;
   mapMode?: TerraMapMode;
   sourceBounds?: TerraManifestBounds | null;
+  maxTileLevel?: number | null;
   pitchDegrees?: number;
 }
 
@@ -47,6 +48,7 @@ export class MapElement extends LTElement {
   private mapMode: TerraMapMode = 'plane';
   private lastSurface: TerraMapSurface = 'plane';
   private sourceBounds: TerraManifestBounds | null = null;
+  private maxTileLevel: number | null = null;
   private pitchDegrees = 0;
   private lastStatsAt = 0;
 
@@ -58,6 +60,7 @@ export class MapElement extends LTElement {
     this.debugTileFill = options.debugTileFill ?? false;
     this.mapMode = options.mapMode ?? 'plane';
     this.sourceBounds = options.sourceBounds ?? null;
+    this.maxTileLevel = options.maxTileLevel ?? null;
     this.pitchDegrees = options.pitchDegrees ?? 0;
   }
 
@@ -75,6 +78,10 @@ export class MapElement extends LTElement {
 
   public setSourceBounds(bounds: TerraManifestBounds | null) {
     this.sourceBounds = bounds;
+  }
+
+  public setMaxTileLevel(maxTileLevel: number | null) {
+    this.maxTileLevel = maxTileLevel;
   }
 
   public setPitchDegrees(pitchDegrees: number) {
@@ -147,10 +154,11 @@ export class MapElement extends LTElement {
       latitudeRadians: worldVToLatitudeRadians(center.y),
     });
     const view = terraGlobeLocalFrameView(renderer, renderer.zoom, this.pitchDegrees);
+    const maxLevel = this.globeMaxTileLevel();
     const targetLevel = terraGlobeStableTargetLevel(
       renderer,
       view,
-      TERRA_GLOBE_MAX_TILE_LEVEL,
+      maxLevel,
       TERRA_GLOBE_TARGET_PIXELS,
     );
 
@@ -160,10 +168,17 @@ export class MapElement extends LTElement {
       viewportHeight: renderer.height,
       targetPixels: TERRA_GLOBE_TARGET_PIXELS,
       samplesPerEdge: 5,
-      maxLevel: TERRA_GLOBE_MAX_TILE_LEVEL,
+      maxLevel,
       targetLevel,
       modelMatrix: view.modelMatrix,
     });
+  }
+
+  private globeMaxTileLevel() {
+    return Math.max(
+      0,
+      Math.min(TERRA_GLOBE_MAX_TILE_LEVEL, this.maxTileLevel ?? TERRA_GLOBE_MAX_TILE_LEVEL),
+    );
   }
 
   private collectionsForGlobeSelection(selection: TerraGlobeTileSelection) {

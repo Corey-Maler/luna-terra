@@ -17,6 +17,7 @@ export interface LazyQuadTreeContext {
 export class LazyQuadTree extends VirtualTree {
   public fulfilled = false;
   public loading = false;
+  public missing = false;
 
   public context: LazyQuadTreeContext;
 
@@ -65,6 +66,7 @@ export class LazyQuadTree extends VirtualTree {
     this.loading = true;
 
     const data = await this.context.commutator.request(this.index, this.level);
+    this.missing = data === null;
     if (data) {
       this.deserialize(data);
     }
@@ -156,7 +158,7 @@ export class LazyQuadTree extends VirtualTree {
       node.fetch();
     }
 
-    if (!node.fulfilled) {
+    if (!node.fulfilled || node.missing) {
       return node.parent?.ownGeometryCollection();
     }
 

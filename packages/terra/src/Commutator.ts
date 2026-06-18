@@ -11,7 +11,7 @@ export class CommutatorClient {
       : tileClientOrBaseUrl;
   }
 
-  public request = async (index: TileIndex, level: number): Promise<MapyGeometry[]> => {
-    return await this.tileClient.getTile(level, tileIndexToString(index)) ?? [];
+  public request = async (index: TileIndex, level: number): Promise<MapyGeometry[] | null> => {
+    return await this.tileClient.getTile(level, tileIndexToString(index));
   };
 }

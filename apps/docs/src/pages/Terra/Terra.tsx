@@ -95,6 +95,7 @@ export default function Terra() {
   const [stats, setStats] = useState<TerraRenderStats | null>(null);
   const [manifestBounds, setManifestBounds] = useState<Rect2D | null>(null);
   const [sourceBounds, setSourceBounds] = useState<TerraManifestBounds | null>(null);
+  const [maxTileLevel, setMaxTileLevel] = useState<number | null>(null);
   const [debugGrid, setDebugGrid] = useState(false);
   const [debugTileFill, setDebugTileFill] = useState(false);
   const [mapMode, setMapMode] = useState<TerraMapMode>('auto');
@@ -138,6 +139,7 @@ export default function Terra() {
         return;
       }
       setSourceBounds(manifest.bounds);
+      setMaxTileLevel(manifest.maxLevel);
       const bounds = new Rect2D(
         new V2(manifest.bounds.minX, manifest.bounds.minY),
         new V2(manifest.bounds.maxX, manifest.bounds.maxY)
@@ -216,6 +218,7 @@ export default function Terra() {
             mapMode={mapMode}
             pitchDegrees={pitchDegrees}
             sourceBounds={sourceBounds}
+            maxTileLevel={maxTileLevel}
             onReady={handleReady}
             onStats={handleStats}
           />
