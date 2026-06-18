@@ -39,6 +39,8 @@ const DEFAULT_CONFIG: GlobeFrameConfig = {
   bearing: 0,
   maxLevel: 7,
 };
+const ZOOM_MIN = 0.7;
+const ZOOM_MAX = 500;
 const CAMERA_DISTANCE_BASE = 4.6;
 const CAMERA_MIN_DISTANCE = 0.08;
 const CAMERA_CLAMP_ZOOM = CAMERA_DISTANCE_BASE / CAMERA_MIN_DISTANCE;
@@ -374,6 +376,7 @@ function GlobeLocalFramePreview({ config }: { config: GlobeFrameConfig }) {
         background: 'var(--surface)',
         border: '1px solid var(--border-color)',
         borderRadius: 8,
+        cursor: 'zoom-in',
         display: 'flex',
         height: 560,
         overflow: 'hidden',
@@ -386,6 +389,18 @@ export default function TerraGlobeLocalFramePage() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const patchConfig = (patch: Partial<GlobeFrameConfig>) => {
     setConfig((current) => ({ ...current, ...patch }));
+  };
+  const zoomByWheel = (deltaY: number, deltaMode: number) => {
+    const pixelDelta = deltaMode === 1
+      ? deltaY * 16
+      : deltaMode === 2
+        ? deltaY * window.innerHeight
+        : deltaY;
+    const factor = Math.exp(-pixelDelta * 0.002);
+    setConfig((current) => ({
+      ...current,
+      zoom: clamp(current.zoom * factor, ZOOM_MIN, ZOOM_MAX),
+    }));
   };
 
   return (
@@ -400,7 +415,14 @@ export default function TerraGlobeLocalFramePage() {
       </DocPage.Section>
 
       <DocPage.Section id="preview" title="Preview">
-        <GlobeLocalFramePreview config={config} />
+        <div
+          onWheel={(event) => {
+            event.preventDefault();
+            zoomByWheel(event.deltaY, event.deltaMode);
+          }}
+        >
+          <GlobeLocalFramePreview config={config} />
+        </div>
         <div
           style={{
             display: 'grid',
@@ -427,8 +449,8 @@ export default function TerraGlobeLocalFramePage() {
           />
           <RangeControl
             label="Zoom"
-            min={0.7}
-            max={500}
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
             step={1}
             value={config.zoom}
             onChange={(zoom) => patchConfig({ zoom })}
@@ -516,4 +538,8 @@ function latToWorldV(latitudeDegrees: number) {
   const lat = latitudeDegrees * Math.PI / 180;
   const mercator = Math.log(Math.tan(Math.PI / 4 + lat / 2));
   return (1 + mercator / Math.PI) / 2;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
