@@ -19,6 +19,7 @@ export {
   worldVToLatitudeRadians,
   wrap01,
   wrapDelta,
+  wrapRadians,
 } from './TerraSurfaceModel';
 export type {
   TerraSurfaceOptions,

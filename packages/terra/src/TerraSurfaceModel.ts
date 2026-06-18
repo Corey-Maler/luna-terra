@@ -70,7 +70,7 @@ export class TerraSurfaceModel {
     this.offsetU = options.offsetU ?? 0;
     this.offsetV = options.offsetV ?? 0;
     this.radius = options.radius ?? 1;
-    this.flatScale = options.flatScale ?? Math.PI * 2;
+    this.flatScale = options.flatScale ?? 1;
 
     this.centerLongitudeRadians = worldUToLongitudeRadians(this.centerU);
     this.centerLatitudeRadians = worldVToLatitudeRadians(this.centerV);
@@ -89,10 +89,10 @@ export class TerraSurfaceModel {
     const longitudeRadians = worldUToLongitudeRadians(shiftedU);
     const latitudeRadians = worldVToLatitudeRadians(shiftedV);
     const globe = this.globePosition(longitudeRadians, latitudeRadians, this.radius);
-    const plane = this.planePosition(shiftedU, shiftedV);
+    const plane = this.planePosition(longitudeRadians, latitudeRadians);
     const position = lerpV3(plane, globe, this.curvature);
     const normal = lerpV3(new V3(0, 0, 1), globe.normalize(), this.curvature).normalize();
-    const frontness = globe.z / this.radius;
+    const frontness = normal.z;
 
     return {
       u: shiftedU,
@@ -102,8 +102,16 @@ export class TerraSurfaceModel {
       position,
       normal,
       frontness,
-      frontFacing: this.curvature < 0.001 || frontness >= -0.02,
+      frontFacing: frontness >= 0,
     };
+  }
+
+  public frontnessForCamera(sample: TerraSurfaceSample, camera: Camera3D) {
+    return camera.eye.sub(sample.position).normalize().dot(sample.normal);
+  }
+
+  public isFrontFacingForCamera(sample: TerraSurfaceSample, camera: Camera3D) {
+    return this.frontnessForCamera(sample, camera) >= 0;
   }
 
   public evaluateTile(
@@ -122,7 +130,7 @@ export class TerraSurfaceModel {
     let projectedSamples = 0;
 
     for (const sample of samples) {
-      if (!sample.frontFacing) {
+      if (!this.isFrontFacingForCamera(sample, options.camera)) {
         continue;
       }
       frontFacingSamples += 1;
@@ -183,10 +191,12 @@ export class TerraSurfaceModel {
     );
   }
 
-  private planePosition(u: number, v: number) {
+  private planePosition(longitudeRadians: number, latitudeRadians: number) {
+    const deltaLongitude = wrapRadians(longitudeRadians - this.centerLongitudeRadians);
+    const deltaLatitude = latitudeRadians - this.centerLatitudeRadians;
     return new V3(
-      wrapDelta(u - this.centerU) * this.flatScale,
-      (v - this.centerV) * this.flatScale,
+      deltaLongitude * this.radius * this.flatScale,
+      deltaLatitude * this.radius * this.flatScale,
       0,
     );
   }
@@ -220,6 +230,10 @@ export function clamp01(value: number) {
 
 export function wrapDelta(delta: number) {
   return delta - Math.round(delta);
+}
+
+export function wrapRadians(delta: number) {
+  return delta - Math.round(delta / (Math.PI * 2)) * Math.PI * 2;
 }
 
 function lerpV3(a: V3, b: V3, t: number) {

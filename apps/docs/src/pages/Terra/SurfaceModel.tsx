@@ -64,7 +64,7 @@ class TerraSurfaceScene extends LTElement {
 
   override render(renderer: CanvasRenderer) {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const distance = Math.max(1.05, 4.2 / this.config.zoom);
+    const distance = Math.max(1.05, 5.8 / this.config.zoom);
     const camera = new Camera3D({
       mode: 'perspective',
       eye: new V3(0, 0, distance),
@@ -81,7 +81,6 @@ class TerraSurfaceScene extends LTElement {
       centerV: 0.5,
       offsetU: this.config.offsetU,
       offsetV: this.config.offsetV,
-      flatScale: 4,
     });
 
     this.drawSurfaceGrid(renderer, surface, camera);
@@ -99,7 +98,7 @@ class TerraSurfaceScene extends LTElement {
         const [u1, v1] = points[i + 1];
         const a = surface.sample(u0, v0);
         const b = surface.sample(u1, v1);
-        const target = a.frontFacing || b.frontFacing ? front : back;
+        const target = this.isVisibleSegment(surface, camera, a, b) ? front : back;
         pushLineSegment(target, a.position, b.position);
       }
     };
@@ -136,7 +135,7 @@ class TerraSurfaceScene extends LTElement {
     const markSize = 0.0035;
 
     const pushMark = (a: ReturnType<TerraSurfaceModel['sample']>, b: ReturnType<TerraSurfaceModel['sample']>) => {
-      const target = a.frontFacing || b.frontFacing ? front : back;
+      const target = this.isVisibleSegment(surface, camera, a, b) ? front : back;
       pushLineSegment(target, a.position, b.position);
     };
 
@@ -176,6 +175,15 @@ class TerraSurfaceScene extends LTElement {
       M4.identity(),
       lineWidth,
     );
+  }
+
+  private isVisibleSegment(
+    surface: TerraSurfaceModel,
+    camera: Camera3D,
+    a: ReturnType<TerraSurfaceModel['sample']>,
+    b: ReturnType<TerraSurfaceModel['sample']>,
+  ) {
+    return surface.isFrontFacingForCamera(a, camera) || surface.isFrontFacingForCamera(b, camera);
   }
 
   private axisLines(surface: TerraSurfaceModel) {
