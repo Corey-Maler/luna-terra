@@ -3,6 +3,14 @@ import { M4, V3 } from '@lunaterra/math';
 import { ResolutionByRoadType, getFeatureTypeById, type TerraFeatureType } from './helpers';
 import type { GeometryCollection, OptimizedArea, OptimizedLines } from './GeometryCollection';
 import type { TerraManifestBounds } from './TileClient';
+import {
+  TerraGlobeLocalFrame,
+  terraGlobeLocalFrameView,
+} from './TerraGlobeLocalFrame';
+import {
+  worldUToLongitudeRadians,
+  worldVToLatitudeRadians,
+} from './TerraSurfaceModel';
 
 export interface TerraMapRenderOptions {
   debugGrid?: boolean;
@@ -17,7 +25,7 @@ export type TerraMapMode = 'auto' | 'plane' | 'globe';
 export type TerraMapSurface = 'plane' | 'globe' | 'unwrap';
 
 export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
-export const TERRA_GLOBE_MAX_TILE_LEVEL = 5;
+export const TERRA_GLOBE_MAX_TILE_LEVEL = 15;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 
@@ -60,10 +68,6 @@ const TERRAIN_COLORS = {
   globe: '#f4f6f4',
 };
 
-const MAP_SURFACE_Z = 1.01;
-const TANGENT_SURFACE_Z = MAP_SURFACE_Z;
-const TANGENT_CAMERA_ZOOM_SCALE = 12;
-const TANGENT_CAMERA_MIN_GAP = 0.0000001;
 const SURFACE_DEBUG_TILE_SUBDIVISIONS = 4;
 
 const roadLodColors = [
@@ -134,7 +138,7 @@ export class TerraMapRenderer {
 
   public resolveMapSurface(renderer: CanvasRenderer, mapMode: TerraMapMode): TerraMapSurface {
     if (mapMode === 'auto') {
-      return renderer.zoom <= TERRA_GLOBE_AUTO_MAX_ZOOM ? 'globe' : 'unwrap';
+      return 'globe';
     }
     return mapMode;
   }
@@ -151,21 +155,26 @@ export class TerraMapRenderer {
     const pitchRadians = Math.max(0, Math.min(75, pitchDegrees)) * Math.PI / 180;
 
     if (mapMode !== 'plane') {
-      const unwrap = mapMode === 'unwrap' ? this.unwrapAmount(renderer.zoom) : 0;
-      const projector = this.globeProjector(anchorWorld.x, anchorWorld.y);
-      const tangentProjector = this.tangentProjector(anchorWorld.x, anchorWorld.y);
+      const frame = new TerraGlobeLocalFrame({
+        longitudeRadians: this.worldXToLonRad(anchorWorld.x),
+        latitudeRadians: this.worldYToLatRad(anchorWorld.y),
+      });
+      const view = terraGlobeLocalFrameView(renderer, renderer.zoom, pitchDegrees);
       return {
         anchorWorld,
-        camera: this.globeCamera(renderer, unwrap),
-        modelMatrix: M4.identity(),
-        surface: mapMode,
-        unwrap,
-        globeDepth: (x, y) => projector(x, y, 1).z,
-        projectPoint: (x, y) => {
-          const globe = projector(x, y, MAP_SURFACE_Z);
-          const tangent = tangentProjector(x, y, TANGENT_SURFACE_Z);
-          return this.lerpV3(globe, tangent, unwrap);
-        },
+        camera: view.camera,
+        modelMatrix: view.modelMatrix,
+        surface: 'globe',
+        unwrap: 0,
+        globeDepth: (x, y) => frame.frontnessForCamera(
+          worldUToLongitudeRadians(x),
+          worldVToLatitudeRadians(y),
+          view.camera,
+        ),
+        projectPoint: (x, y) => frame.project(
+          worldUToLongitudeRadians(x),
+          worldVToLatitudeRadians(y),
+        ),
       };
     }
 
@@ -222,27 +231,6 @@ export class TerraMapRenderer {
       aspect,
       near: Math.max(distance * 0.001, 1e-7),
       far: Math.max(distance * 10, 1),
-    });
-  }
-
-  private globeCamera(renderer: CanvasRenderer, unwrap = 0) {
-    const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const normalizedZoom = Math.max(0, Math.log2(Math.max(renderer.zoom, 1)) / 12);
-    const globeDistance = Math.max(1.45, 3.2 - normalizedZoom * 1.4);
-    const tangentDistance =
-      TANGENT_SURFACE_Z +
-      Math.max(TANGENT_CAMERA_MIN_GAP, TANGENT_CAMERA_ZOOM_SCALE / Math.max(renderer.zoom, 1));
-    const distance = globeDistance + (tangentDistance - globeDistance) * unwrap;
-
-    return new Camera3D({
-      mode: 'perspective',
-      eye: new V3(0, 0, distance),
-      target: new V3(0, 0, 0),
-      up: new V3(0, 1, 0),
-      fovYRadians: Math.PI / 4,
-      aspect,
-      near: 0.00000001,
-      far: 10,
     });
   }
 

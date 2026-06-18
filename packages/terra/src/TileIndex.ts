@@ -37,6 +37,15 @@ export function mortonTileXY(index: TileIndex): { x: number; y: number } {
   return { x, y };
 }
 
+export function mortonTileIndexFromXYLevel(x: number, y: number, level: number): TileIndex {
+  let index = 0;
+  for (let bit = 0; bit < level; bit += 1) {
+    index += (Math.floor(x / 2 ** bit) % 2) * 2 ** (bit * 2);
+    index += (Math.floor(y / 2 ** bit) % 2) * 2 ** (bit * 2 + 1);
+  }
+  return index;
+}
+
 export function mortonTileBit(index: TileIndex, level: number): { x: number; y: number } {
   return {
     x: Math.floor(index / 2 ** (level * 2)) % 2 as 0 | 1,

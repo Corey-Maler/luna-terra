@@ -1,4 +1,4 @@
-import { Camera3D } from '@lunaterra/core';
+import { Camera3D, type CanvasRenderer } from '@lunaterra/core';
 import { M4, V3 } from '@lunaterra/math';
 import {
   clamp01,
@@ -63,6 +63,18 @@ export interface TerraGlobeTileSelection {
   subdivided: number;
   maxLevelHits: number;
 }
+
+export interface TerraGlobeLocalFrameView {
+  camera: Camera3D;
+  modelMatrix: M4;
+  distance: number;
+  renderScale: number;
+}
+
+export const TERRA_GLOBE_CAMERA_DISTANCE_BASE = 4.6;
+export const TERRA_GLOBE_CAMERA_MIN_DISTANCE = 0.08;
+export const TERRA_GLOBE_CAMERA_CLAMP_ZOOM =
+  TERRA_GLOBE_CAMERA_DISTANCE_BASE / TERRA_GLOBE_CAMERA_MIN_DISTANCE;
 
 export class TerraGlobeLocalFrame {
   public readonly longitudeRadians: number;
@@ -370,6 +382,57 @@ export class TerraGlobeLocalFrame {
       (y + 1) * tileSize,
     );
   }
+}
+
+export function terraGlobeLocalFrameView(
+  renderer: CanvasRenderer,
+  zoom = renderer.zoom,
+  pitchDegrees = 0,
+  bearingDegrees = 0,
+): TerraGlobeLocalFrameView {
+  const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
+  const distance = Math.max(TERRA_GLOBE_CAMERA_MIN_DISTANCE, TERRA_GLOBE_CAMERA_DISTANCE_BASE / zoom);
+  const renderScale = Math.max(1, zoom / TERRA_GLOBE_CAMERA_CLAMP_ZOOM);
+  const pitch = pitchDegrees * Math.PI / 180;
+  const bearing = bearingDegrees * Math.PI / 180;
+  const eye = new V3(
+    Math.sin(bearing) * Math.sin(pitch) * distance,
+    -Math.cos(bearing) * Math.sin(pitch) * distance,
+    Math.cos(pitch) * distance,
+  );
+  const up = new V3(Math.sin(bearing), Math.cos(bearing), 0);
+  const camera = new Camera3D({
+    mode: 'perspective',
+    eye,
+    target: new V3(0, 0, 0),
+    up,
+    fovYRadians: Math.PI / 4,
+    aspect,
+    near: Math.max(0.0001, distance * 0.0005),
+    far: Math.max(10, distance + 4),
+  });
+
+  return {
+    camera,
+    modelMatrix: M4.identity().scale(renderScale, renderScale, renderScale),
+    distance,
+    renderScale,
+  };
+}
+
+export function terraGlobeStableTargetLevel(
+  renderer: CanvasRenderer,
+  view: Pick<TerraGlobeLocalFrameView, 'distance' | 'renderScale'>,
+  maxLevel: number,
+  targetPixels: number,
+) {
+  const pixelsPerLocalUnit =
+    renderer.height / (2 * Math.tan(Math.PI / 8) * view.distance) *
+    view.renderScale;
+  const rootPixels = Math.PI * 2 * pixelsPerLocalUnit;
+  const threshold = targetPixels * 2;
+  const level = Math.ceil(Math.log2(Math.max(1, rootPixels / threshold)));
+  return Math.max(0, Math.min(maxLevel, level));
 }
 
 export function rootTile(): TerraGlobeTile {

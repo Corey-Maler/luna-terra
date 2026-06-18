@@ -7,6 +7,8 @@ import {
 } from '@lunaterra/core';
 import {
   TerraGlobeLocalFrame,
+  terraGlobeLocalFrameView,
+  terraGlobeStableTargetLevel,
   worldUToLongitudeRadians,
   worldVToLatitudeRadians,
   type TerraGlobeTile,
@@ -41,9 +43,6 @@ const DEFAULT_CONFIG: GlobeFrameConfig = {
 };
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 500;
-const CAMERA_DISTANCE_BASE = 4.6;
-const CAMERA_MIN_DISTANCE = 0.08;
-const CAMERA_CLAMP_ZOOM = CAMERA_DISTANCE_BASE / CAMERA_MIN_DISTANCE;
 
 const createLineBuffer = (): LineBuffer => ({
   points: [],
@@ -90,8 +89,13 @@ class GlobeLocalFrameScene extends LTElement {
       viewState.longitude,
       viewState.latitude,
     );
-    const view = this.view(renderer, viewState.zoom);
-    const targetLevel = stableTargetLevelForView(renderer, view, this.config.maxLevel, 256);
+    const view = terraGlobeLocalFrameView(
+      renderer,
+      viewState.zoom,
+      this.config.pitch,
+      this.config.bearing,
+    );
+    const targetLevel = terraGlobeStableTargetLevel(renderer, view, this.config.maxLevel, 256);
     const selection = frame.selectTiles({
       camera: view.camera,
       viewportWidth: renderer.width,
@@ -134,36 +138,6 @@ class GlobeLocalFrameScene extends LTElement {
     }
     this.lastReportedView = viewState;
     this.onViewChange?.(viewState);
-  }
-
-  private view(renderer: CanvasRenderer, zoom: number) {
-    const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const distance = Math.max(CAMERA_MIN_DISTANCE, CAMERA_DISTANCE_BASE / zoom);
-    const renderScale = Math.max(1, zoom / CAMERA_CLAMP_ZOOM);
-    const pitch = this.config.pitch * Math.PI / 180;
-    const bearing = this.config.bearing * Math.PI / 180;
-    const eye = new V3(
-      Math.sin(bearing) * Math.sin(pitch) * distance,
-      -Math.cos(bearing) * Math.sin(pitch) * distance,
-      Math.cos(pitch) * distance,
-    );
-    const up = new V3(Math.sin(bearing), Math.cos(bearing), 0);
-    const camera = new Camera3D({
-      mode: 'perspective',
-      eye,
-      target: new V3(0, 0, 0),
-      up,
-      fovYRadians: Math.PI / 4,
-      aspect,
-      near: Math.max(0.0001, distance * 0.0005),
-      far: Math.max(10, distance + 4),
-    });
-    return {
-      camera,
-      modelMatrix: M4.identity().scale(renderScale, renderScale, renderScale),
-      distance,
-      renderScale,
-    };
   }
 
   private drawTileFills(
@@ -601,21 +575,6 @@ function projectWorld(frame: TerraGlobeLocalFrame, u: number, v: number) {
 
 function longitudeDegreesToWorldU(longitudeDegrees: number) {
   return ((longitudeDegrees + 180) / 360 % 1 + 1) % 1;
-}
-
-function stableTargetLevelForView(
-  renderer: CanvasRenderer,
-  view: { distance: number; renderScale: number },
-  maxLevel: number,
-  targetPixels: number,
-) {
-  const pixelsPerLocalUnit =
-    renderer.height / (2 * Math.tan(Math.PI / 8) * view.distance) *
-    view.renderScale;
-  const rootPixels = Math.PI * 2 * pixelsPerLocalUnit;
-  const threshold = targetPixels * 2;
-  const level = Math.ceil(Math.log2(Math.max(1, rootPixels / threshold)));
-  return Math.max(0, Math.min(maxLevel, level));
 }
 
 function stableTileColor(tile: TerraGlobeTile) {

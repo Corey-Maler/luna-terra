@@ -15,11 +15,14 @@ export {
   childTiles,
   makeTile,
   rootTile,
+  terraGlobeLocalFrameView,
+  terraGlobeStableTargetLevel,
   tileStableId,
 } from './TerraGlobeLocalFrame';
 export type {
   TerraGeoPoint,
   TerraGlobeLocalFrameOptions,
+  TerraGlobeLocalFrameView,
   TerraGlobeTile,
   TerraGlobeTileEvaluateOptions,
   TerraGlobeTileEvaluation,
@@ -66,6 +69,7 @@ export {
   indFromX,
   mortonChildIndex,
   mortonTileBit,
+  mortonTileIndexFromXYLevel,
   mortonTileIndexFromCoords,
   mortonTileXY,
   tileIndexToString,

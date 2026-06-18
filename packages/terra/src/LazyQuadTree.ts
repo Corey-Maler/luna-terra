@@ -7,6 +7,7 @@ import { CommutatorClient } from './Commutator';
 import { GeometryCollection } from './GeometryCollection';
 import { incDebugValue, printDebugValue } from './debug';
 import type { TileIndex } from './TileIndex';
+import { mortonTileBit } from './TileIndex';
 
 export interface LazyQuadTreeContext {
   commutator: CommutatorClient;
@@ -143,5 +144,58 @@ export class LazyQuadTree extends VirtualTree {
     }
 
     return [];
+  }
+
+  public getGeometryForTile(index: TileIndex, level: number): GeometryCollection | undefined {
+    const node = this.getOrCreateByIndex(index, level);
+    if (!node) {
+      return undefined;
+    }
+
+    if (!node.loading) {
+      node.fetch();
+    }
+
+    if (!node.fulfilled) {
+      return node.parent?.ownGeometryCollection();
+    }
+
+    return node.ownGeometryCollection();
+  }
+
+  public getGeometryForTiles(
+    tiles: Array<{ index: TileIndex; level: number }>,
+  ): Array<GeometryCollection | undefined> {
+    return tiles.map((tile) => this.getGeometryForTile(tile.index, tile.level));
+  }
+
+  private getOrCreateByIndex(index: TileIndex, level: number): LazyQuadTree | null {
+    if (this.level === level) {
+      return this;
+    }
+
+    if (!this.hasChildren()) {
+      return null;
+    }
+
+    if (!this.subTrees) {
+      this.generateSubTree();
+    }
+
+    const nextLevel = mortonTileBit(index, this.level);
+    const nextLevelQuadrant = (nextLevel.x << 1) | nextLevel.y;
+    const quadrantFromXY = [0, 3, 1, 2];
+    const subTree = this.subTrees?.[quadrantFromXY[nextLevelQuadrant]];
+    return subTree?.getOrCreateByIndex(index, level) ?? null;
+  }
+
+  private ownGeometryCollection() {
+    if (!this.geometryCollection) {
+      this.geometryCollection = new GeometryCollection(this.geometry, {
+        level: this.level,
+        index: this.index,
+      });
+    }
+    return this.geometryCollection;
   }
 }
