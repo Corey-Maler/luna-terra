@@ -427,8 +427,8 @@ export default function TerraGlobeLocalFramePage() {
           <RangeControl
             label="Zoom"
             min={0.7}
-            max={80}
-            step={0.1}
+            max={500}
+            step={1}
             value={config.zoom}
             onChange={(zoom) => patchConfig({ zoom })}
           />
@@ -451,7 +451,7 @@ export default function TerraGlobeLocalFramePage() {
           <RangeControl
             label="Max level"
             min={0}
-            max={10}
+            max={15}
             step={1}
             value={config.maxLevel}
             onChange={(maxLevel) => patchConfig({ maxLevel })}
