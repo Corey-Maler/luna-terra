@@ -40,8 +40,9 @@ export function mortonTileXY(index: TileIndex): { x: number; y: number } {
 export function mortonTileIndexFromXYLevel(x: number, y: number, level: number): TileIndex {
   let index = 0;
   for (let bit = 0; bit < level; bit += 1) {
-    index += (Math.floor(x / 2 ** bit) % 2) * 2 ** (bit * 2);
-    index += (Math.floor(y / 2 ** bit) % 2) * 2 ** (bit * 2 + 1);
+    const sourceBit = level - bit - 1;
+    index += (Math.floor(x / 2 ** sourceBit) % 2) * 2 ** (bit * 2);
+    index += (Math.floor(y / 2 ** sourceBit) % 2) * 2 ** (bit * 2 + 1);
   }
   return index;
 }
