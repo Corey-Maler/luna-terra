@@ -2,6 +2,8 @@ import { Camera3D } from '@lunaterra/core';
 import { M4, V3 } from '@lunaterra/math';
 import {
   clamp01,
+  latitudeRadiansToWorldV,
+  longitudeRadiansToWorldU,
   worldUToLongitudeRadians,
   worldVToLatitudeRadians,
   wrap01,
@@ -64,6 +66,8 @@ export class TerraGlobeLocalFrame {
   public readonly latitudeRadians: number;
   public readonly radius: number;
   public readonly targetPosition: V3;
+  public readonly targetU: number;
+  public readonly targetV: number;
   public readonly east: V3;
   public readonly north: V3;
   public readonly up: V3;
@@ -72,6 +76,8 @@ export class TerraGlobeLocalFrame {
     this.longitudeRadians = options.longitudeRadians;
     this.latitudeRadians = options.latitudeRadians;
     this.radius = options.radius ?? 1;
+    this.targetU = longitudeRadiansToWorldU(this.longitudeRadians);
+    this.targetV = latitudeRadiansToWorldV(this.latitudeRadians);
     this.targetPosition = globePosition(
       this.longitudeRadians,
       this.latitudeRadians,
@@ -149,6 +155,21 @@ export class TerraGlobeLocalFrame {
     let maxY = Number.NEGATIVE_INFINITY;
     let frontFacingSamples = 0;
     let projectedSamples = 0;
+    const containsTarget = this.tileContainsTarget(tile);
+
+    const includeProjectedPoint = (local: V3) => {
+      const projected = modelViewProjection.multiplyV3(local);
+      if (projected.z < -1 || projected.z > 1) {
+        return;
+      }
+      const screenX = (projected.x * 0.5 + 0.5) * options.viewportWidth;
+      const screenY = (1 - (projected.y * 0.5 + 0.5)) * options.viewportHeight;
+      minX = Math.min(minX, screenX);
+      minY = Math.min(minY, screenY);
+      maxX = Math.max(maxX, screenX);
+      maxY = Math.max(maxY, screenY);
+      projectedSamples += 1;
+    };
 
     for (const sample of samples) {
       const longitude = worldUToLongitudeRadians(sample.u);
@@ -158,17 +179,14 @@ export class TerraGlobeLocalFrame {
       }
       frontFacingSamples += 1;
       const local = this.project(longitude, latitude);
-      const projected = modelViewProjection.multiplyV3(local);
-      if (projected.z < -1 || projected.z > 1) {
-        continue;
+      includeProjectedPoint(local);
+    }
+
+    if (containsTarget) {
+      frontFacingSamples = Math.max(frontFacingSamples, 1);
+      for (const local of this.targetTileFootprint(tile)) {
+        includeProjectedPoint(local);
       }
-      const screenX = (projected.x * 0.5 + 0.5) * options.viewportWidth;
-      const screenY = (1 - (projected.y * 0.5 + 0.5)) * options.viewportHeight;
-      minX = Math.min(minX, screenX);
-      minY = Math.min(minY, screenY);
-      maxX = Math.max(maxX, screenX);
-      maxY = Math.max(maxY, screenY);
-      projectedSamples += 1;
     }
 
     if (frontFacingSamples === 0) {
@@ -198,6 +216,35 @@ export class TerraGlobeLocalFrame {
       shouldSubdivide: Math.max(screenWidth, screenHeight) > targetPixels * 2,
       rejectionReason: 'visible',
     };
+  }
+
+  public tileContainsTarget(tile: TerraGlobeTile) {
+    const containsU = this.targetU >= tile.minU && (
+      this.targetU < tile.maxU ||
+      (tile.maxU === 1 && this.targetU <= tile.maxU)
+    );
+    const containsV = this.targetV >= tile.minV && (
+      this.targetV < tile.maxV ||
+      (tile.maxV === 1 && this.targetV <= tile.maxV)
+    );
+    return containsU && containsV;
+  }
+
+  private targetTileFootprint(tile: TerraGlobeTile) {
+    const longitudeSpan = Math.max(0, tile.maxU - tile.minU) * Math.PI * 2;
+    const minLatitude = worldVToLatitudeRadians(tile.minV);
+    const maxLatitude = worldVToLatitudeRadians(tile.maxV);
+    const latitudeSpan = Math.abs(maxLatitude - minLatitude);
+    const longitudeWidth = longitudeSpan * Math.max(0.08, Math.cos(this.latitudeRadians));
+    const halfWidth = longitudeWidth * this.radius / 2;
+    const halfHeight = latitudeSpan * this.radius / 2;
+    return [
+      new V3(0, 0, 0),
+      new V3(-halfWidth, 0, 0),
+      new V3(halfWidth, 0, 0),
+      new V3(0, -halfHeight, 0),
+      new V3(0, halfHeight, 0),
+    ];
   }
 
   public selectTiles(options: TerraGlobeTileSelectionOptions): TerraGlobeTileSelection {
