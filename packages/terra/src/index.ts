@@ -11,6 +11,22 @@ export type { MapElementOptions } from './MapElement';
 export { TerraMap } from './React/TerraMap';
 export type { TerraMapProps } from './React/TerraMap';
 export {
+  TerraGlobeLocalFrame,
+  childTiles,
+  makeTile,
+  rootTile,
+  tileStableId,
+} from './TerraGlobeLocalFrame';
+export type {
+  TerraGeoPoint,
+  TerraGlobeLocalFrameOptions,
+  TerraGlobeTile,
+  TerraGlobeTileEvaluateOptions,
+  TerraGlobeTileEvaluation,
+  TerraGlobeTileSelection,
+  TerraGlobeTileSelectionOptions,
+} from './TerraGlobeLocalFrame';
+export {
   TerraSurfaceModel,
   clamp01,
   latitudeRadiansToWorldV,

@@ -328,6 +328,11 @@ export const RouteDefinitions: SectionDefinition[] = [
         tag: 'surface-model',
         Element: lazy(() => import('./Terra/SurfaceModel')),
       },
+      {
+        title: 'Globe Local Frame',
+        tag: 'globe-local-frame',
+        Element: lazy(() => import('./Terra/GlobeLocalFrame')),
+      },
     ],
   },
 ];
