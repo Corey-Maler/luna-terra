@@ -183,7 +183,7 @@ export class TerraGlobeLocalFrame {
       includeProjectedPoint(local);
     }
 
-    if (frontFacingSamples > 0 || containsTarget) {
+    if (this.shouldUseTangentFootprint(tile, containsTarget, frontFacingSamples)) {
       frontFacingSamples = Math.max(frontFacingSamples, 1);
       for (const local of this.tileTangentFootprint(tile)) {
         includeProjectedPoint(local);
@@ -231,7 +231,40 @@ export class TerraGlobeLocalFrame {
     return containsU && containsV;
   }
 
+  private shouldUseTangentFootprint(
+    tile: TerraGlobeTile,
+    containsTarget: boolean,
+    frontFacingSamples: number,
+  ) {
+    if (containsTarget) {
+      return true;
+    }
+    if (frontFacingSamples === 0) {
+      return false;
+    }
+
+    const footprint = this.tileTangentBounds(tile);
+    const distanceFromTarget = Math.hypot(footprint.centerX, footprint.centerY);
+    const tileRadius = Math.hypot(footprint.halfWidth, footprint.halfHeight);
+    return distanceFromTarget <= tileRadius * 1.25;
+  }
+
   private tileTangentFootprint(tile: TerraGlobeTile) {
+    const { centerX, centerY, halfWidth, halfHeight } = this.tileTangentBounds(tile);
+    return [
+      new V3(centerX, centerY, 0),
+      new V3(centerX - halfWidth, centerY - halfHeight, 0),
+      new V3(centerX + halfWidth, centerY - halfHeight, 0),
+      new V3(centerX + halfWidth, centerY + halfHeight, 0),
+      new V3(centerX - halfWidth, centerY + halfHeight, 0),
+      new V3(centerX - halfWidth, centerY, 0),
+      new V3(centerX + halfWidth, centerY, 0),
+      new V3(centerX, centerY - halfHeight, 0),
+      new V3(centerX, centerY + halfHeight, 0),
+    ];
+  }
+
+  private tileTangentBounds(tile: TerraGlobeTile) {
     const longitudeSpan = Math.max(0, tile.maxU - tile.minU) * Math.PI * 2;
     const minLatitude = worldVToLatitudeRadians(tile.minV);
     const maxLatitude = worldVToLatitudeRadians(tile.maxV);
@@ -248,17 +281,7 @@ export class TerraGlobeLocalFrame {
     const longitudeWidth = longitudeSpan * Math.max(0.08, Math.cos(this.latitudeRadians));
     const halfWidth = longitudeWidth * this.radius / 2;
     const halfHeight = latitudeSpan * this.radius / 2;
-    return [
-      new V3(centerX, centerY, 0),
-      new V3(centerX - halfWidth, centerY - halfHeight, 0),
-      new V3(centerX + halfWidth, centerY - halfHeight, 0),
-      new V3(centerX + halfWidth, centerY + halfHeight, 0),
-      new V3(centerX - halfWidth, centerY + halfHeight, 0),
-      new V3(centerX - halfWidth, centerY, 0),
-      new V3(centerX + halfWidth, centerY, 0),
-      new V3(centerX, centerY - halfHeight, 0),
-      new V3(centerX, centerY + halfHeight, 0),
-    ];
+    return { centerX, centerY, halfWidth, halfHeight };
   }
 
   public selectTiles(options: TerraGlobeTileSelectionOptions): TerraGlobeTileSelection {
