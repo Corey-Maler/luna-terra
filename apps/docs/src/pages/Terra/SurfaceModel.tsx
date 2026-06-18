@@ -16,11 +16,33 @@ interface SurfaceSceneConfig {
   zoom: number;
 }
 
+interface LineBuffer {
+  points: number[];
+  offsets: number[];
+  sizes: number[];
+  pointOffset: number;
+}
+
 const DEFAULT_CONFIG: SurfaceSceneConfig = {
   curvature: 1,
   offsetU: 0,
   offsetV: 0,
   zoom: 1,
+};
+
+const createLineBuffer = (): LineBuffer => ({
+  points: [],
+  offsets: [],
+  sizes: [],
+  pointOffset: 0,
+});
+
+const pushLineSegment = (buffer: LineBuffer, a: V3, b: V3) => {
+  buffer.offsets.push(buffer.pointOffset);
+  buffer.points.push(a.x, a.y, a.z);
+  buffer.points.push(b.x, b.y, b.z);
+  buffer.sizes.push(2);
+  buffer.pointOffset += 2;
 };
 
 class TerraSurfaceScene extends LTElement {
@@ -68,22 +90,18 @@ class TerraSurfaceScene extends LTElement {
   }
 
   private drawSurfaceGrid(renderer: CanvasRenderer, surface: TerraSurfaceModel, camera: Camera3D) {
-    const lines: number[] = [];
-    const offsets: number[] = [];
-    const sizes: number[] = [];
-    let pointOffset = 0;
+    const front = createLineBuffer();
+    const back = createLineBuffer();
 
     const pushLine = (points: Array<[number, number]>) => {
-      offsets.push(pointOffset);
-      for (const [u, v] of points) {
-        const sample = surface.sample(u, v);
-        if (!sample.frontFacing && this.config.curvature > 0.1) {
-          continue;
-        }
-        lines.push(sample.position.x, sample.position.y, sample.position.z);
-        pointOffset += 1;
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const [u0, v0] = points[i];
+        const [u1, v1] = points[i + 1];
+        const a = surface.sample(u0, v0);
+        const b = surface.sample(u1, v1);
+        const target = a.frontFacing || b.frontFacing ? front : back;
+        pushLineSegment(target, a.position, b.position);
       }
-      sizes.push(pointOffset - offsets[offsets.length - 1]);
     };
 
     for (let x = 0; x <= 16; x += 1) {
@@ -96,15 +114,8 @@ class TerraSurfaceScene extends LTElement {
       pushLine(Array.from({ length: 97 }, (_, index) => [index / 96, v]));
     }
 
-    renderer.webgl3d.drawLineStrips(
-      new Float32Array(lines),
-      offsets,
-      sizes,
-      'rgba(78, 91, 103, 0.58)',
-      camera,
-      M4.identity(),
-      1,
-    );
+    this.drawLineBuffer(renderer, back, camera, 'rgba(78, 91, 103, 0.16)', 1);
+    this.drawLineBuffer(renderer, front, camera, 'rgba(78, 91, 103, 0.62)', 1);
 
     const axes = this.axisLines(surface);
     renderer.webgl3d.drawLineStrips(
@@ -119,12 +130,15 @@ class TerraSurfaceScene extends LTElement {
   }
 
   private drawTileDots(renderer: CanvasRenderer, surface: TerraSurfaceModel, camera: Camera3D) {
-    const points: number[] = [];
-    const offsets: number[] = [];
-    const sizes: number[] = [];
-    let pointOffset = 0;
+    const front = createLineBuffer();
+    const back = createLineBuffer();
     const step = 1 / 8;
     const markSize = 0.0035;
+
+    const pushMark = (a: ReturnType<TerraSurfaceModel['sample']>, b: ReturnType<TerraSurfaceModel['sample']>) => {
+      const target = a.frontFacing || b.frontFacing ? front : back;
+      pushLineSegment(target, a.position, b.position);
+    };
 
     for (let y = 0; y <= 8; y += 1) {
       for (let x = 0; x <= 8; x += 1) {
@@ -132,33 +146,35 @@ class TerraSurfaceScene extends LTElement {
         const v = y * step;
         const a = surface.sample(u - markSize, v);
         const b = surface.sample(u + markSize, v);
-        if (a.frontFacing || b.frontFacing || this.config.curvature < 0.1) {
-          offsets.push(pointOffset);
-          points.push(a.position.x, a.position.y, a.position.z);
-          points.push(b.position.x, b.position.y, b.position.z);
-          sizes.push(2);
-          pointOffset += 2;
-        }
+        pushMark(a, b);
         const c = surface.sample(u, v - markSize);
         const d = surface.sample(u, v + markSize);
-        if (c.frontFacing || d.frontFacing || this.config.curvature < 0.1) {
-          offsets.push(pointOffset);
-          points.push(c.position.x, c.position.y, c.position.z);
-          points.push(d.position.x, d.position.y, d.position.z);
-          sizes.push(2);
-          pointOffset += 2;
-        }
+        pushMark(c, d);
       }
     }
 
+    this.drawLineBuffer(renderer, back, camera, 'rgba(126, 76, 56, 0.18)', 2);
+    this.drawLineBuffer(renderer, front, camera, 'rgba(126, 76, 56, 0.92)', 2);
+  }
+
+  private drawLineBuffer(
+    renderer: CanvasRenderer,
+    buffer: LineBuffer,
+    camera: Camera3D,
+    color: string,
+    lineWidth: number,
+  ) {
+    if (buffer.pointOffset === 0) {
+      return;
+    }
     renderer.webgl3d.drawLineStrips(
-      new Float32Array(points),
-      offsets,
-      sizes,
-      'rgba(126, 76, 56, 0.9)',
+      new Float32Array(buffer.points),
+      buffer.offsets,
+      buffer.sizes,
+      color,
       camera,
       M4.identity(),
-      2,
+      lineWidth,
     );
   }
 
