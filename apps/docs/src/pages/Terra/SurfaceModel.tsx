@@ -10,6 +10,7 @@ import { M4, V2, V3 } from '@lunaterra/math';
 import { DocPage } from '../../components/DocPage/DocPage';
 
 interface SurfaceSceneConfig {
+  autoTransition: boolean;
   curvature: number;
   offsetU: number;
   offsetV: number;
@@ -24,11 +25,23 @@ interface LineBuffer {
 }
 
 const DEFAULT_CONFIG: SurfaceSceneConfig = {
+  autoTransition: true,
   curvature: 1,
   offsetU: 0,
   offsetV: 0,
   zoom: 1,
 };
+
+const curvatureForZoom = (zoom: number) => {
+  const t = Math.max(0, Math.min(1, (zoom - 3) / 2));
+  const eased = t * t * (3 - 2 * t);
+  return 1 - eased;
+};
+
+const effectiveConfig = (config: SurfaceSceneConfig): SurfaceSceneConfig => ({
+  ...config,
+  curvature: config.autoTransition ? curvatureForZoom(config.zoom) : config.curvature,
+});
 
 const createLineBuffer = (): LineBuffer => ({
   points: [],
@@ -54,7 +67,7 @@ class TerraSurfaceScene extends LTElement {
   }
 
   public setConfig(config: SurfaceSceneConfig) {
-    this.config = config;
+    this.config = effectiveConfig(config);
     this.engine?.requestUpdate();
   }
 
@@ -265,6 +278,7 @@ function SurfacePreview({ config }: { config: SurfaceSceneConfig }) {
 
 export default function TerraSurfaceModelPage() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const previewConfig = effectiveConfig(config);
   const patchConfig = (patch: Partial<SurfaceSceneConfig>) => {
     setConfig((current) => ({ ...current, ...patch }));
   };
@@ -281,7 +295,7 @@ export default function TerraSurfaceModelPage() {
       </DocPage.Section>
 
       <DocPage.Section id="preview" title="Preview">
-        <SurfacePreview config={config} />
+        <SurfacePreview config={previewConfig} />
         <div
           style={{
             display: 'grid',
@@ -295,9 +309,25 @@ export default function TerraSurfaceModelPage() {
             min={0}
             max={1}
             step={0.01}
-            value={config.curvature}
+            value={previewConfig.curvature}
+            disabled={config.autoTransition}
             onChange={(curvature) => patchConfig({ curvature })}
           />
+          <label
+            style={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              gap: 8,
+              minHeight: 38,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={config.autoTransition}
+              onChange={(event) => patchConfig({ autoTransition: event.currentTarget.checked })}
+            />
+            Auto transition
+          </label>
           <RangeControl
             label="U offset"
             min={-1}
@@ -317,7 +347,7 @@ export default function TerraSurfaceModelPage() {
           <RangeControl
             label="Zoom"
             min={0.7}
-            max={4}
+            max={20}
             step={0.05}
             value={config.zoom}
             onChange={(zoom) => patchConfig({ zoom })}
@@ -342,6 +372,7 @@ function RangeControl({
   max,
   step,
   value,
+  disabled = false,
   onChange,
 }: {
   label: string;
@@ -349,6 +380,7 @@ function RangeControl({
   max: number;
   step: number;
   value: number;
+  disabled?: boolean;
   onChange: (value: number) => void;
 }) {
   return (
@@ -360,6 +392,7 @@ function RangeControl({
         max={max}
         step={step}
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(Number(event.currentTarget.value))}
       />
     </label>
