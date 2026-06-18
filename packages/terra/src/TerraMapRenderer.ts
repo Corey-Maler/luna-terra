@@ -25,7 +25,7 @@ export type TerraMapMode = 'auto' | 'plane' | 'globe';
 export type TerraMapSurface = 'plane' | 'globe' | 'unwrap';
 
 export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
-export const TERRA_GLOBE_MAX_TILE_LEVEL = 15;
+export const TERRA_GLOBE_MAX_TILE_LEVEL = 16;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 
@@ -482,7 +482,7 @@ export class TerraMapRenderer {
     if (visibleSpan <= 0) {
       return 0;
     }
-    return Math.max(0, Math.min(15, Math.floor(Math.log2(8 / visibleSpan))));
+    return Math.max(0, Math.min(16, Math.floor(Math.log2(8 / visibleSpan))));
   }
 
   private rectLines(minX: number, minY: number, maxX: number, maxY: number) {

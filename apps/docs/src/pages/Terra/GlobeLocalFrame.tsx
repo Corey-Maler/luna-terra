@@ -528,7 +528,7 @@ export default function TerraGlobeLocalFramePage() {
           <RangeControl
             label="Max level"
             min={0}
-            max={15}
+            max={16}
             step={1}
             value={config.maxLevel}
             onChange={(maxLevel) => patchConfig({ maxLevel })}

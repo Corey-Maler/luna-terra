@@ -1,5 +1,4 @@
 import { LTElement, CanvasRenderer, LunaTerraEngine } from '@lunaterra/core';
-import { Grid } from '@lunaterra/elements';
 import { Rect2D, V2 } from '@lunaterra/math';
 import { getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
@@ -94,7 +93,6 @@ export class MapElement extends LTElement {
 
   setup(engine: LunaTerraEngine) {
     super.setup(engine);
-    this.appendChild(new Grid());
     this.lazyTreeRoot = LazyQuadTree.generate({ commutator: this.commutator, engine });
   }
 
