@@ -63,20 +63,26 @@ export class LazyQuadTree extends VirtualTree {
   }
 
   public async fetch() {
-    this.loading = true;
-
-    const data = await this.context.commutator.request(this.index, this.level);
-    this.missing = data === null;
-    if (data) {
-      this.deserialize(data);
+    if (this.loading || this.fulfilled) {
+      return;
     }
 
-    this.fulfilled = true;
-    this.context.engine.requestUpdate();
+    this.loading = true;
+
+    try {
+      const data = await this.context.commutator.request(this.index, this.level);
+      this.missing = data === null;
+      this.geometry = data ? this.deserialize(data) : [];
+      this.geometryCollection = undefined;
+      this.fulfilled = true;
+    } finally {
+      this.loading = false;
+      this.context.engine.requestUpdate();
+    }
   }
 
   private deserialize(data: Array<MapyGeometry>) {
-    this.geometry = data.map((serialized) =>
+    return data.map((serialized) =>
       GeometryClient.deserialize(
         serialized,
         this.boundaries,
@@ -115,12 +121,12 @@ export class LazyQuadTree extends VirtualTree {
       return [];
     }
 
-    if (!this.loading) {
-      this.fetch();
+    if (!this.loading && !this.fulfilled) {
+      void this.fetch();
     }
 
     if (!this.fulfilled) {
-      return [this.parent?.geometryCollection];
+      return [this.fallbackGeometryCollection()];
     }
 
     const reachedMaxLevel = options.maxLevel !== undefined && this.level >= options.maxLevel;
@@ -154,12 +160,12 @@ export class LazyQuadTree extends VirtualTree {
       return undefined;
     }
 
-    if (!node.loading) {
-      node.fetch();
+    if (!node.loading && !node.fulfilled) {
+      void node.fetch();
     }
 
     if (!node.fulfilled || node.missing) {
-      return node.parent?.ownGeometryCollection();
+      return node.fallbackGeometryCollection();
     }
 
     return node.ownGeometryCollection();
@@ -218,5 +224,16 @@ export class LazyQuadTree extends VirtualTree {
       });
     }
     return this.geometryCollection;
+  }
+
+  private fallbackGeometryCollection() {
+    let node = this.parent;
+    while (node) {
+      if (node.fulfilled && !node.missing) {
+        return node.ownGeometryCollection();
+      }
+      node = node.parent;
+    }
+    return undefined;
   }
 }
