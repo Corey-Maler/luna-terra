@@ -39,6 +39,9 @@ const DEFAULT_CONFIG: GlobeFrameConfig = {
   bearing: 0,
   maxLevel: 7,
 };
+const CAMERA_DISTANCE_BASE = 4.6;
+const CAMERA_MIN_DISTANCE = 0.08;
+const CAMERA_CLAMP_ZOOM = CAMERA_DISTANCE_BASE / CAMERA_MIN_DISTANCE;
 
 const createLineBuffer = (): LineBuffer => ({
   points: [],
@@ -78,27 +81,29 @@ class GlobeLocalFrameScene extends LTElement {
       this.config.longitude,
       this.config.latitude,
     );
-    const camera = this.camera(renderer);
+    const view = this.view(renderer);
     const selection = frame.selectTiles({
-      camera,
+      camera: view.camera,
       viewportWidth: renderer.width,
       viewportHeight: renderer.height,
       targetPixels: 256,
       samplesPerEdge: 5,
       maxLevel: this.config.maxLevel,
+      modelMatrix: view.modelMatrix,
     });
     this.latestSelection = selection;
 
-    this.drawTileFills(renderer, frame, camera, selection.tiles);
-    this.drawTileBorders(renderer, frame, camera, selection.tiles);
-    this.drawGraticule(renderer, frame, camera);
-    this.drawAxes(renderer, camera);
-    this.drawStatus(renderer, selection);
+    this.drawTileFills(renderer, frame, view.camera, view.modelMatrix, selection.tiles);
+    this.drawTileBorders(renderer, frame, view.camera, view.modelMatrix, selection.tiles);
+    this.drawGraticule(renderer, frame, view.camera, view.modelMatrix);
+    this.drawAxes(renderer, view.camera, view.modelMatrix);
+    this.drawStatus(renderer, selection, view.renderScale);
   }
 
-  private camera(renderer: CanvasRenderer) {
+  private view(renderer: CanvasRenderer) {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const distance = Math.max(0.08, 4.6 / this.config.zoom);
+    const distance = Math.max(CAMERA_MIN_DISTANCE, CAMERA_DISTANCE_BASE / this.config.zoom);
+    const renderScale = Math.max(1, this.config.zoom / CAMERA_CLAMP_ZOOM);
     const pitch = this.config.pitch * Math.PI / 180;
     const bearing = this.config.bearing * Math.PI / 180;
     const eye = new V3(
@@ -107,7 +112,7 @@ class GlobeLocalFrameScene extends LTElement {
       Math.cos(pitch) * distance,
     );
     const up = new V3(Math.sin(bearing), Math.cos(bearing), 0);
-    return new Camera3D({
+    const camera = new Camera3D({
       mode: 'perspective',
       eye,
       target: new V3(0, 0, 0),
@@ -117,12 +122,18 @@ class GlobeLocalFrameScene extends LTElement {
       near: Math.max(0.0001, distance * 0.0005),
       far: Math.max(10, distance + 4),
     });
+    return {
+      camera,
+      modelMatrix: M4.identity().scale(renderScale, renderScale, renderScale),
+      renderScale,
+    };
   }
 
   private drawTileFills(
     renderer: CanvasRenderer,
     frame: TerraGlobeLocalFrame,
     camera: Camera3D,
+    modelMatrix: M4,
     tiles: TerraGlobeTile[],
   ) {
     for (const tile of tiles) {
@@ -134,7 +145,7 @@ class GlobeLocalFrameScene extends LTElement {
         points,
         stableTileColor(tile),
         camera,
-        M4.identity(),
+        modelMatrix,
       );
     }
   }
@@ -178,6 +189,7 @@ class GlobeLocalFrameScene extends LTElement {
     renderer: CanvasRenderer,
     frame: TerraGlobeLocalFrame,
     camera: Camera3D,
+    modelMatrix: M4,
     tiles: TerraGlobeTile[],
   ) {
     const buffer = createLineBuffer();
@@ -187,7 +199,7 @@ class GlobeLocalFrameScene extends LTElement {
       this.pushTileEdge(buffer, frame, camera, tile.maxU, tile.maxV, tile.minU, tile.maxV);
       this.pushTileEdge(buffer, frame, camera, tile.minU, tile.maxV, tile.minU, tile.minV);
     }
-    this.drawLineBuffer(renderer, buffer, camera, 'rgba(36, 46, 56, 0.52)', 1);
+    this.drawLineBuffer(renderer, buffer, camera, modelMatrix, 'rgba(36, 46, 56, 0.52)', 1);
   }
 
   private pushTileEdge(
@@ -214,7 +226,12 @@ class GlobeLocalFrameScene extends LTElement {
     }
   }
 
-  private drawGraticule(renderer: CanvasRenderer, frame: TerraGlobeLocalFrame, camera: Camera3D) {
+  private drawGraticule(
+    renderer: CanvasRenderer,
+    frame: TerraGlobeLocalFrame,
+    camera: Camera3D,
+    modelMatrix: M4,
+  ) {
     const buffer = createLineBuffer();
     for (let lon = -180; lon <= 180; lon += 30) {
       for (let lat = -80; lat < 80; lat += 2) {
@@ -226,7 +243,7 @@ class GlobeLocalFrameScene extends LTElement {
         this.pushGeoSegment(buffer, frame, camera, lon, lat, lon + 2, lat);
       }
     }
-    this.drawLineBuffer(renderer, buffer, camera, 'rgba(20, 90, 130, 0.35)', 1);
+    this.drawLineBuffer(renderer, buffer, camera, modelMatrix, 'rgba(20, 90, 130, 0.35)', 1);
   }
 
   private pushGeoSegment(
@@ -270,18 +287,19 @@ class GlobeLocalFrameScene extends LTElement {
     );
   }
 
-  private drawAxes(renderer: CanvasRenderer, camera: Camera3D) {
+  private drawAxes(renderer: CanvasRenderer, camera: Camera3D, modelMatrix: M4) {
     const buffer = createLineBuffer();
     pushLineSegment(buffer, new V3(0, 0, 0), new V3(0.22, 0, 0));
     pushLineSegment(buffer, new V3(0, 0, 0), new V3(0, 0.22, 0));
     pushLineSegment(buffer, new V3(0, 0, 0), new V3(0, 0, 0.22));
-    this.drawLineBuffer(renderer, buffer, camera, 'rgba(20, 30, 45, 0.95)', 3);
+    this.drawLineBuffer(renderer, buffer, camera, modelMatrix, 'rgba(20, 30, 45, 0.95)', 3);
   }
 
   private drawLineBuffer(
     renderer: CanvasRenderer,
     buffer: LineBuffer,
     camera: Camera3D,
+    modelMatrix: M4,
     color: string,
     lineWidth: number,
   ) {
@@ -294,16 +312,17 @@ class GlobeLocalFrameScene extends LTElement {
       buffer.sizes,
       color,
       camera,
-      M4.identity(),
+      modelMatrix,
       lineWidth,
     );
   }
 
-  private drawStatus(renderer: CanvasRenderer, selection: TerraGlobeTileSelection) {
+  private drawStatus(renderer: CanvasRenderer, selection: TerraGlobeTileSelection, renderScale: number) {
     renderer.drawScreenSpace('#26313d').renderText(
       [
         `target ${this.config.longitude.toFixed(1)}, ${this.config.latitude.toFixed(1)}`,
         `zoom ${this.config.zoom.toFixed(2)}`,
+        `scale ${renderScale.toFixed(2)}`,
         `tiles ${selection.tiles.length}`,
         `visited ${selection.visited}`,
         `hidden ${selection.hidden}`,
