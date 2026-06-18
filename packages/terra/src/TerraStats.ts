@@ -42,6 +42,26 @@ export interface TerraRenderStats {
   topTypes: TerraTypeStats[];
 }
 
+export interface TerraTileDebugStats {
+  level: number;
+  index: number;
+  loaded: boolean;
+  loading: boolean;
+  missing: boolean;
+  geometryCount: number | null;
+  bounds: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  };
+}
+
+export interface TerraTileDebugState {
+  hover: TerraTileDebugStats | null;
+  pinned: TerraTileDebugStats | null;
+}
+
 export const emptyTerraRenderStats = (): TerraRenderStats => ({
   zoom: 0,
   renderMode: 'world-float32',

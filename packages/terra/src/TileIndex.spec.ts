@@ -4,6 +4,7 @@ import {
   mortonTileBit,
   mortonTileIndexFromXYLevel,
   mortonTileXY,
+  mortonTileXYAtLevel,
   tileIndexToString,
 } from './TileIndex';
 
@@ -34,6 +35,15 @@ describe('TileIndex', () => {
     expect(mortonTileIndexFromXYLevel(1, 1, 1)).toBe(mortonChildIndex(0, 0, 1, 1));
     expect(mortonTileIndexFromXYLevel(3, 2, 2)).toBe(mortonChildIndex(3, 1, 1, 0));
     expect(mortonTileIndexFromXYLevel(2, 3, 2)).toBe(mortonChildIndex(3, 1, 0, 1));
+  });
+
+  it('extracts level-local tile coordinates from Morton indices', () => {
+    expect(mortonTileXYAtLevel(0, 1)).toEqual({ x: 0, y: 0 });
+    expect(mortonTileXYAtLevel(1, 1)).toEqual({ x: 1, y: 0 });
+    expect(mortonTileXYAtLevel(2, 1)).toEqual({ x: 0, y: 1 });
+    expect(mortonTileXYAtLevel(3, 1)).toEqual({ x: 1, y: 1 });
+    expect(mortonTileXYAtLevel(7, 2)).toEqual({ x: 3, y: 2 });
+    expect(mortonTileXYAtLevel(11, 2)).toEqual({ x: 2, y: 3 });
   });
 
   it('serializes tile index for server APIs', () => {

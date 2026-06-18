@@ -5,6 +5,8 @@ import {
   type TerraMapMode,
   type TerraManifestBounds,
   type TerraRenderStats,
+  type TerraTileDebugState,
+  type TerraTileDebugStats,
 } from '@lunaterra/terra';
 import type { LunaTerraEngine } from '@lunaterra/core';
 import { Rect2D, V2 } from '@lunaterra/math';
@@ -100,6 +102,7 @@ export default function Terra() {
   const [debugTileFill, setDebugTileFill] = useState(false);
   const [mapMode, setMapMode] = useState<TerraMapMode>('auto');
   const [pitchDegrees, setPitchDegrees] = useState(0);
+  const [tileDebug, setTileDebug] = useState<TerraTileDebugState>({ hover: null, pinned: null });
 
   const handleReady = useCallback((engine: LunaTerraEngine) => {
     engineRef.current = engine;
@@ -152,6 +155,9 @@ export default function Terra() {
 
   const handleStats = useCallback((nextStats: TerraRenderStats) => {
     setStats(nextStats);
+  }, []);
+  const handleTileDebug = useCallback((nextTileDebug: TerraTileDebugState) => {
+    setTileDebug(nextTileDebug);
   }, []);
 
   useEffect(() => {
@@ -221,6 +227,7 @@ export default function Terra() {
             maxTileLevel={maxTileLevel}
             onReady={handleReady}
             onStats={handleStats}
+            onTileDebug={handleTileDebug}
           />
         </div>
         <div
@@ -376,6 +383,17 @@ export default function Terra() {
             - [{formatWorld(stats.visibleArea.maxX)}, {formatWorld(stats.visibleArea.maxY)}]
           </div>
         )}
+        <div
+          style={{
+            display: 'grid',
+            gap: 8,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            marginTop: 12,
+          }}
+        >
+          <TileDebugCard label="Hover Tile" tile={tileDebug.hover} />
+          <TileDebugCard label="Pinned Tile" tile={tileDebug.pinned} />
+        </div>
         {stats && stats.topTypes.length > 0 && (
           <div style={{ marginTop: 12, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums' }}>
@@ -408,6 +426,44 @@ export default function Terra() {
         )}
       </DocPage.Section>
     </DocPage>
+  );
+}
+
+function TileDebugCard({ label, tile }: { label: string; tile: TerraTileDebugStats | null }) {
+  return (
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 6,
+        minWidth: 0,
+        padding: '8px 10px',
+      }}
+    >
+      <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{label}</div>
+      {tile ? (
+        <div
+          style={{
+            display: 'grid',
+            gap: 4,
+            fontFamily: 'var(--font-mono, monospace)',
+            fontSize: 12,
+            marginTop: 6,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          <span>loaded {tile.loaded ? 'yes' : tile.loading ? 'loading' : tile.missing ? 'missing' : 'no'}</span>
+          <span>level {tile.level}</span>
+          <span>index {tile.index}</span>
+          <span>geometries {tile.geometryCount === null ? '-' : formatNumber(tile.geometryCount)}</span>
+          <span>
+            bounds [{formatWorld(tile.bounds.minX)}, {formatWorld(tile.bounds.minY)}] - [{formatWorld(tile.bounds.maxX)}, {formatWorld(tile.bounds.maxY)}]
+          </span>
+        </div>
+      ) : (
+        <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 6 }}>-</div>
+      )}
+    </div>
   );
 }
 

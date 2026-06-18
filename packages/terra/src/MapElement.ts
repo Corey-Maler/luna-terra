@@ -4,7 +4,13 @@ import { getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
 import { LazyQuadTree } from './LazyQuadTree';
 import { GeometryCollection } from './GeometryCollection';
-import { emptyTerraRenderStats, type TerraRenderStats, type TerraTypeStats } from './TerraStats';
+import {
+  emptyTerraRenderStats,
+  type TerraRenderStats,
+  type TerraTileDebugState,
+  type TerraTileDebugStats,
+  type TerraTypeStats,
+} from './TerraStats';
 import type { TerraTileClient } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
 import {
@@ -22,12 +28,18 @@ import {
   worldUToLongitudeRadians,
   worldVToLatitudeRadians,
 } from './TerraSurfaceModel';
-import { mortonTileIndexFromXYLevel } from './TileIndex';
+import { mortonTileIndexFromXYLevel, mortonTileXYAtLevel } from './TileIndex';
 
 const TERRA_GLOBE_TARGET_PIXELS = 256;
 
+interface TileDebugCandidate {
+  tile: TerraDebugTile;
+  stats: TerraTileDebugStats;
+}
+
 export interface MapElementOptions {
   onStats?: (stats: TerraRenderStats) => void;
+  onTileDebug?: (state: TerraTileDebugState) => void;
   tileClient?: TerraTileClient;
   debugGrid?: boolean;
   debugTileFill?: boolean;
@@ -41,6 +53,7 @@ export class MapElement extends LTElement {
   private commutator: CommutatorClient;
   private lazyTreeRoot?: LazyQuadTree;
   private readonly onStats?: (stats: TerraRenderStats) => void;
+  private readonly onTileDebug?: (state: TerraTileDebugState) => void;
   private readonly mapRenderer = new TerraMapRenderer();
   private debugGrid = false;
   private debugTileFill = false;
@@ -50,11 +63,18 @@ export class MapElement extends LTElement {
   private maxTileLevel: number | null = null;
   private pitchDegrees = 0;
   private lastStatsAt = 0;
+  private mouseScreen: V2 | null = null;
+  private hoveredTile: TerraTileDebugStats | null = null;
+  private pinnedTile: TerraTileDebugStats | null = null;
+  private lastTileDebugKey = '';
+  private unsubscribeMouseMove?: () => void;
+  private unsubscribeClick?: () => void;
 
   constructor(tileBaseUrl?: string, options: MapElementOptions = {}) {
     super();
     this.commutator = new CommutatorClient(options.tileClient ?? tileBaseUrl);
     this.onStats = options.onStats;
+    this.onTileDebug = options.onTileDebug;
     this.debugGrid = options.debugGrid ?? false;
     this.debugTileFill = options.debugTileFill ?? false;
     this.mapMode = options.mapMode ?? 'plane';
@@ -94,6 +114,19 @@ export class MapElement extends LTElement {
   setup(engine: LunaTerraEngine) {
     super.setup(engine);
     this.lazyTreeRoot = LazyQuadTree.generate({ commutator: this.commutator, engine });
+    this.unsubscribeMouseMove = engine.renderer.$mousePositionScreen.subscribe((point) => {
+      this.mouseScreen = point;
+      engine.requestQuickUpdate();
+    });
+    this.unsubscribeClick = engine.renderer.mouseHandlers.$clicksWorld.subscribe(() => {
+      this.pinnedTile = this.hoveredTile;
+      this.reportTileDebug();
+    });
+  }
+
+  override destroy() {
+    this.unsubscribeMouseMove?.();
+    this.unsubscribeClick?.();
   }
 
   render(renderer: CanvasRenderer) {
@@ -112,13 +145,20 @@ export class MapElement extends LTElement {
     const collections = globeSelection
       ? this.collectionsForGlobeSelection(globeSelection)
       : this.collectionsForArea(renderer);
+    const debugTiles = this.debugTileFill && globeSelection
+      ? this.debugTilesForGlobeSelection(globeSelection)
+      : undefined;
+    const tileCandidates = debugTiles
+      ? this.tileCandidatesForDebugTiles(debugTiles)
+      : this.tileCandidatesForCollections(collections);
+
+    this.updateHoveredTile(renderer, tileCandidates);
 
     this.lastSurface = this.mapRenderer.render(renderer, collections, {
       debugGrid: this.debugGrid,
-      debugTiles: this.debugTileFill && globeSelection
-        ? this.debugTilesForGlobeSelection(globeSelection)
-        : undefined,
+      debugTiles,
       debugTileFill: this.debugTileFill,
+      highlightedTile: this.findTileForStats(tileCandidates, this.hoveredTile),
       mapMode: this.mapMode,
       pitchDegrees: this.pitchDegrees,
       sourceBounds: this.sourceBounds,
@@ -199,6 +239,137 @@ export class MapElement extends LTElement {
       maxX: tile.maxU,
       maxY: tile.maxV,
     }));
+  }
+
+  private tileCandidatesForCollections(collections: GeometryCollection[]): TileDebugCandidate[] {
+    return collections.flatMap((collection): TileDebugCandidate[] => {
+      if (!collection.source) {
+        return [];
+      }
+      const tile = this.tileForSource(collection.source.level, collection.source.index);
+      return [{
+        tile,
+        stats: this.tileStats(tile, {
+          loaded: true,
+          loading: false,
+          missing: false,
+          geometryCount: collection.geometry.length,
+        }),
+      }];
+    });
+  }
+
+  private tileCandidatesForDebugTiles(tiles: TerraDebugTile[]): TileDebugCandidate[] {
+    return tiles.map((tile) => this.tileCandidateForDebugTile(tile));
+  }
+
+  private tileCandidateForDebugTile(tile: TerraDebugTile): TileDebugCandidate {
+    const status = this.lazyTreeRoot?.getTileStatus(tile.index, tile.level) ?? {
+      loaded: false,
+      loading: false,
+      missing: false,
+      geometryCount: null,
+    };
+    return {
+      tile,
+      stats: this.tileStats(tile, status),
+    };
+  }
+
+  private tileStats(
+    tile: TerraDebugTile,
+    status: Pick<TerraTileDebugStats, 'loaded' | 'loading' | 'missing' | 'geometryCount'>,
+  ): TerraTileDebugStats {
+    return {
+      level: tile.level,
+      index: tile.index,
+      loaded: status.loaded,
+      loading: status.loading,
+      missing: status.missing,
+      geometryCount: status.geometryCount,
+      bounds: {
+        minX: tile.minX,
+        minY: tile.minY,
+        maxX: tile.maxX,
+        maxY: tile.maxY,
+      },
+    };
+  }
+
+  private tileForSource(level: number, index: number): TerraDebugTile {
+    const size = 1 / 2 ** level;
+    const xy = mortonTileXYAtLevel(index, level);
+    return {
+      level,
+      index,
+      minX: xy.x * size,
+      minY: xy.y * size,
+      maxX: (xy.x + 1) * size,
+      maxY: (xy.y + 1) * size,
+    };
+  }
+
+  private updateHoveredTile(renderer: CanvasRenderer, candidates: TileDebugCandidate[]) {
+    const screen = this.mouseScreen;
+    const hitTile = screen
+      ? this.mapRenderer.hitTestTile(
+        renderer,
+        candidates.map((candidate) => candidate.tile),
+        screen,
+        {
+          mapMode: this.mapMode,
+          pitchDegrees: this.pitchDegrees,
+        },
+      )
+      : null;
+    const nextHover = hitTile
+      ? candidates.find((candidate) => this.tileKey(candidate.tile) === this.tileKey(hitTile))?.stats ?? null
+      : null;
+
+    if (this.tileDebugStateKey(this.hoveredTile) === this.tileDebugStateKey(nextHover)) {
+      return;
+    }
+
+    this.hoveredTile = nextHover;
+    this.reportTileDebug();
+  }
+
+  private findTileForStats(candidates: TileDebugCandidate[], stats: TerraTileDebugStats | null) {
+    if (!stats) {
+      return null;
+    }
+    return candidates.find((candidate) =>
+      this.tileDebugIdentityKey(candidate.stats) === this.tileDebugIdentityKey(stats)
+    )?.tile ?? null;
+  }
+
+  private reportTileDebug() {
+    if (!this.onTileDebug) {
+      return;
+    }
+    const key = `${this.tileDebugStateKey(this.hoveredTile)}|${this.tileDebugStateKey(this.pinnedTile)}`;
+    if (key === this.lastTileDebugKey) {
+      return;
+    }
+    this.lastTileDebugKey = key;
+    this.onTileDebug({
+      hover: this.hoveredTile,
+      pinned: this.pinnedTile,
+    });
+  }
+
+  private tileKey(tile: TerraDebugTile) {
+    return `${tile.level}/${tile.index}`;
+  }
+
+  private tileDebugIdentityKey(tile: TerraTileDebugStats | null) {
+    return tile ? `${tile.level}/${tile.index}` : '-';
+  }
+
+  private tileDebugStateKey(tile: TerraTileDebugStats | null) {
+    return tile
+      ? `${tile.level}/${tile.index}/${tile.loaded}/${tile.loading}/${tile.missing}/${tile.geometryCount ?? '-'}`
+      : '-';
   }
 
   private uniqueCollections(collections: Array<GeometryCollection | undefined>) {

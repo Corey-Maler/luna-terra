@@ -47,7 +47,7 @@ export type {
   TerraSurfaceTileEvaluation,
   TerraSurfaceTileEvaluateOptions,
 } from './TerraSurfaceModel';
-export type { TerraRenderStats } from './TerraStats';
+export type { TerraRenderStats, TerraTileDebugState, TerraTileDebugStats } from './TerraStats';
 export {
   TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP,
   TERRA_GLOBE_AUTO_MAX_ZOOM,
@@ -72,6 +72,7 @@ export {
   mortonTileIndexFromXYLevel,
   mortonTileIndexFromCoords,
   mortonTileXY,
+  mortonTileXYAtLevel,
   tileIndexToString,
 } from './TileIndex';
 export type { TileIndex, TileIndexString } from './TileIndex';

@@ -171,6 +171,25 @@ export class LazyQuadTree extends VirtualTree {
     return tiles.map((tile) => this.getGeometryForTile(tile.index, tile.level));
   }
 
+  public getTileStatus(index: TileIndex, level: number) {
+    const node = this.getByIndex(index, level) as LazyQuadTree | null;
+    if (!node) {
+      return {
+        loaded: false,
+        loading: false,
+        missing: false,
+        geometryCount: null,
+      };
+    }
+
+    return {
+      loaded: node.fulfilled && !node.missing,
+      loading: node.loading && !node.fulfilled,
+      missing: node.missing,
+      geometryCount: node.fulfilled && !node.missing ? node.geometry.length : null,
+    };
+  }
+
   private getOrCreateByIndex(index: TileIndex, level: number): LazyQuadTree | null {
     if (this.level === level) {
       return this;

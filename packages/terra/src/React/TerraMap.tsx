@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { LunaTerraEngine } from '@lunaterra/core';
 import { MapElement } from '../MapElement';
-import type { TerraRenderStats } from '../TerraStats';
+import type { TerraRenderStats, TerraTileDebugState } from '../TerraStats';
 import type { TerraManifestBounds, TerraTileClient } from '../TileClient';
 import type { TerraMapMode } from '../TerraMapRenderer';
 import { MAX_DEPTH } from '../TileIndex';
@@ -27,6 +27,8 @@ export interface TerraMapProps {
   onReady?: (engine: LunaTerraEngine) => void;
   /** Called periodically with the geometry volume rendered by the current view. */
   onStats?: (stats: TerraRenderStats) => void;
+  /** Called when the hovered or pinned rendered tile changes. */
+  onTileDebug?: (state: TerraTileDebugState) => void;
 }
 
 const MAX_TILE_SCREEN_SIZE = 512;
@@ -43,6 +45,7 @@ export const TerraMap = ({
   pitchDegrees = 0,
   onReady,
   onStats,
+  onTileDebug,
 }: TerraMapProps) => {
   const engineRef = useRef<LunaTerraEngine | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -100,6 +103,7 @@ export const TerraMap = ({
 
         const mapElement = new MapElement(tileBaseUrl, {
           onStats,
+          onTileDebug,
           tileClient,
           debugGrid: debugGridRef.current,
           debugTileFill: debugTileFillRef.current,
@@ -124,7 +128,7 @@ export const TerraMap = ({
         mapElementRef.current = null;
       }
     },
-    [onReady, onStats, tileBaseUrl, tileClient]
+    [onReady, onStats, onTileDebug, tileBaseUrl, tileClient]
   );
 
   return (

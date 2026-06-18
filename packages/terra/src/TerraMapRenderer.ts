@@ -1,5 +1,5 @@
 import { Camera3D, type CanvasRenderer } from '@lunaterra/core';
-import { M4, V3 } from '@lunaterra/math';
+import { M4, V2, V3 } from '@lunaterra/math';
 import { ResolutionByRoadType, getFeatureTypeById, type TerraFeatureType } from './helpers';
 import type { GeometryCollection, OptimizedArea, OptimizedLines } from './GeometryCollection';
 import type { TerraManifestBounds } from './TileClient';
@@ -11,11 +11,13 @@ import {
   worldUToLongitudeRadians,
   worldVToLatitudeRadians,
 } from './TerraSurfaceModel';
+import { mortonTileXYAtLevel } from './TileIndex';
 
 export interface TerraMapRenderOptions {
   debugGrid?: boolean;
   debugTiles?: TerraDebugTile[];
   debugTileFill?: boolean;
+  highlightedTile?: TerraDebugTile | null;
   mapMode?: TerraMapMode;
   pitchDegrees?: number;
   sourceBounds?: TerraManifestBounds | null;
@@ -133,6 +135,10 @@ export class TerraMapRenderer {
       this.renderDebugGrid(renderer, frame, options.sourceBounds ?? null);
     }
 
+    if (options.highlightedTile) {
+      this.renderTileOutline(renderer, frame, options.highlightedTile);
+    }
+
     return frame.surface;
   }
 
@@ -141,6 +147,45 @@ export class TerraMapRenderer {
       return 'globe';
     }
     return mapMode;
+  }
+
+  public hitTestTile(
+    renderer: CanvasRenderer,
+    tiles: TerraDebugTile[],
+    screenPoint: V2,
+    options: Pick<TerraMapRenderOptions, 'mapMode' | 'pitchDegrees'> = {},
+  ): TerraDebugTile | null {
+    const frame = this.buildFrame(
+      renderer,
+      this.resolveMapSurface(renderer, options.mapMode ?? 'plane'),
+      options.pitchDegrees ?? 0,
+    );
+    let best: { tile: TerraDebugTile; area: number } | null = null;
+
+    for (const tile of tiles) {
+      const bounds = this.tileScreenBounds(renderer, frame, tile);
+      if (!bounds) {
+        continue;
+      }
+      if (
+        screenPoint.x < bounds.minX ||
+        screenPoint.x > bounds.maxX ||
+        screenPoint.y < bounds.minY ||
+        screenPoint.y > bounds.maxY
+      ) {
+        continue;
+      }
+      const area = Math.max(0, bounds.maxX - bounds.minX) * Math.max(0, bounds.maxY - bounds.minY);
+      if (
+        !best ||
+        tile.level > best.tile.level ||
+        (tile.level === best.tile.level && area < best.area)
+      ) {
+        best = { tile, area };
+      }
+    }
+
+    return best?.tile ?? null;
   }
 
   private buildFrame(
@@ -342,7 +387,7 @@ export class TerraMapRenderer {
         return [];
       }
       const size = 1 / 2 ** collection.source.level;
-      const xy = this.tileXY(collection.source.index, collection.source.level);
+      const xy = mortonTileXYAtLevel(collection.source.index, collection.source.level);
       return [{
         level: collection.source.level,
         index: collection.source.index,
@@ -370,6 +415,74 @@ export class TerraMapRenderer {
         frame.modelMatrix,
       );
     }
+  }
+
+  private renderTileOutline(
+    renderer: CanvasRenderer,
+    frame: TerraMapRenderFrame,
+    tile: TerraDebugTile,
+  ) {
+    this.drawPolylineSet(
+      renderer,
+      frame,
+      this.rectLines(tile.minX, tile.minY, tile.maxX, tile.maxY),
+      'rgba(236, 96, 55, 0.96)',
+      4,
+    );
+  }
+
+  private tileScreenBounds(
+    renderer: CanvasRenderer,
+    frame: TerraMapRenderFrame,
+    tile: TerraDebugTile,
+  ) {
+    const subdivisions = frame.surface === 'plane' || frame.unwrap > TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP
+      ? 1
+      : SURFACE_DEBUG_TILE_SUBDIVISIONS;
+    const modelViewProjection = frame.camera.projectionMatrix
+      .multiply(frame.camera.viewMatrix)
+      .multiply(frame.modelMatrix);
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    let projected = 0;
+
+    const includePoint = (x: number, y: number) => {
+      const point = modelViewProjection.multiplyV3(frame.projectPoint(x, y));
+      if (point.z < -1 || point.z > 1) {
+        return;
+      }
+      const screenX = (point.x * 0.5 + 0.5) * renderer.width;
+      const screenY = (1 - (point.y * 0.5 + 0.5)) * renderer.height;
+      minX = Math.min(minX, screenX);
+      minY = Math.min(minY, screenY);
+      maxX = Math.max(maxX, screenX);
+      maxY = Math.max(maxY, screenY);
+      projected += 1;
+    };
+
+    for (let y = 0; y < subdivisions; y += 1) {
+      const y0 = tile.minY + (tile.maxY - tile.minY) * (y / subdivisions);
+      const y1 = tile.minY + (tile.maxY - tile.minY) * ((y + 1) / subdivisions);
+      for (let x = 0; x < subdivisions; x += 1) {
+        const x0 = tile.minX + (tile.maxX - tile.minX) * (x / subdivisions);
+        const x1 = tile.minX + (tile.maxX - tile.minX) * ((x + 1) / subdivisions);
+        if (!this.isTileCellVisibleOnSurface(frame, x0, y0, x1, y1)) {
+          continue;
+        }
+        includePoint(x0, y0);
+        includePoint(x1, y0);
+        includePoint(x1, y1);
+        includePoint(x0, y1);
+      }
+    }
+
+    if (projected === 0) {
+      return null;
+    }
+
+    return { minX, minY, maxX, maxY };
   }
 
   private isTileVisibleOnSurface(
@@ -453,16 +566,6 @@ export class TerraMapRenderer {
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
     return frame.globeDepth(centerX, centerY) > 0.005;
-  }
-
-  private tileXY(index: number, level: number) {
-    let x = 0;
-    let y = 0;
-    for (let bit = 0; bit < level; bit += 1) {
-      x += (Math.floor(index / 2 ** (bit * 2)) % 2) * 2 ** bit;
-      y += (Math.floor(index / 2 ** (bit * 2 + 1)) % 2) * 2 ** bit;
-    }
-    return { x, y };
   }
 
   private stableTileColor(level: number, index: number) {
