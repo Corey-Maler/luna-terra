@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Camera3D,
   LTElement,
@@ -62,11 +62,17 @@ const pushLineSegment = (buffer: LineBuffer, a: V3, b: V3) => {
 
 class GlobeLocalFrameScene extends LTElement {
   private config: GlobeFrameConfig;
+  private readonly onViewChange?: (view: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>) => void;
+  private lastReportedView: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'> | null = null;
   private latestSelection: TerraGlobeTileSelection | null = null;
 
-  constructor(config: GlobeFrameConfig) {
+  constructor(
+    config: GlobeFrameConfig,
+    onViewChange?: (view: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>) => void,
+  ) {
     super();
     this.config = config;
+    this.onViewChange = onViewChange;
   }
 
   public setConfig(config: GlobeFrameConfig) {
@@ -79,11 +85,12 @@ class GlobeLocalFrameScene extends LTElement {
   }
 
   override render(renderer: CanvasRenderer) {
+    const viewState = this.rendererViewState(renderer);
     const frame = TerraGlobeLocalFrame.fromDegrees(
-      this.config.longitude,
-      this.config.latitude,
+      viewState.longitude,
+      viewState.latitude,
     );
-    const view = this.view(renderer);
+    const view = this.view(renderer, viewState.zoom);
     const selection = frame.selectTiles({
       camera: view.camera,
       viewportWidth: renderer.width,
@@ -99,13 +106,38 @@ class GlobeLocalFrameScene extends LTElement {
     this.drawTileBorders(renderer, frame, view.camera, view.modelMatrix, selection.tiles);
     this.drawGraticule(renderer, frame, view.camera, view.modelMatrix);
     this.drawAxes(renderer, view.camera, view.modelMatrix);
-    this.drawStatus(renderer, selection, view.renderScale);
+    this.drawStatus(renderer, selection, view.renderScale, viewState);
+    this.reportViewState(viewState);
   }
 
-  private view(renderer: CanvasRenderer) {
+  private rendererViewState(renderer: CanvasRenderer) {
+    const center = renderer.viewportCenter;
+    const longitude = wrapDegrees(worldUToLongitudeRadians(center.x) * 180 / Math.PI);
+    const latitude = worldVToLatitudeRadians(center.y) * 180 / Math.PI;
+    return {
+      longitude,
+      latitude: clamp(latitude, -80, 80),
+      zoom: renderer.zoom,
+    };
+  }
+
+  private reportViewState(viewState: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>) {
+    if (
+      this.lastReportedView &&
+      Math.abs(this.lastReportedView.longitude - viewState.longitude) < 0.001 &&
+      Math.abs(this.lastReportedView.latitude - viewState.latitude) < 0.001 &&
+      Math.abs(this.lastReportedView.zoom - viewState.zoom) < 0.001
+    ) {
+      return;
+    }
+    this.lastReportedView = viewState;
+    this.onViewChange?.(viewState);
+  }
+
+  private view(renderer: CanvasRenderer, zoom: number) {
     const aspect = renderer.height === 0 ? 1 : renderer.width / renderer.height;
-    const distance = Math.max(CAMERA_MIN_DISTANCE, CAMERA_DISTANCE_BASE / this.config.zoom);
-    const renderScale = Math.max(1, this.config.zoom / CAMERA_CLAMP_ZOOM);
+    const distance = Math.max(CAMERA_MIN_DISTANCE, CAMERA_DISTANCE_BASE / zoom);
+    const renderScale = Math.max(1, zoom / CAMERA_CLAMP_ZOOM);
     const pitch = this.config.pitch * Math.PI / 180;
     const bearing = this.config.bearing * Math.PI / 180;
     const eye = new V3(
@@ -319,11 +351,16 @@ class GlobeLocalFrameScene extends LTElement {
     );
   }
 
-  private drawStatus(renderer: CanvasRenderer, selection: TerraGlobeTileSelection, renderScale: number) {
+  private drawStatus(
+    renderer: CanvasRenderer,
+    selection: TerraGlobeTileSelection,
+    renderScale: number,
+    viewState: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>,
+  ) {
     renderer.drawScreenSpace('#26313d').renderText(
       [
-        `target ${this.config.longitude.toFixed(1)}, ${this.config.latitude.toFixed(1)}`,
-        `zoom ${this.config.zoom.toFixed(2)}`,
+        `target ${viewState.longitude.toFixed(1)}, ${viewState.latitude.toFixed(1)}`,
+        `zoom ${viewState.zoom.toFixed(2)}`,
         `scale ${renderScale.toFixed(2)}`,
         `level ${selection.targetLevel}`,
         `tiles ${selection.tiles.length}`,
@@ -341,7 +378,15 @@ class GlobeLocalFrameScene extends LTElement {
   }
 }
 
-function GlobeLocalFramePreview({ config }: { config: GlobeFrameConfig }) {
+function GlobeLocalFramePreview({
+  config,
+  onReady,
+  onViewChange,
+}: {
+  config: GlobeFrameConfig;
+  onReady: (engine: LunaTerraEngine | null) => void;
+  onViewChange: (view: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<GlobeLocalFrameScene | null>(null);
 
@@ -350,20 +395,29 @@ function GlobeLocalFramePreview({ config }: { config: GlobeFrameConfig }) {
     if (!container) return;
 
     const engine = new LunaTerraEngine();
-    engine.interactive = false;
+    engine.interactive = true;
     engine.background = '#f6f4ef';
-    const scene = new GlobeLocalFrameScene(DEFAULT_CONFIG);
+    engine.renderer.minZoom = ZOOM_MIN;
+    engine.renderer.maxZoom = ZOOM_MAX;
+    engine.moveViewportTo(new V2(
+      longitudeDegreesToWorldU(DEFAULT_CONFIG.longitude),
+      latToWorldV(DEFAULT_CONFIG.latitude),
+    ));
+    engine.zoomToPoint(engine.viewportCenter, DEFAULT_CONFIG.zoom);
+    const scene = new GlobeLocalFrameScene(DEFAULT_CONFIG, onViewChange);
     sceneRef.current = scene;
     container.appendChild(engine.getHtmlElements());
     engine.add(scene);
+    onReady(engine);
     engine.requestUpdate();
 
     return () => {
       sceneRef.current = null;
+      onReady(null);
       engine.destroy();
       container.innerHTML = '';
     };
-  }, []);
+  }, [onReady, onViewChange]);
 
   useEffect(() => {
     sceneRef.current?.setConfig(config);
@@ -376,7 +430,7 @@ function GlobeLocalFramePreview({ config }: { config: GlobeFrameConfig }) {
         background: 'var(--surface)',
         border: '1px solid var(--border-color)',
         borderRadius: 8,
-        cursor: 'zoom-in',
+        cursor: 'grab',
         display: 'flex',
         height: 560,
         overflow: 'hidden',
@@ -386,21 +440,38 @@ function GlobeLocalFramePreview({ config }: { config: GlobeFrameConfig }) {
 }
 
 export default function TerraGlobeLocalFramePage() {
+  const engineRef = useRef<LunaTerraEngine | null>(null);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const patchConfig = (patch: Partial<GlobeFrameConfig>) => {
     setConfig((current) => ({ ...current, ...patch }));
   };
-  const zoomByWheel = (deltaY: number, deltaMode: number) => {
-    const pixelDelta = deltaMode === 1
-      ? deltaY * 16
-      : deltaMode === 2
-        ? deltaY * window.innerHeight
-        : deltaY;
-    const factor = Math.exp(-pixelDelta * 0.002);
-    setConfig((current) => ({
-      ...current,
-      zoom: clamp(current.zoom * factor, ZOOM_MIN, ZOOM_MAX),
-    }));
+  const handleReady = useCallback((engine: LunaTerraEngine | null) => {
+    engineRef.current = engine;
+  }, []);
+  const handleViewChange = useCallback((view: Pick<GlobeFrameConfig, 'longitude' | 'latitude' | 'zoom'>) => {
+    setConfig((current) => {
+      if (
+        Math.abs(current.longitude - view.longitude) < 0.001 &&
+        Math.abs(current.latitude - view.latitude) < 0.001 &&
+        Math.abs(current.zoom - view.zoom) < 0.001
+      ) {
+        return current;
+      }
+      return { ...current, ...view };
+    });
+  }, []);
+  const moveViewport = (longitude: number, latitude: number) => {
+    engineRef.current?.moveViewportTo(new V2(
+      longitudeDegreesToWorldU(longitude),
+      latToWorldV(latitude),
+    ));
+  };
+  const setViewportZoom = (zoom: number) => {
+    const engine = engineRef.current;
+    if (!engine) {
+      return;
+    }
+    engine.zoomToPoint(engine.viewportCenter, clamp(zoom, ZOOM_MIN, ZOOM_MAX));
   };
 
   return (
@@ -415,14 +486,11 @@ export default function TerraGlobeLocalFramePage() {
       </DocPage.Section>
 
       <DocPage.Section id="preview" title="Preview">
-        <div
-          onWheel={(event) => {
-            event.preventDefault();
-            zoomByWheel(event.deltaY, event.deltaMode);
-          }}
-        >
-          <GlobeLocalFramePreview config={config} />
-        </div>
+        <GlobeLocalFramePreview
+          config={config}
+          onReady={handleReady}
+          onViewChange={handleViewChange}
+        />
         <div
           style={{
             display: 'grid',
@@ -437,7 +505,10 @@ export default function TerraGlobeLocalFramePage() {
             max={180}
             step={1}
             value={config.longitude}
-            onChange={(longitude) => patchConfig({ longitude })}
+            onChange={(longitude) => {
+              patchConfig({ longitude });
+              moveViewport(longitude, config.latitude);
+            }}
           />
           <RangeControl
             label="Latitude"
@@ -445,7 +516,10 @@ export default function TerraGlobeLocalFramePage() {
             max={80}
             step={1}
             value={config.latitude}
-            onChange={(latitude) => patchConfig({ latitude })}
+            onChange={(latitude) => {
+              patchConfig({ latitude });
+              moveViewport(config.longitude, latitude);
+            }}
           />
           <RangeControl
             label="Zoom"
@@ -453,7 +527,10 @@ export default function TerraGlobeLocalFramePage() {
             max={ZOOM_MAX}
             step={1}
             value={config.zoom}
-            onChange={(zoom) => patchConfig({ zoom })}
+            onChange={(zoom) => {
+              patchConfig({ zoom });
+              setViewportZoom(zoom);
+            }}
           />
           <RangeControl
             label="Pitch"
@@ -519,6 +596,10 @@ function projectWorld(frame: TerraGlobeLocalFrame, u: number, v: number) {
   return frame.project(worldUToLongitudeRadians(u), worldVToLatitudeRadians(v));
 }
 
+function longitudeDegreesToWorldU(longitudeDegrees: number) {
+  return ((longitudeDegrees + 180) / 360 % 1 + 1) % 1;
+}
+
 function stableTileColor(tile: TerraGlobeTile) {
   let hash = (
     tile.level * 0x9e3779b1 ^
@@ -538,6 +619,10 @@ function latToWorldV(latitudeDegrees: number) {
   const lat = latitudeDegrees * Math.PI / 180;
   const mercator = Math.log(Math.tan(Math.PI / 4 + lat / 2));
   return (1 + mercator / Math.PI) / 2;
+}
+
+function wrapDegrees(value: number) {
+  return ((value + 180) % 360 + 360) % 360 - 180;
 }
 
 function clamp(value: number, min: number, max: number) {
