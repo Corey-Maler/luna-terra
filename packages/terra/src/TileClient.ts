@@ -35,7 +35,10 @@ export class LegacyJsonTileClient implements TerraTileClient {
   constructor(private readonly baseUrl = DEFAULT_TILE_BASE_URL) {}
 
   async getTile(level: number, index: string): Promise<MapyGeometry[] | null> {
-    const response = await fetch(`${this.baseUrl}/${level}/${index}.json`);
+    const response = await fetchResponse(`${this.baseUrl}/${level}/${index}.json`);
+    if (!response) {
+      return null;
+    }
     if (response.status === 404 || response.status === 204) {
       return null;
     }
@@ -50,7 +53,10 @@ export class TerraTileStoreClient implements TerraTileClient {
   constructor(private readonly baseUrl = DEFAULT_TILE_BASE_URL) {}
 
   async getTile(level: number, index: string): Promise<MapyGeometry[] | null> {
-    const response = await fetch(`${this.baseUrl}/tiles/${level}/${index}`);
+    const response = await fetchResponse(`${this.baseUrl}/tiles/${level}/${index}`);
+    if (!response) {
+      return null;
+    }
     if (response.status === 404 || response.status === 204) {
       return null;
     }
@@ -61,7 +67,10 @@ export class TerraTileStoreClient implements TerraTileClient {
   }
 
   async getManifest(): Promise<TerraManifest | null> {
-    const response = await fetch(`${this.baseUrl}/manifest`);
+    const response = await fetchResponse(`${this.baseUrl}/manifest`);
+    if (!response) {
+      return null;
+    }
     if (response.status === 404 || response.status === 204) {
       return null;
     }
@@ -69,5 +78,13 @@ export class TerraTileStoreClient implements TerraTileClient {
       return null;
     }
     return response.json();
+  }
+}
+
+async function fetchResponse(url: string) {
+  try {
+    return await fetch(url);
+  } catch {
+    return null;
   }
 }

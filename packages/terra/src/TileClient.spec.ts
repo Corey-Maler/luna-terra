@@ -11,6 +11,22 @@ const mockFetch = (body: unknown) => {
   return fetchMock;
 };
 
+const mockFetchStatus = (status: number) => {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    json: vi.fn(),
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+};
+
+const mockFetchReject = () => {
+  const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -24,6 +40,20 @@ describe('LegacyJsonTileClient', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('http://tiles/2/131074.json');
   });
+
+  it('treats missing legacy JSON tiles as empty', async () => {
+    mockFetchStatus(404);
+    const client = new LegacyJsonTileClient('http://tiles');
+
+    await expect(client.getTile(2, '131074')).resolves.toBeNull();
+  });
+
+  it('treats rejected legacy tile fetches as empty', async () => {
+    mockFetchReject();
+    const client = new LegacyJsonTileClient('http://tiles');
+
+    await expect(client.getTile(2, '131074')).resolves.toBeNull();
+  });
 });
 
 describe('TerraTileStoreClient', () => {
@@ -34,6 +64,20 @@ describe('TerraTileStoreClient', () => {
     await client.getTile(2, '131074');
 
     expect(fetchMock).toHaveBeenCalledWith('http://tiles/tiles/2/131074');
+  });
+
+  it('treats missing tile-store tiles as empty', async () => {
+    mockFetchStatus(404);
+    const client = new TerraTileStoreClient('http://tiles');
+
+    await expect(client.getTile(2, '131074')).resolves.toBeNull();
+  });
+
+  it('treats rejected tile-store tile fetches as empty', async () => {
+    mockFetchReject();
+    const client = new TerraTileStoreClient('http://tiles');
+
+    await expect(client.getTile(2, '131074')).resolves.toBeNull();
   });
 
   it('requests manifest from the tile-store server', async () => {
@@ -64,5 +108,12 @@ describe('TerraTileStoreClient', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('http://tiles/manifest');
     expect(manifest?.version).toBe(1);
+  });
+
+  it('treats rejected manifest fetches as unavailable', async () => {
+    mockFetchReject();
+    const client = new TerraTileStoreClient('http://tiles');
+
+    await expect(client.getManifest()).resolves.toBeNull();
   });
 });
