@@ -55,6 +55,7 @@ export interface TerraGlobeTileSelectionOptions extends TerraGlobeTileEvaluateOp
 
 export interface TerraGlobeTileSelection {
   tiles: TerraGlobeTile[];
+  targetLevel: number;
   visited: number;
   hidden: number;
   frustumRejected: number;
@@ -286,6 +287,7 @@ export class TerraGlobeLocalFrame {
 
   public selectTiles(options: TerraGlobeTileSelectionOptions): TerraGlobeTileSelection {
     const maxLevel = options.maxLevel ?? 8;
+    const targetLevel = this.targetLevelForView(options, maxLevel);
     const tiles: TerraGlobeTile[] = [];
     let visited = 0;
     let hidden = 0;
@@ -304,7 +306,7 @@ export class TerraGlobeLocalFrame {
         }
         return;
       }
-      if (evaluation.shouldSubdivide && tile.level < maxLevel) {
+      if (tile.level < targetLevel) {
         subdivided += 1;
         for (const child of childTiles(tile)) {
           visit(child);
@@ -321,12 +323,45 @@ export class TerraGlobeLocalFrame {
 
     return {
       tiles,
+      targetLevel,
       visited,
       hidden,
       frustumRejected,
       subdivided,
       maxLevelHits,
     };
+  }
+
+  private targetLevelForView(options: TerraGlobeTileSelectionOptions, maxLevel: number) {
+    let targetLevel = 0;
+    for (let level = 0; level <= maxLevel; level += 1) {
+      const tile = this.targetTileAtLevel(level);
+      const evaluation = this.evaluateTile(tile, options);
+      if (!evaluation.visible) {
+        break;
+      }
+      targetLevel = level;
+      if (!evaluation.shouldSubdivide) {
+        break;
+      }
+    }
+    return targetLevel;
+  }
+
+  private targetTileAtLevel(level: number) {
+    const scale = 2 ** level;
+    const x = Math.min(scale - 1, Math.max(0, Math.floor(this.targetU * scale)));
+    const y = Math.min(scale - 1, Math.max(0, Math.floor(this.targetV * scale)));
+    const tileSize = 1 / scale;
+    return makeTile(
+      level,
+      x,
+      y,
+      x * tileSize,
+      y * tileSize,
+      (x + 1) * tileSize,
+      (y + 1) * tileSize,
+    );
   }
 }
 

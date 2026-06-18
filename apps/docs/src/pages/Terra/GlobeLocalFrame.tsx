@@ -323,6 +323,7 @@ class GlobeLocalFrameScene extends LTElement {
         `target ${this.config.longitude.toFixed(1)}, ${this.config.latitude.toFixed(1)}`,
         `zoom ${this.config.zoom.toFixed(2)}`,
         `scale ${renderScale.toFixed(2)}`,
+        `level ${selection.targetLevel}`,
         `tiles ${selection.tiles.length}`,
         `visited ${selection.visited}`,
         `hidden ${selection.hidden}`,
