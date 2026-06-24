@@ -178,7 +178,7 @@ const LANDUSE_OFFSET = 500;
 const AEROWAY_OFFSET = 600;
 const MASK_OFFSET = 700;
 export const LAND_MASK_TYPE_ID = 701;
-export const LAND_MASK_MAX_DEPTH = 10;
+export const LAND_MASK_MAX_DEPTH = 16;
 
 const padding = 100 - hwTypes.length;
 for (let i = 0; i < padding; i++) {

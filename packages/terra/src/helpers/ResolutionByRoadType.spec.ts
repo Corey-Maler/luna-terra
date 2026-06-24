@@ -38,7 +38,7 @@ describe('ResolutionByRoadType taxonomy', () => {
 
   it('maps generated land masks as enclosed base features', () => {
     expect(getZoomLevelByTypeId(LAND_MASK_TYPE_ID)).toBe(0);
-    expect(LAND_MASK_MAX_DEPTH).toBe(10);
+    expect(LAND_MASK_MAX_DEPTH).toBe(16);
     expect(getFeatureTypeById(LAND_MASK_TYPE_ID)).toMatchObject({
       kind: 'mask',
       name: 'land_mask',
