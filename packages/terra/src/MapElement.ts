@@ -280,6 +280,10 @@ export class MapElement extends LTElement {
       return layer;
     }
 
+    if (layer.collections.length > 0) {
+      return layer;
+    }
+
     return this.lastReadyGlobeLayer ?? layer;
   }
 
