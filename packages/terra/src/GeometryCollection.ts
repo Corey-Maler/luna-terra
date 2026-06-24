@@ -38,6 +38,13 @@ export class GeometryCollection {
     this.optimizeForWebGL();
   }
 
+  public filterByTypeIds(typeIds: ReadonlySet<number>) {
+    return new GeometryCollection(
+      this.geometry.filter((geometry) => typeIds.has(geometry.typeid)),
+      this.source,
+    );
+  }
+
   private groupByType() {
     const grouped = new Map<number, GeometryClient[]>();
     for (const geometry of this.geometry) {

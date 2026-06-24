@@ -176,6 +176,9 @@ const BUILDING_OFFSET = 200;
 const WATERWAY_OFFSET = 400;
 const LANDUSE_OFFSET = 500;
 const AEROWAY_OFFSET = 600;
+const MASK_OFFSET = 700;
+export const LAND_MASK_TYPE_ID = 701;
+export const LAND_MASK_MAX_DEPTH = 10;
 
 const padding = 100 - hwTypes.length;
 for (let i = 0; i < padding; i++) {
@@ -202,6 +205,10 @@ while (highwayTypes.length < 600) {
   highwayTypes.push(`unknown${highwayTypes.length}`);
 }
 highwayTypes.push(...aerowayTypes);
+while (highwayTypes.length < LAND_MASK_TYPE_ID) {
+  highwayTypes.push(`unknown${highwayTypes.length}`);
+}
+highwayTypes.push('land_mask');
 
 const enclosed = new Set([
   'water',
@@ -212,6 +219,7 @@ const enclosed = new Set([
   'aerodrome',
   'apron',
   'helipad',
+  'land_mask',
 ]);
 
 export const isEnclosed = (metaType: number) =>
@@ -251,7 +259,8 @@ export const getZoomLevelByTypeId = (typeId: number) => {
   if (typeId < WATERWAY_OFFSET) return R.building;
   if (typeId < LANDUSE_OFFSET) return ResolutionByWaterwayType[highwayTypes[typeId]] ?? R.UNKNOWN;
   if (typeId < AEROWAY_OFFSET) return ResolutionByLanduseType[highwayTypes[typeId]] ?? R.UNKNOWN;
-  if (typeId < 700) return ResolutionByAerowayType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId < MASK_OFFSET) return ResolutionByAerowayType[highwayTypes[typeId]] ?? R.UNKNOWN;
+  if (typeId === LAND_MASK_TYPE_ID) return R.world;
   return R.UNKNOWN;
 };
 
@@ -262,6 +271,7 @@ export type TerraFeatureKind =
   | 'waterway'
   | 'landuse'
   | 'aeroway'
+  | 'mask'
   | 'unknown';
 
 export interface TerraFeatureType {
@@ -285,8 +295,10 @@ export const getFeatureTypeById = (typeId: number): TerraFeatureType => {
     kind = 'waterway';
   } else if (typeId < AEROWAY_OFFSET) {
     kind = 'landuse';
-  } else if (typeId < 700) {
+  } else if (typeId < MASK_OFFSET) {
     kind = 'aeroway';
+  } else if (typeId === LAND_MASK_TYPE_ID) {
+    kind = 'mask';
   }
 
   return {
@@ -306,7 +318,7 @@ export const getZoomLevelByTags = (tags: Record<string, string>) => {
     return ResolutionByNaturalType[tags.natural] ?? R.UNKNOWN;
   }
   if ('building' in tags) {
-    return R.nano;
+    return R.building;
   }
   if ('waterway' in tags) {
     return ResolutionByWaterwayType[tags.waterway] ?? R.UNKNOWN;

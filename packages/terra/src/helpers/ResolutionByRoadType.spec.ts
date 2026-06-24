@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { getFeatureTypeById, getZoomLevelByTypeId, typeidByTags } from './ResolutionByRoadType';
+import {
+  LAND_MASK_TYPE_ID,
+  LAND_MASK_MAX_DEPTH,
+  getFeatureTypeById,
+  getZoomLevelByTags,
+  getZoomLevelByTypeId,
+  typeidByTags,
+} from './ResolutionByRoadType';
 
 describe('ResolutionByRoadType taxonomy', () => {
   it('keeps duplicate names in separate tag namespaces', () => {
@@ -26,5 +33,16 @@ describe('ResolutionByRoadType taxonomy', () => {
   it('keeps buildings at the deepest tile level', () => {
     expect(getZoomLevelByTypeId(200)).toBe(16);
     expect(getZoomLevelByTypeId(217)).toBe(16);
+    expect(getZoomLevelByTags({ building: 'house' })).toBe(16);
+  });
+
+  it('maps generated land masks as enclosed base features', () => {
+    expect(getZoomLevelByTypeId(LAND_MASK_TYPE_ID)).toBe(0);
+    expect(LAND_MASK_MAX_DEPTH).toBe(10);
+    expect(getFeatureTypeById(LAND_MASK_TYPE_ID)).toMatchObject({
+      kind: 'mask',
+      name: 'land_mask',
+      enclosed: true,
+    });
   });
 });

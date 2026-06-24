@@ -14,6 +14,10 @@ export interface LazyQuadTreeContext {
   engine: LunaTerraEngine;
 }
 
+export interface LazyQuadTreeTileOptions {
+  fallback?: boolean;
+}
+
 export class LazyQuadTree extends VirtualTree {
   public fulfilled = false;
   public loading = false;
@@ -154,7 +158,11 @@ export class LazyQuadTree extends VirtualTree {
     return [];
   }
 
-  public getGeometryForTile(index: TileIndex, level: number): GeometryCollection | undefined {
+  public getGeometryForTile(
+    index: TileIndex,
+    level: number,
+    options: LazyQuadTreeTileOptions = {},
+  ): GeometryCollection | undefined {
     const node = this.getOrCreateByIndex(index, level);
     if (!node) {
       return undefined;
@@ -165,7 +173,7 @@ export class LazyQuadTree extends VirtualTree {
     }
 
     if (!node.fulfilled || node.missing) {
-      return node.fallbackGeometryCollection();
+      return options.fallback === false ? undefined : node.fallbackGeometryCollection();
     }
 
     return node.ownGeometryCollection();
@@ -173,8 +181,9 @@ export class LazyQuadTree extends VirtualTree {
 
   public getGeometryForTiles(
     tiles: Array<{ index: TileIndex; level: number }>,
+    options: LazyQuadTreeTileOptions = {},
   ): Array<GeometryCollection | undefined> {
-    return tiles.map((tile) => this.getGeometryForTile(tile.index, tile.level));
+    return tiles.map((tile) => this.getGeometryForTile(tile.index, tile.level, options));
   }
 
   public getTileStatus(index: TileIndex, level: number) {

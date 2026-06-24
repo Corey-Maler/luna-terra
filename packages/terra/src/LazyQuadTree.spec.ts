@@ -50,4 +50,19 @@ describe('LazyQuadTree', () => {
       geometryCount: 1,
     });
   });
+
+  it('can disable parent fallback for exact tile rendering', async () => {
+    const request = vi.fn((_: number, level: number) => (
+      level === 0 ? Promise.resolve([lineGeometry()]) : Promise.resolve(null)
+    ));
+    const root = LazyQuadTree.generate(makeContext(request));
+
+    await root.fetch();
+
+    const childFallback = root.getGeometryForTile(0, 1);
+    const childExact = root.getGeometryForTile(0, 1, { fallback: false });
+
+    expect(childFallback?.source?.level).toBe(0);
+    expect(childExact).toBeUndefined();
+  });
 });

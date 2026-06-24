@@ -1,6 +1,11 @@
 import { Camera3D, type CanvasRenderer } from '@lunaterra/core';
 import { M4, V2, V3 } from '@lunaterra/math';
-import { ResolutionByRoadType, getFeatureTypeById, type TerraFeatureType } from './helpers';
+import {
+  ResolutionByRoadType,
+  getFeatureTypeById,
+  type TerraFeatureKind,
+  type TerraFeatureType,
+} from './helpers';
 import type { GeometryCollection, OptimizedArea, OptimizedLines } from './GeometryCollection';
 import type { TerraManifestBounds } from './TileClient';
 import {
@@ -64,6 +69,7 @@ const TERRAIN_COLORS = {
   vegetation: '#c7d0c6',
   airport: '#a8a5a0',
   building: '#8f8f8f',
+  landMask: '#f1f2ef',
   fallbackArea: '#cccccc',
   fallbackNaturalLine: '#aaaaaa',
   fallbackBuildingLine: '#bbbbbb',
@@ -306,7 +312,10 @@ export class TerraMapRenderer {
     collection: GeometryCollection,
     frame: TerraMapRenderFrame,
   ) {
-    for (const group of collection.optimizedGroups) {
+    const groups = [...collection.optimizedGroups].sort((a, b) =>
+      this.renderLayer(getFeatureTypeById(a.typeid)) - this.renderLayer(getFeatureTypeById(b.typeid))
+    );
+    for (const group of groups) {
       const feature = getFeatureTypeById(group.typeid);
 
       if ('area' in group) {
@@ -883,6 +892,9 @@ export class TerraMapRenderer {
   }
 
   private areaColor(feature: TerraFeatureType) {
+    if (feature.kind === 'mask') {
+      return TERRAIN_COLORS.landMask;
+    }
     if (this.isWaterFeature(feature)) {
       return TERRAIN_COLORS.water;
     }
@@ -922,6 +934,9 @@ export class TerraMapRenderer {
     if (feature.kind === 'building') {
       return { color: TERRAIN_COLORS.fallbackBuildingLine, lineWidth: 1 };
     }
+    if (feature.kind === 'mask') {
+      return { color: TERRAIN_COLORS.landMask, lineWidth: 1 };
+    }
     if (feature.kind === 'road') {
       const roadLevel = ResolutionByRoadType[feature.name] ?? 0;
       return {
@@ -933,11 +948,38 @@ export class TerraMapRenderer {
     return { color: TERRAIN_COLORS.debug, lineWidth: 1 };
   }
 
-  private isWaterFeature(feature: TerraFeatureType) {
+  private isWaterFeature(feature: Pick<TerraFeatureType, 'name'>) {
     return waterFeatureNames.has(feature.name);
   }
 
-  private isVegetationFeature(feature: TerraFeatureType) {
+  private isVegetationFeature(feature: Pick<TerraFeatureType, 'name'>) {
     return vegetationFeatureNames.has(feature.name);
   }
+
+  private renderLayer(feature: Pick<TerraFeatureType, 'kind' | 'name'>) {
+    if (feature.kind === 'mask') {
+      return 0;
+    }
+    if (this.isVegetationFeature(feature) || feature.kind === 'landuse') {
+      return 10;
+    }
+    if (this.isWaterFeature(feature) || feature.kind === 'waterway') {
+      return 20;
+    }
+    if (feature.kind === 'natural' && feature.name === 'coastline') {
+      return 30;
+    }
+    return renderLayerByKind[feature.kind] ?? 50;
+  }
 }
+
+const renderLayerByKind: Record<TerraFeatureKind, number> = {
+  mask: 0,
+  natural: 30,
+  aeroway: 35,
+  road: 40,
+  building: 45,
+  landuse: 10,
+  waterway: 20,
+  unknown: 50,
+};

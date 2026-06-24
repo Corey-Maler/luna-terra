@@ -1,6 +1,6 @@
 import { LTElement, CanvasRenderer, LunaTerraEngine } from '@lunaterra/core';
 import { Rect2D, V2 } from '@lunaterra/math';
-import { getFeatureTypeById } from './helpers';
+import { LAND_MASK_MAX_DEPTH, LAND_MASK_TYPE_ID, getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
 import { LazyQuadTree } from './LazyQuadTree';
 import { GeometryCollection } from './GeometryCollection';
@@ -30,10 +30,18 @@ import {
 import { mortonTileIndexFromXYLevel, mortonTileXYAtLevel } from './TileIndex';
 
 const TERRA_GLOBE_TARGET_PIXELS = 256;
+const landMaskTypeIds = new Set([LAND_MASK_TYPE_ID]);
 
 interface TileDebugCandidate {
   tile: TerraDebugTile;
   stats: TerraTileDebugStats;
+}
+
+interface GlobeGeometryLayer {
+  collections: GeometryCollection[];
+  debugTiles: TerraDebugTile[];
+  key: string;
+  ready: boolean;
 }
 
 export interface MapElementOptions {
@@ -67,6 +75,7 @@ export class MapElement extends LTElement {
   private hoveredTile: TerraTileDebugStats | null = null;
   private pinnedTile: TerraTileDebugStats | null = null;
   private lastTileDebugKey = '';
+  private lastReadyGlobeLayer: GlobeGeometryLayer | null = null;
   private readonly tileDiagnosticsCache = new Map<string, TerraTileDiagnostics | null>();
   private readonly tileDiagnosticsLoading = new Set<string>();
   private unsubscribeMouseMove?: () => void;
@@ -146,8 +155,11 @@ export class MapElement extends LTElement {
     const globeSelection = surface === 'globe'
       ? this.selectGlobeTiles(renderer)
       : null;
-    const collections = globeSelection
-      ? this.collectionsForGlobeSelection(globeSelection)
+    const globeLayer = globeSelection
+      ? this.globeGeometryLayer(globeSelection)
+      : null;
+    const collections = globeLayer
+      ? globeLayer.collections
       : this.collectionsForArea(renderer);
     const debugTiles = this.debugTileFill && globeSelection
       ? this.debugTilesForGlobeSelection(globeSelection)
@@ -223,15 +235,65 @@ export class MapElement extends LTElement {
     );
   }
 
-  private collectionsForGlobeSelection(selection: TerraGlobeTileSelection) {
-    return this.uniqueCollections(
-      this.lazyTreeRoot?.getGeometryForTiles(
-        selection.tiles.map((tile) => ({
-          level: tile.level,
-          index: mortonTileIndexFromXYLevel(tile.x, tile.y, tile.level),
-        })),
-      ) ?? [],
+  private globeGeometryLayer(selection: TerraGlobeTileSelection): GlobeGeometryLayer {
+    const tileRequests = selection.tiles.map((tile) => ({
+      level: tile.level,
+      index: mortonTileIndexFromXYLevel(tile.x, tile.y, tile.level),
+    }));
+    const maskTileRequests = this.landMaskTileRequests(selection);
+    const key = [
+      tileRequests.map((tile) => `${tile.level}/${tile.index}`).join('|'),
+      maskTileRequests.map((tile) => `${tile.level}/${tile.index}`).join('|'),
+    ].join('::');
+    const debugTiles = this.debugTilesForGlobeSelection(selection);
+    const rawCollections = this.lazyTreeRoot?.getGeometryForTiles(tileRequests, { fallback: false }) ?? [];
+    const rawMaskCollections = this.lazyTreeRoot?.getGeometryForTiles(maskTileRequests, { fallback: false }) ?? [];
+    const maskCollections = this.uniqueCollections(rawMaskCollections)
+      .map((collection) => collection.filterByTypeIds(landMaskTypeIds))
+      .filter((collection) => collection.geometry.length > 0);
+    const statuses = tileRequests.map((tile) =>
+      this.lazyTreeRoot?.getTileStatus(tile.index, tile.level) ?? {
+        loaded: false,
+        loading: false,
+        missing: false,
+        geometryCount: null,
+      }
     );
+    const maskStatuses = maskTileRequests.map((tile) =>
+      this.lazyTreeRoot?.getTileStatus(tile.index, tile.level) ?? {
+        loaded: false,
+        loading: false,
+        missing: false,
+        geometryCount: null,
+      }
+    );
+    const ready = [...statuses, ...maskStatuses].every((status) => status.loaded || status.missing);
+    const layer = {
+      collections: this.uniqueCollections([...maskCollections, ...rawCollections]),
+      debugTiles,
+      key,
+      ready,
+    };
+
+    if (ready) {
+      this.lastReadyGlobeLayer = layer;
+      return layer;
+    }
+
+    return this.lastReadyGlobeLayer ?? layer;
+  }
+
+  private landMaskTileRequests(selection: TerraGlobeTileSelection) {
+    const byKey = new Map<string, { level: number; index: number }>();
+    for (const tile of selection.tiles) {
+      const level = Math.min(tile.level, LAND_MASK_MAX_DEPTH);
+      const scale = 2 ** (tile.level - level);
+      const x = Math.floor(tile.x / scale);
+      const y = Math.floor(tile.y / scale);
+      const index = mortonTileIndexFromXYLevel(x, y, level);
+      byKey.set(`${level}/${index}`, { level, index });
+    }
+    return Array.from(byKey.values());
   }
 
   private debugTilesForGlobeSelection(selection: TerraGlobeTileSelection): TerraDebugTile[] {
