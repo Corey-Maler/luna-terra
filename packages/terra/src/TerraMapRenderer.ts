@@ -36,6 +36,9 @@ export const TERRA_GLOBE_MAX_TILE_LEVEL = 16;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 const TERRA_OCEAN_SPHERE_RADIUS = 0.998;
+const TERRA_BASE_SURFACE_OFFSET = 0.0005;
+const TERRA_LAYER_SURFACE_STEP = 0.00005;
+const TERRA_DEBUG_SURFACE_OFFSET = 0.004;
 
 export function terraUnwrapAmount(zoom: number) {
   const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
@@ -60,7 +63,7 @@ type TerraMapRenderFrame = {
   modelMatrix: M4;
   surface: TerraMapSurface;
   unwrap: number;
-  projectPoint: (x: number, y: number) => V3;
+  projectPoint: (x: number, y: number, surfaceOffset?: number) => V3;
   projectGeoPoint: (longitudeRadians: number, latitudeRadians: number, radius: number) => V3;
   globeDepth: (x: number, y: number) => number;
 };
@@ -249,10 +252,12 @@ export class TerraMapRenderer {
           worldVToLatitudeRadians(y),
           view.camera,
         ),
-        projectPoint: (x, y) => frame.project(
-          worldUToLongitudeRadians(x),
-          worldVToLatitudeRadians(y),
-        ),
+        projectPoint: (x, y, surfaceOffset = 0) =>
+          frame.projectAtRadius(
+            worldUToLongitudeRadians(x),
+            worldVToLatitudeRadians(y),
+            1 + surfaceOffset,
+          ),
         projectGeoPoint: (longitudeRadians, latitudeRadians, radius) =>
           frame.projectAtRadius(longitudeRadians, latitudeRadians, radius),
       };
@@ -267,7 +272,8 @@ export class TerraMapRenderer {
       surface: 'plane',
       unwrap: 1,
       globeDepth: () => 1,
-      projectPoint: (x, y) => new V3(x - anchorWorld.x, y - anchorWorld.y, 0),
+      projectPoint: (x, y, surfaceOffset = 0) =>
+        new V3(x - anchorWorld.x, y - anchorWorld.y, surfaceOffset),
       projectGeoPoint: (longitudeRadians, latitudeRadians) => new V3(longitudeRadians, latitudeRadians, 0),
     };
   }
@@ -327,8 +333,9 @@ export class TerraMapRenderer {
       const feature = getFeatureTypeById(group.typeid);
 
       if ('area' in group) {
+        const surfaceOffset = this.surfaceOffset(feature);
         renderer.webgl3d.drawTriangles(
-          this.areaPoints3D(group, frame),
+          this.areaPoints3D(group, frame, surfaceOffset),
           this.areaColor(feature),
           frame.camera,
           frame.modelMatrix,
@@ -337,7 +344,7 @@ export class TerraMapRenderer {
       }
 
       const style = this.lineStyle(feature);
-      const lines = this.linePoints3D(group, frame);
+      const lines = this.linePoints3D(group, frame, this.surfaceOffset(feature));
       renderer.webgl3d.drawLineStrips(
         lines.points,
         lines.offsets,
@@ -583,10 +590,10 @@ export class TerraMapRenderer {
           continue;
         }
 
-        const p0 = frame.projectPoint(x0, y0);
-        const p1 = frame.projectPoint(x1, y0);
-        const p2 = frame.projectPoint(x1, y1);
-        const p3 = frame.projectPoint(x0, y1);
+        const p0 = frame.projectPoint(x0, y0, TERRA_DEBUG_SURFACE_OFFSET);
+        const p1 = frame.projectPoint(x1, y0, TERRA_DEBUG_SURFACE_OFFSET);
+        const p2 = frame.projectPoint(x1, y1, TERRA_DEBUG_SURFACE_OFFSET);
+        const p3 = frame.projectPoint(x0, y1, TERRA_DEBUG_SURFACE_OFFSET);
         points.push(
           p0.x, p0.y, p0.z,
           p1.x, p1.y, p1.z,
@@ -683,6 +690,7 @@ export class TerraMapRenderer {
     frame: TerraMapRenderFrame,
     line: number[],
     skipFirst = false,
+    surfaceOffset = TERRA_DEBUG_SURFACE_OFFSET,
   ) {
     const subdivisions = frame.surface !== 'plane'
       ? Math.max(1, Math.ceil(Math.max(Math.abs(line[2] - line[0]), Math.abs(line[3] - line[1])) / 0.01))
@@ -695,7 +703,7 @@ export class TerraMapRenderer {
       const t = i / subdivisions;
       const x = line[0] + (line[2] - line[0]) * t;
       const y = line[1] + (line[3] - line[1]) * t;
-      const p = frame.projectPoint(x, y);
+      const p = frame.projectPoint(x, y, surfaceOffset);
       target.push(p.x, p.y, p.z);
       pointOffset += 1;
     }
@@ -703,11 +711,11 @@ export class TerraMapRenderer {
     return pointOffset;
   }
 
-  private linePoints3D(group: OptimizedLines, frame: TerraMapRenderFrame) {
+  private linePoints3D(group: OptimizedLines, frame: TerraMapRenderFrame, surfaceOffset: number) {
     if (frame.surface === 'plane' || frame.unwrap >= 0.999) {
       const points = new Float32Array((group.points.length / 2) * 3);
       for (let source = 0, target = 0; source < group.points.length; source += 2, target += 3) {
-        const p = frame.projectPoint(group.points[source], group.points[source + 1]);
+        const p = frame.projectPoint(group.points[source], group.points[source + 1], surfaceOffset);
         points[target] = p.x;
         points[target + 1] = p.y;
         points[target + 2] = p.z;
@@ -736,7 +744,7 @@ export class TerraMapRenderer {
           group.points[source + 1],
           group.points[source + 2],
           group.points[source + 3],
-        ], i > 0);
+        ], i > 0, surfaceOffset);
       }
 
       sizes.push(pointOffset - offsets[offsets.length - 1]);
@@ -749,12 +757,12 @@ export class TerraMapRenderer {
     };
   }
 
-  private areaPoints3D(group: OptimizedArea, frame: TerraMapRenderFrame) {
+  private areaPoints3D(group: OptimizedArea, frame: TerraMapRenderFrame, surfaceOffset: number) {
     const points = new Float32Array(group.triangles.length * 3);
     for (let i = 0; i < group.triangles.length; i += 1) {
       const source = group.triangles[i] * 2;
       const target = i * 3;
-      const p = frame.projectPoint(group.points[source], group.points[source + 1]);
+      const p = frame.projectPoint(group.points[source], group.points[source + 1], surfaceOffset);
       points[target] = p.x;
       points[target + 1] = p.y;
       points[target + 2] = p.z;
@@ -969,6 +977,10 @@ export class TerraMapRenderer {
 
   private isVegetationFeature(feature: Pick<TerraFeatureType, 'name'>) {
     return vegetationFeatureNames.has(feature.name);
+  }
+
+  private surfaceOffset(feature: Pick<TerraFeatureType, 'kind' | 'name'>) {
+    return TERRA_BASE_SURFACE_OFFSET + this.renderLayer(feature) * TERRA_LAYER_SURFACE_STEP;
   }
 
   private renderLayer(feature: Pick<TerraFeatureType, 'kind' | 'name'>) {
