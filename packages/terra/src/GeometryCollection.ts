@@ -16,7 +16,7 @@ export interface OptimizedLines {
 export interface OptimizedArea {
   typeid: number;
   points: Float32Array;
-  triangles: Uint16Array;
+  triangles: Uint16Array | Uint32Array;
   area: true;
 }
 
@@ -75,7 +75,10 @@ export class GeometryCollection {
       optimized[i * 2] = geometry.points[i].x;
       optimized[i * 2 + 1] = geometry.points[i].y;
     }
-    const triangles = new Uint16Array(earcut(optimized));
+    const triangleIndices = earcut(optimized);
+    const triangles = count > 65535
+      ? new Uint32Array(triangleIndices)
+      : new Uint16Array(triangleIndices);
     return { typeid, points: optimized, triangles, area: true };
   }
 

@@ -286,11 +286,11 @@ export class MapElement extends LTElement {
   private landMaskTileRequests(selection: TerraGlobeTileSelection) {
     const byKey = new Map<string, { level: number; index: number }>();
     for (const tile of selection.tiles) {
-      const level = Math.min(tile.level, LAND_MASK_MAX_DEPTH);
-      const scale = 2 ** (tile.level - level);
-      const x = Math.floor(tile.x / scale);
-      const y = Math.floor(tile.y / scale);
-      const index = mortonTileIndexFromXYLevel(x, y, level);
+      if (tile.level > LAND_MASK_MAX_DEPTH) {
+        continue;
+      }
+      const index = mortonTileIndexFromXYLevel(tile.x, tile.y, tile.level);
+      const level = tile.level;
       byKey.set(`${level}/${index}`, { level, index });
     }
     return Array.from(byKey.values());
