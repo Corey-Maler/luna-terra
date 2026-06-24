@@ -2,6 +2,11 @@ import { M4 } from '@lunaterra/math';
 import { ColorCache } from './ColorCache';
 import type { Camera3D } from './Camera3D';
 
+export interface WebGL3DTriangleOptions {
+  polygonOffsetFactor?: number;
+  polygonOffsetUnits?: number;
+}
+
 const vertexShaderSource = `#version 300 es
 
 in vec3 a_position;
@@ -116,8 +121,9 @@ export class WebGL3DBackend {
     color: string,
     camera: Camera3D,
     modelMatrix = M4.identity(),
+    options: WebGL3DTriangleOptions = {},
   ) {
-    this.draw(points, color, camera, modelMatrix, this.gl.TRIANGLES, 0, points.length / 3);
+    this.draw(points, color, camera, modelMatrix, this.gl.TRIANGLES, 0, points.length / 3, options);
   }
 
   public drawLineStrips(
@@ -146,10 +152,19 @@ export class WebGL3DBackend {
     mode: number,
     offset: number,
     count: number,
+    options: WebGL3DTriangleOptions = {},
   ) {
     const gl = this.gl;
     this.prepareDraw(points, color, camera, modelMatrix);
+    if (mode === gl.TRIANGLES && (
+      options.polygonOffsetFactor !== undefined ||
+      options.polygonOffsetUnits !== undefined
+    )) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(options.polygonOffsetFactor ?? 0, options.polygonOffsetUnits ?? 0);
+    }
     gl.drawArrays(mode, offset, count);
+    gl.disable(gl.POLYGON_OFFSET_FILL);
     gl.disable(gl.DEPTH_TEST);
   }
 
