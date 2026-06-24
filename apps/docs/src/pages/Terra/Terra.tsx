@@ -36,6 +36,10 @@ const formatLevels = (stats: TerraRenderStats | null) => {
 
 const formatWorld = (value: number) => value.toFixed(9);
 const formatMetric = (value: number) => value.toFixed(value >= 10 ? 1 : 3);
+const formatPixels = (value: number) => `${value.toFixed(value >= 100 ? 0 : 1)} px`;
+const formatDegrees = (value: number) => `${value.toFixed(2)}°`;
+const formatOptionalFixed = (value: number | undefined, digits: number) =>
+  value === undefined ? '-' : value.toFixed(digits);
 
 const nextFloat32 = (value: number) => {
   if (!Number.isFinite(value)) {
@@ -456,6 +460,48 @@ function TileDebugCard({ label, tile }: { label: string; tile: TerraTileDebugSta
           <span>level {tile.level}</span>
           <span>index {tile.index}</span>
           <span>geometries {tile.geometryCount === null ? '-' : formatNumber(tile.geometryCount)}</span>
+          <span>
+            projected {tile.projectedSize ? `${formatPixels(tile.projectedSize.width)} x ${formatPixels(tile.projectedSize.height)}` : '-'}
+          </span>
+          <span>center lat {formatDegrees(tile.centerLatitudeDegrees)}</span>
+          <span>latitude scale {tile.latitudeScale.toFixed(3)}</span>
+          <span>globe estimate {formatPixels(tile.estimatedGlobeTilePixels)} / {formatPixels(tile.nominalTilePixels)}</span>
+          {tile.pipelineDiagnostics ? (
+            <>
+              <span>pipeline points {formatNumber(tile.pipelineDiagnostics.pointCount)}</span>
+              <span>
+                simplify x{tile.pipelineDiagnostics.simplificationScale.toFixed(2)}
+                {' '}q/px {formatOptionalFixed(tile.pipelineDiagnostics.quantizedUnitsPerPixel, 0)}
+              </span>
+              <span>
+                epsilon base/coast/river {tile.pipelineDiagnostics.rdpEpsilon.toFixed(0)}
+                /{formatOptionalFixed(tile.pipelineDiagnostics.coastlineRdpEpsilon, 0)}
+                /{formatOptionalFixed(tile.pipelineDiagnostics.waterwayRdpEpsilon, 0)}
+              </span>
+              <span>
+                pipeline lines/areas {formatNumber(tile.pipelineDiagnostics.lineGeometryCount)}
+                /{formatNumber(tile.pipelineDiagnostics.areaGeometryCount)}
+              </span>
+              <span>
+                skipped lines/areas {formatNumber(tile.pipelineDiagnostics.skippedLineGeometryCount)}
+                /{formatNumber(tile.pipelineDiagnostics.skippedAreaGeometryCount)}
+              </span>
+              <span>
+                skipped points {formatNumber(
+                  tile.pipelineDiagnostics.skippedLinePointCount +
+                  tile.pipelineDiagnostics.skippedAreaPointCount
+                )}
+              </span>
+              <span>pipeline estimate {formatPixels(tile.pipelineDiagnostics.estimatedPixels)}</span>
+              <span>
+                pipeline types {tile.pipelineDiagnostics.typeStats.slice(0, 4).map((type) =>
+                  `${type.typeId}:${formatNumber(type.points)}`
+                ).join(', ') || '-'}
+              </span>
+            </>
+          ) : (
+            <span>pipeline diagnostics -</span>
+          )}
           <span>
             bounds [{formatWorld(tile.bounds.minX)}, {formatWorld(tile.bounds.minY)}] - [{formatWorld(tile.bounds.maxX)}, {formatWorld(tile.bounds.maxY)}]
           </span>

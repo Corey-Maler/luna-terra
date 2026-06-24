@@ -8,6 +8,8 @@ export interface TerraManifestLevel {
   dataFile: string;
   tileCount: number;
   dataFormat?: string;
+  diagnosticsFile?: string;
+  diagnosticsFormat?: string;
 }
 
 export interface TerraManifest {
@@ -26,9 +28,41 @@ export interface TerraManifestBounds {
   maxY: number;
 }
 
+export interface TerraTileDiagnosticsTypeStats {
+  typeId: number;
+  geometries: number;
+  points: number;
+}
+
+export interface TerraTileDiagnostics {
+  level: number;
+  index: number;
+  centerLonDegrees: number;
+  centerLatDegrees: number;
+  latitudeScale: number;
+  simplificationScale: number;
+  rdpScreenErrorPx?: number;
+  rdpEpsilon: number;
+  coastlineRdpEpsilon?: number;
+  waterwayRdpEpsilon?: number;
+  quantizedUnitsPerPixel?: number;
+  nominalPixels: number;
+  estimatedPixels: number;
+  geometryCount: number;
+  pointCount: number;
+  lineGeometryCount: number;
+  areaGeometryCount: number;
+  skippedAreaGeometryCount: number;
+  skippedAreaPointCount: number;
+  skippedLineGeometryCount: number;
+  skippedLinePointCount: number;
+  typeStats: TerraTileDiagnosticsTypeStats[];
+}
+
 export interface TerraTileClient {
   getTile(level: number, index: string): Promise<MapyGeometry[] | null>;
   getManifest?(): Promise<TerraManifest | null>;
+  getTileDiagnostics?(level: number, index: string): Promise<TerraTileDiagnostics | null>;
 }
 
 export class LegacyJsonTileClient implements TerraTileClient {
@@ -68,6 +102,20 @@ export class TerraTileStoreClient implements TerraTileClient {
 
   async getManifest(): Promise<TerraManifest | null> {
     const response = await fetchResponse(`${this.baseUrl}/manifest`);
+    if (!response) {
+      return null;
+    }
+    if (response.status === 404 || response.status === 204) {
+      return null;
+    }
+    if (!response.ok) {
+      return null;
+    }
+    return response.json();
+  }
+
+  async getTileDiagnostics(level: number, index: string): Promise<TerraTileDiagnostics | null> {
+    const response = await fetchResponse(`${this.baseUrl}/tiles/${level}/${index}/debug`);
     if (!response) {
       return null;
     }

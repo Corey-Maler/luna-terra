@@ -61,6 +61,8 @@ export type {
   TerraManifest,
   TerraManifestBounds,
   TerraManifestLevel,
+  TerraTileDiagnostics,
+  TerraTileDiagnosticsTypeStats,
   TerraTileClient,
 } from './TileClient';
 export {

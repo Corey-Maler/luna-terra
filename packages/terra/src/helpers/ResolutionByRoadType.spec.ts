@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getFeatureTypeById, typeidByTags } from './ResolutionByRoadType';
+import { getFeatureTypeById, getZoomLevelByTypeId, typeidByTags } from './ResolutionByRoadType';
 
 describe('ResolutionByRoadType taxonomy', () => {
   it('keeps duplicate names in separate tag namespaces', () => {
@@ -21,5 +21,10 @@ describe('ResolutionByRoadType taxonomy', () => {
       name: 'forest',
       enclosed: true,
     });
+  });
+
+  it('keeps buildings at the deepest tile level', () => {
+    expect(getZoomLevelByTypeId(200)).toBe(16);
+    expect(getZoomLevelByTypeId(217)).toBe(16);
   });
 });

@@ -188,6 +188,28 @@ export class TerraMapRenderer {
     return best?.tile ?? null;
   }
 
+  public measureTile(
+    renderer: CanvasRenderer,
+    tile: TerraDebugTile,
+    options: Pick<TerraMapRenderOptions, 'mapMode' | 'pitchDegrees'> = {},
+  ) {
+    const frame = this.buildFrame(
+      renderer,
+      this.resolveMapSurface(renderer, options.mapMode ?? 'plane'),
+      options.pitchDegrees ?? 0,
+    );
+    const bounds = this.tileScreenBounds(renderer, frame, tile);
+    if (!bounds) {
+      return null;
+    }
+
+    return {
+      width: Math.max(0, bounds.maxX - bounds.minX),
+      height: Math.max(0, bounds.maxY - bounds.minY),
+      area: Math.max(0, bounds.maxX - bounds.minX) * Math.max(0, bounds.maxY - bounds.minY),
+    };
+  }
+
   private buildFrame(
     renderer: CanvasRenderer,
     mapMode: TerraMapSurface,

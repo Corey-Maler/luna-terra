@@ -1,5 +1,5 @@
 import type { MapyGeometry } from './types/Mapy';
-import { LegacyJsonTileClient, type TerraTileClient } from './TileClient';
+import { LegacyJsonTileClient, type TerraTileClient, type TerraTileDiagnostics } from './TileClient';
 import { tileIndexToString, type TileIndex } from './TileIndex';
 
 export class CommutatorClient {
@@ -13,5 +13,12 @@ export class CommutatorClient {
 
   public request = async (index: TileIndex, level: number): Promise<MapyGeometry[] | null> => {
     return await this.tileClient.getTile(level, tileIndexToString(index));
+  };
+
+  public requestDiagnostics = async (
+    index: TileIndex,
+    level: number,
+  ): Promise<TerraTileDiagnostics | null> => {
+    return await this.tileClient.getTileDiagnostics?.(level, tileIndexToString(index)) ?? null;
   };
 }

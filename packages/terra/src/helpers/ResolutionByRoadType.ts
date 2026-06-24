@@ -7,6 +7,7 @@ export const R = {
   small: 11,
   micro: 12,
   nano: 13,
+  building: 16,
   UNKNOWN: 14,
   ignore: 55,
 };
@@ -247,7 +248,7 @@ export const getZoomLevelByTypeId = (typeId: number) => {
   if (typeId < 0) return R.UNKNOWN;
   if (typeId < NATURAL_OFFSET) return ResolutionByRoadType[highwayTypes[typeId]] ?? R.UNKNOWN;
   if (typeId < BUILDING_OFFSET) return ResolutionByNaturalType[highwayTypes[typeId]] ?? R.UNKNOWN;
-  if (typeId < WATERWAY_OFFSET) return R.nano;
+  if (typeId < WATERWAY_OFFSET) return R.building;
   if (typeId < LANDUSE_OFFSET) return ResolutionByWaterwayType[highwayTypes[typeId]] ?? R.UNKNOWN;
   if (typeId < AEROWAY_OFFSET) return ResolutionByLanduseType[highwayTypes[typeId]] ?? R.UNKNOWN;
   if (typeId < 700) return ResolutionByAerowayType[highwayTypes[typeId]] ?? R.UNKNOWN;

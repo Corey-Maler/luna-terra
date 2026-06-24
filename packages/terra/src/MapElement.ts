@@ -11,13 +11,12 @@ import {
   type TerraTileDebugStats,
   type TerraTypeStats,
 } from './TerraStats';
-import type { TerraTileClient } from './TileClient';
+import type { TerraManifestBounds, TerraTileClient, TerraTileDiagnostics } from './TileClient';
 import { TerraMapRenderer } from './TerraMapRenderer';
 import {
   TERRA_GLOBE_MAX_TILE_LEVEL,
 } from './TerraMapRenderer';
 import type { TerraDebugTile, TerraMapMode, TerraMapSurface } from './TerraMapRenderer';
-import type { TerraManifestBounds } from './TileClient';
 import {
   TerraGlobeLocalFrame,
   terraGlobeLocalFrameView,
@@ -55,6 +54,7 @@ export class MapElement extends LTElement {
   private readonly onStats?: (stats: TerraRenderStats) => void;
   private readonly onTileDebug?: (state: TerraTileDebugState) => void;
   private readonly mapRenderer = new TerraMapRenderer();
+  private hostEngine?: LunaTerraEngine;
   private debugGrid = false;
   private debugTileFill = false;
   private mapMode: TerraMapMode = 'plane';
@@ -67,6 +67,8 @@ export class MapElement extends LTElement {
   private hoveredTile: TerraTileDebugStats | null = null;
   private pinnedTile: TerraTileDebugStats | null = null;
   private lastTileDebugKey = '';
+  private readonly tileDiagnosticsCache = new Map<string, TerraTileDiagnostics | null>();
+  private readonly tileDiagnosticsLoading = new Set<string>();
   private unsubscribeMouseMove?: () => void;
   private unsubscribeClick?: () => void;
 
@@ -113,6 +115,7 @@ export class MapElement extends LTElement {
 
   setup(engine: LunaTerraEngine) {
     super.setup(engine);
+    this.hostEngine = engine;
     this.lazyTreeRoot = LazyQuadTree.generate({ commutator: this.commutator, engine });
     this.unsubscribeMouseMove = engine.renderer.$mousePositionScreen.subscribe((point) => {
       this.mouseScreen = point;
@@ -127,6 +130,7 @@ export class MapElement extends LTElement {
   override destroy() {
     this.unsubscribeMouseMove?.();
     this.unsubscribeClick?.();
+    this.hostEngine = undefined;
   }
 
   render(renderer: CanvasRenderer) {
@@ -280,6 +284,9 @@ export class MapElement extends LTElement {
     tile: TerraDebugTile,
     status: Pick<TerraTileDebugStats, 'loaded' | 'loading' | 'missing' | 'geometryCount'>,
   ): TerraTileDebugStats {
+    const centerY = (tile.minY + tile.maxY) * 0.5;
+    const centerLatitudeRadians = worldVToLatitudeRadians(centerY);
+    const latitudeScale = Math.abs(Math.cos(centerLatitudeRadians));
     return {
       level: tile.level,
       index: tile.index,
@@ -287,6 +294,12 @@ export class MapElement extends LTElement {
       loading: status.loading,
       missing: status.missing,
       geometryCount: status.geometryCount,
+      projectedSize: null,
+      centerLatitudeDegrees: centerLatitudeRadians * 180 / Math.PI,
+      latitudeScale,
+      nominalTilePixels: TERRA_GLOBE_TARGET_PIXELS,
+      estimatedGlobeTilePixels: TERRA_GLOBE_TARGET_PIXELS * latitudeScale,
+      pipelineDiagnostics: this.tileDiagnosticsCache.get(this.tileKey(tile)) ?? null,
       bounds: {
         minX: tile.minX,
         minY: tile.minY,
@@ -323,7 +336,11 @@ export class MapElement extends LTElement {
       )
       : null;
     const nextHover = hitTile
-      ? candidates.find((candidate) => this.tileKey(candidate.tile) === this.tileKey(hitTile))?.stats ?? null
+      ? this.enrichedTileStats(
+        renderer,
+        hitTile,
+        candidates.find((candidate) => this.tileKey(candidate.tile) === this.tileKey(hitTile))?.stats ?? null,
+      )
       : null;
 
     if (this.tileDebugStateKey(this.hoveredTile) === this.tileDebugStateKey(nextHover)) {
@@ -362,14 +379,73 @@ export class MapElement extends LTElement {
     return `${tile.level}/${tile.index}`;
   }
 
+  private enrichedTileStats(
+    renderer: CanvasRenderer,
+    tile: TerraDebugTile,
+    stats: TerraTileDebugStats | null,
+  ) {
+    if (!stats) {
+      return null;
+    }
+
+    this.requestTileDiagnostics(tile);
+    const projectedSize = this.mapRenderer.measureTile(renderer, tile, {
+      mapMode: this.mapMode,
+      pitchDegrees: this.pitchDegrees,
+    });
+
+    return {
+      ...stats,
+      projectedSize,
+      pipelineDiagnostics: this.tileDiagnosticsCache.get(this.tileKey(tile)) ?? null,
+    };
+  }
+
+  private requestTileDiagnostics(tile: TerraDebugTile) {
+    const key = this.tileKey(tile);
+    if (this.tileDiagnosticsCache.has(key) || this.tileDiagnosticsLoading.has(key)) {
+      return;
+    }
+
+    this.tileDiagnosticsLoading.add(key);
+    void this.commutator.requestDiagnostics(tile.index, tile.level)
+      .then((diagnostics) => {
+        this.tileDiagnosticsCache.set(key, diagnostics);
+      })
+      .catch(() => {
+        this.tileDiagnosticsCache.set(key, null);
+      })
+      .finally(() => {
+        this.tileDiagnosticsLoading.delete(key);
+        this.hostEngine?.requestUpdate();
+      });
+  }
+
   private tileDebugIdentityKey(tile: TerraTileDebugStats | null) {
     return tile ? `${tile.level}/${tile.index}` : '-';
   }
 
   private tileDebugStateKey(tile: TerraTileDebugStats | null) {
-    return tile
-      ? `${tile.level}/${tile.index}/${tile.loaded}/${tile.loading}/${tile.missing}/${tile.geometryCount ?? '-'}`
+    if (!tile) {
+      return '-';
+    }
+    const projected = tile.projectedSize
+      ? `${tile.projectedSize.width.toFixed(1)}/${tile.projectedSize.height.toFixed(1)}`
       : '-';
+    const pipeline = tile.pipelineDiagnostics
+      ? `${tile.pipelineDiagnostics.geometryCount}/${tile.pipelineDiagnostics.pointCount}`
+      : '-';
+    return [
+      tile.level,
+      tile.index,
+      tile.loaded,
+      tile.loading,
+      tile.missing,
+      tile.geometryCount ?? '-',
+      tile.latitudeScale.toFixed(4),
+      projected,
+      pipeline,
+    ].join('/');
   }
 
   private uniqueCollections(collections: Array<GeometryCollection | undefined>) {

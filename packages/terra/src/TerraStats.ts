@@ -1,3 +1,5 @@
+import type { TerraTileDiagnostics } from './TileClient';
+
 export interface TerraTypeStats {
   typeId: number;
   name: string;
@@ -49,6 +51,15 @@ export interface TerraTileDebugStats {
   loading: boolean;
   missing: boolean;
   geometryCount: number | null;
+  projectedSize: {
+    width: number;
+    height: number;
+  } | null;
+  centerLatitudeDegrees: number;
+  latitudeScale: number;
+  nominalTilePixels: number;
+  estimatedGlobeTilePixels: number;
+  pipelineDiagnostics: TerraTileDiagnostics | null;
   bounds: {
     minX: number;
     minY: number;

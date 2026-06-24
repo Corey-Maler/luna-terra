@@ -116,4 +116,46 @@ describe('TerraTileStoreClient', () => {
 
     await expect(client.getManifest()).resolves.toBeNull();
   });
+
+  it('requests tile diagnostics from the tile-store server', async () => {
+    const fetchMock = mockFetch({
+      level: 2,
+      index: 7,
+      centerLonDegrees: -10,
+      centerLatDegrees: 64,
+      latitudeScale: 0.438,
+      simplificationScale: 2.283,
+      rdpScreenErrorPx: 0.45,
+      rdpEpsilon: 263.1,
+      coastlineRdpEpsilon: 1169.6,
+      waterwayRdpEpsilon: 876.9,
+      quantizedUnitsPerPixel: 584.8,
+      nominalPixels: 256,
+      estimatedPixels: 112.1,
+      geometryCount: 2,
+      pointCount: 8,
+      lineGeometryCount: 1,
+      areaGeometryCount: 1,
+      skippedAreaGeometryCount: 3,
+      skippedAreaPointCount: 12,
+      skippedLineGeometryCount: 2,
+      skippedLinePointCount: 4,
+      typeStats: [
+        { typeId: 101, geometries: 1, points: 4 },
+      ],
+    });
+    const client = new TerraTileStoreClient('http://tiles');
+
+    const diagnostics = await client.getTileDiagnostics(2, '7');
+
+    expect(fetchMock).toHaveBeenCalledWith('http://tiles/tiles/2/7/debug');
+    expect(diagnostics?.pointCount).toBe(8);
+  });
+
+  it('treats missing tile diagnostics as unavailable', async () => {
+    mockFetchStatus(404);
+    const client = new TerraTileStoreClient('http://tiles');
+
+    await expect(client.getTileDiagnostics(2, '7')).resolves.toBeNull();
+  });
 });
