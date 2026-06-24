@@ -35,6 +35,7 @@ export const TERRA_GLOBE_AUTO_MAX_ZOOM = 16;
 export const TERRA_GLOBE_MAX_TILE_LEVEL = 16;
 export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
+const TERRA_OCEAN_SPHERE_RADIUS = 0.998;
 
 export function terraUnwrapAmount(zoom: number) {
   const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
@@ -60,6 +61,7 @@ type TerraMapRenderFrame = {
   surface: TerraMapSurface;
   unwrap: number;
   projectPoint: (x: number, y: number) => V3;
+  projectGeoPoint: (longitudeRadians: number, latitudeRadians: number, radius: number) => V3;
   globeDepth: (x: number, y: number) => number;
 };
 
@@ -70,10 +72,10 @@ const TERRAIN_COLORS = {
   airport: '#a8a5a0',
   building: '#8f8f8f',
   landMask: '#f1f2ef',
+  ocean: '#d8e5ea',
   fallbackArea: '#cccccc',
   fallbackNaturalLine: '#aaaaaa',
   fallbackBuildingLine: '#bbbbbb',
-  globe: '#f4f6f4',
 };
 
 const SURFACE_DEBUG_TILE_SUBDIVISIONS = 4;
@@ -116,7 +118,6 @@ const vegetationFeatureNames = new Set([
 
 export class TerraMapRenderer {
   public readonly renderMode = 'core-3d-plane' as const;
-  private globeSpherePointsCache: Float32Array | null = null;
 
   render(
     renderer: CanvasRenderer,
@@ -128,6 +129,10 @@ export class TerraMapRenderer {
       this.resolveMapSurface(renderer, options.mapMode ?? 'plane'),
       options.pitchDegrees ?? 0,
     );
+
+    if (frame.surface === 'globe') {
+      this.renderOceanBase(renderer, frame);
+    }
 
     if (options.debugTileFill) {
       this.renderTileFill(renderer, collections, frame, options.debugTiles);
@@ -248,6 +253,8 @@ export class TerraMapRenderer {
           worldUToLongitudeRadians(x),
           worldVToLatitudeRadians(y),
         ),
+        projectGeoPoint: (longitudeRadians, latitudeRadians, radius) =>
+          frame.projectAtRadius(longitudeRadians, latitudeRadians, radius),
       };
     }
 
@@ -261,6 +268,7 @@ export class TerraMapRenderer {
       unwrap: 1,
       globeDepth: () => 1,
       projectPoint: (x, y) => new V3(x - anchorWorld.x, y - anchorWorld.y, 0),
+      projectGeoPoint: (longitudeRadians, latitudeRadians) => new V3(longitudeRadians, latitudeRadians, 0),
     };
   }
 
@@ -340,6 +348,15 @@ export class TerraMapRenderer {
         style.lineWidth,
       );
     }
+  }
+
+  private renderOceanBase(renderer: CanvasRenderer, frame: TerraMapRenderFrame) {
+    renderer.webgl3d.drawTriangles(
+      this.globeSpherePoints(frame, TERRA_OCEAN_SPHERE_RADIUS),
+      TERRAIN_COLORS.ocean,
+      frame.camera,
+      frame.modelMatrix,
+    );
   }
 
   private renderDebugGrid(
@@ -842,11 +859,7 @@ export class TerraMapRenderer {
     return lines;
   }
 
-  private globeSpherePoints() {
-    if (this.globeSpherePointsCache) {
-      return this.globeSpherePointsCache;
-    }
-
+  private globeSpherePoints(frame: TerraMapRenderFrame, radius: number) {
     const latSteps = 24;
     const lonSteps = 48;
     const points: number[] = [];
@@ -858,17 +871,17 @@ export class TerraMapRenderer {
       for (let lonStep = 0; lonStep < lonSteps; lonStep += 1) {
         const lon0 = -Math.PI + (lonStep / lonSteps) * Math.PI * 2;
         const lon1 = -Math.PI + ((lonStep + 1) / lonSteps) * Math.PI * 2;
-        this.pushSphereTriangle(points, lat0, lon0, lat1, lon0, lat1, lon1, 1);
-        this.pushSphereTriangle(points, lat0, lon0, lat1, lon1, lat0, lon1, 1);
+        this.pushSphereTriangle(points, frame, lat0, lon0, lat1, lon0, lat1, lon1, radius);
+        this.pushSphereTriangle(points, frame, lat0, lon0, lat1, lon1, lat0, lon1, radius);
       }
     }
 
-    this.globeSpherePointsCache = new Float32Array(points);
-    return this.globeSpherePointsCache;
+    return new Float32Array(points);
   }
 
   private pushSphereTriangle(
     points: number[],
+    frame: TerraMapRenderFrame,
     lat0: number,
     lon0: number,
     lat1: number,
@@ -877,18 +890,20 @@ export class TerraMapRenderer {
     lon2: number,
     radius: number,
   ) {
-    this.pushSpherePoint(points, lat0, lon0, radius);
-    this.pushSpherePoint(points, lat1, lon1, radius);
-    this.pushSpherePoint(points, lat2, lon2, radius);
+    this.pushSpherePoint(points, frame, lat0, lon0, radius);
+    this.pushSpherePoint(points, frame, lat1, lon1, radius);
+    this.pushSpherePoint(points, frame, lat2, lon2, radius);
   }
 
-  private pushSpherePoint(points: number[], lat: number, lon: number, radius: number) {
-    const cosLat = Math.cos(lat);
-    points.push(
-      cosLat * Math.sin(lon) * radius,
-      Math.sin(lat) * radius,
-      cosLat * Math.cos(lon) * radius,
-    );
+  private pushSpherePoint(
+    points: number[],
+    frame: TerraMapRenderFrame,
+    lat: number,
+    lon: number,
+    radius: number,
+  ) {
+    const point = frame.projectGeoPoint(lon, lat, radius);
+    points.push(point.x, point.y, point.z);
   }
 
   private areaColor(feature: TerraFeatureType) {

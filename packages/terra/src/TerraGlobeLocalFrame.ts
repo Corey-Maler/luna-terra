@@ -116,7 +116,11 @@ export class TerraGlobeLocalFrame {
   }
 
   public project(longitudeRadians: number, latitudeRadians: number) {
-    const position = globePosition(longitudeRadians, latitudeRadians, this.radius);
+    return this.projectAtRadius(longitudeRadians, latitudeRadians, this.radius);
+  }
+
+  public projectAtRadius(longitudeRadians: number, latitudeRadians: number, radius: number) {
+    const position = globePosition(longitudeRadians, latitudeRadians, radius);
     const relative = position.sub(this.targetPosition);
     return new V3(
       relative.dot(this.east),
