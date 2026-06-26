@@ -1,0 +1,34 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
+    "paths": {
+      "@lunaterra/math": ["packages/math/dist/index.d.ts"],
+      "@lunaterra/core": ["packages/core/dist/index.d.ts"],
+      "@lunaterra/color": ["packages/color/dist/index.d.ts"],
+      "@lunaterra/tracing": ["packages/tracing/dist/index.d.ts"],
+      "@lunaterra/elements": ["packages/elements/dist/index.d.ts"],
+      "@lunaterra/charts": ["packages/charts/dist/index.d.ts"],
+      "@lunaterra/ui": ["packages/ui/dist/index.d.ts"],
+      "@lunaterra/terra": ["packages/terra/dist/index.d.ts"]
+    },
+    "types": ["node", "react"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "vite.config.ts",
+    "vite.config.mts",
+    "vitest.config.ts",
+    "vitest.config.mts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.jsx"
+  ]
+}

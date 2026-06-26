@@ -114,6 +114,9 @@ importers:
 
   apps/docs:
     dependencies:
+      '@lunaterra/terra':
+        specifier: workspace:*
+        version: link:../../packages/terra
       '@lunaterra/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -184,6 +187,31 @@ importers:
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
+
+  packages/terra:
+    dependencies:
+      '@lunaterra/core':
+        specifier: workspace:*
+        version: link:../core
+      '@lunaterra/elements':
+        specifier: workspace:*
+        version: link:../elements
+      '@lunaterra/math':
+        specifier: workspace:*
+        version: link:../math
+      earcut:
+        specifier: ^3.0.1
+        version: 3.0.1
+      react:
+        specifier: '>=18.0.0'
+        version: 19.0.0
+      tslib:
+        specifier: ^2.3.0
+        version: 2.8.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.7
 
   packages/tracing:
     dependencies:
@@ -3263,6 +3291,7 @@ packages:
   whatwg-encoding@2.0.0:
     resolution: {integrity: sha512-p41ogyeMUrw3jWclHWTQg1k05DSVXPLcVxRTYsXUk+ZooOCZLcoYgPZ/HL/D/N+uQPOtcp1me1WhBEaX02mhWg==}
     engines: {node: '>=12'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}

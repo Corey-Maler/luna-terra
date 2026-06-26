@@ -111,9 +111,40 @@ export const RouteDefinitions: SectionDefinition[] = [
         ],
       },
       {
+        title: 'V3',
+        tag: 'v3',
+        Element: lazy(() => import('./Math/V3')),
+        searchTerms: [
+          'add',
+          'sub',
+          'scale',
+          'dot',
+          'cross',
+          'length',
+          'normalize',
+          '3d vector',
+        ],
+      },
+      {
         title: 'M3',
         tag: 'm3',
         Element: lazy(() => import('./Math/M3')),
+      },
+      {
+        title: 'M4',
+        tag: 'm4',
+        Element: lazy(() => import('./Math/M4')),
+        searchTerms: [
+          'perspective',
+          'orthographic',
+          'lookAt',
+          'translate',
+          'rotateX',
+          'rotateY',
+          'rotateZ',
+          '3d matrix',
+          'mat4',
+        ],
       },
       {
         title: 'Rect2D',
@@ -200,6 +231,19 @@ export const RouteDefinitions: SectionDefinition[] = [
         tag: 'scale-ruler',
         Element: lazy(() => import('./Core/ScaleRuler')),
       },
+      {
+        title: '3D Preview',
+        tag: '3d-preview',
+        Element: lazy(() => import('./Core/ThreeDPreview')),
+        searchTerms: [
+          '3d',
+          'webgl3d',
+          'Camera3D',
+          'Transform3D',
+          'perspective',
+          'cube',
+        ],
+      },
     ],
   },
   {
@@ -269,5 +313,26 @@ export const RouteDefinitions: SectionDefinition[] = [
         Element: lazy(() => import('./Charts/SignalScope')),
       },
     ],
-  }
+  },
+  {
+    'section-title': 'Terra Map Engine (@lunaterra/terra)',
+    tag: 'terra',
+    pages: [
+      {
+        title: 'Overview',
+        tag: 'overview',
+        Element: lazy(() => import('./Terra/Terra')),
+      },
+      {
+        title: 'Surface Model',
+        tag: 'surface-model',
+        Element: lazy(() => import('./Terra/SurfaceModel')),
+      },
+      {
+        title: 'Globe Local Frame',
+        tag: 'globe-local-frame',
+        Element: lazy(() => import('./Terra/GlobeLocalFrame')),
+      },
+    ],
+  },
 ];

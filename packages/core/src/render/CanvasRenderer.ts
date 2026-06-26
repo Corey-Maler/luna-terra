@@ -8,6 +8,7 @@ import { MouseEventHandlers } from './MouseEventHandlers';
 import { PanningTracker } from './PanningTracker';
 import { ViewPort } from './ViewPort';
 import { WebGLDrawBackend } from './WebGLBatch';
+import { WebGL3DBackend } from './WebGL3DBackend';
 import { Colors } from './colors';
 import type { LTThemePalette } from './theme';
 
@@ -33,6 +34,13 @@ export class CanvasRenderer {
     return this._webglBackend;
   }
 
+  public get webgl3d(): WebGL3DBackend {
+    if (!this._webgl3dBackend) {
+      throw new Error('WebGL 3D backend is not yet setup');
+    }
+    return this._webgl3dBackend;
+  }
+
   public ctx: CanvasRenderingContext2D;
   public get $mousePositionScreen() {
     return this.mouseHandlers.$mousePositionScreen;
@@ -45,6 +53,7 @@ export class CanvasRenderer {
   private updated = true;
 
   private _webglBackend?: WebGLDrawBackend;
+  private _webgl3dBackend?: WebGL3DBackend;
 
   // ---------- Software transform stack ----------
   // Stores the accumulated world→screen transform at each element level.
@@ -288,6 +297,12 @@ export class CanvasRenderer {
     this.panningTracker.panBounds = bounds;
   }
 
+  public get maxZoom(): number { return this.panningTracker.MAX_ZOOM; }
+  public set maxZoom(value: number) { this.panningTracker.MAX_ZOOM = value; }
+
+  public get minZoom(): number { return this.panningTracker.MIN_ZOOM; }
+  public set minZoom(value: number) { this.panningTracker.MIN_ZOOM = value; }
+
   /**
    * Enable or disable mouse/touch pan and zoom input.
    * When false, the user cannot pan or zoom but programmatic calls still work
@@ -370,6 +385,7 @@ export class CanvasRenderer {
     this.llScreenSpace = new DrawContext(M3.identity(), ctx);
 
     this._webglBackend = new WebGLDrawBackend(webglCanvas);
+    this._webgl3dBackend = new WebGL3DBackend(this._webglBackend.context);
 
     // this.updateShiftMatrix();
     this.setupObserver();

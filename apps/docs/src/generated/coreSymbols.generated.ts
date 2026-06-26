@@ -40,6 +40,287 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
     "members": []
   },
   {
+    "id": "@lunaterra/core:Camera3D",
+    "packageName": "@lunaterra/core",
+    "name": "Camera3D",
+    "kind": "class",
+    "summary": "class Camera3D",
+    "docs": "",
+    "sourcePath": "packages/core/src/render/Camera3D.ts",
+    "sourceLine": 20,
+    "sourceColumn": 1,
+    "members": [
+      {
+        "name": "constructor",
+        "kind": "constructor",
+        "signature": "new (options?: Camera3DOptions) => Camera3D",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 34,
+        "sourceColumn": 3
+      },
+      {
+        "name": "aspect",
+        "kind": "property",
+        "signature": "aspect: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 26,
+        "sourceColumn": 3
+      },
+      {
+        "name": "bottom",
+        "kind": "property",
+        "signature": "bottom: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 31,
+        "sourceColumn": 3
+      },
+      {
+        "name": "eye",
+        "kind": "property",
+        "signature": "eye: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 22,
+        "sourceColumn": 3
+      },
+      {
+        "name": "far",
+        "kind": "property",
+        "signature": "far: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 28,
+        "sourceColumn": 3
+      },
+      {
+        "name": "fovYRadians",
+        "kind": "property",
+        "signature": "fovYRadians: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 25,
+        "sourceColumn": 3
+      },
+      {
+        "name": "left",
+        "kind": "property",
+        "signature": "left: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 29,
+        "sourceColumn": 3
+      },
+      {
+        "name": "mode",
+        "kind": "property",
+        "signature": "mode: Camera3DMode",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 21,
+        "sourceColumn": 3
+      },
+      {
+        "name": "near",
+        "kind": "property",
+        "signature": "near: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 27,
+        "sourceColumn": 3
+      },
+      {
+        "name": "projectionMatrix",
+        "kind": "getter",
+        "signature": "get projectionMatrix(): M4",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 53,
+        "sourceColumn": 3
+      },
+      {
+        "name": "right",
+        "kind": "property",
+        "signature": "right: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 30,
+        "sourceColumn": 3
+      },
+      {
+        "name": "target",
+        "kind": "property",
+        "signature": "target: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 23,
+        "sourceColumn": 3
+      },
+      {
+        "name": "top",
+        "kind": "property",
+        "signature": "top: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 32,
+        "sourceColumn": 3
+      },
+      {
+        "name": "up",
+        "kind": "property",
+        "signature": "up: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 24,
+        "sourceColumn": 3
+      },
+      {
+        "name": "viewMatrix",
+        "kind": "getter",
+        "signature": "get viewMatrix(): M4",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 49,
+        "sourceColumn": 3
+      }
+    ]
+  },
+  {
+    "id": "@lunaterra/core:Camera3DMode",
+    "packageName": "@lunaterra/core",
+    "name": "Camera3DMode",
+    "kind": "type",
+    "summary": "type Camera3DMode = 'orthographic' | 'perspective'",
+    "docs": "",
+    "sourcePath": "packages/core/src/render/Camera3D.ts",
+    "sourceLine": 3,
+    "sourceColumn": 1,
+    "members": []
+  },
+  {
+    "id": "@lunaterra/core:Camera3DOptions",
+    "packageName": "@lunaterra/core",
+    "name": "Camera3DOptions",
+    "kind": "interface",
+    "summary": "interface Camera3DOptions",
+    "docs": "",
+    "sourcePath": "packages/core/src/render/Camera3D.ts",
+    "sourceLine": 5,
+    "sourceColumn": 1,
+    "members": [
+      {
+        "name": "aspect",
+        "kind": "property",
+        "signature": "aspect?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 11,
+        "sourceColumn": 3
+      },
+      {
+        "name": "bottom",
+        "kind": "property",
+        "signature": "bottom?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 16,
+        "sourceColumn": 3
+      },
+      {
+        "name": "eye",
+        "kind": "property",
+        "signature": "eye?: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 7,
+        "sourceColumn": 3
+      },
+      {
+        "name": "far",
+        "kind": "property",
+        "signature": "far?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 13,
+        "sourceColumn": 3
+      },
+      {
+        "name": "fovYRadians",
+        "kind": "property",
+        "signature": "fovYRadians?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 10,
+        "sourceColumn": 3
+      },
+      {
+        "name": "left",
+        "kind": "property",
+        "signature": "left?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 14,
+        "sourceColumn": 3
+      },
+      {
+        "name": "mode",
+        "kind": "property",
+        "signature": "mode?: Camera3DMode",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 6,
+        "sourceColumn": 3
+      },
+      {
+        "name": "near",
+        "kind": "property",
+        "signature": "near?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 12,
+        "sourceColumn": 3
+      },
+      {
+        "name": "right",
+        "kind": "property",
+        "signature": "right?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 15,
+        "sourceColumn": 3
+      },
+      {
+        "name": "target",
+        "kind": "property",
+        "signature": "target?: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 8,
+        "sourceColumn": 3
+      },
+      {
+        "name": "top",
+        "kind": "property",
+        "signature": "top?: number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 17,
+        "sourceColumn": 3
+      },
+      {
+        "name": "up",
+        "kind": "property",
+        "signature": "up?: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Camera3D.ts",
+        "sourceLine": 9,
+        "sourceColumn": 3
+      }
+    ]
+  },
+  {
     "id": "@lunaterra/core:CanvasRenderer",
     "packageName": "@lunaterra/core",
     "name": "CanvasRenderer",
@@ -47,7 +328,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
     "summary": "class CanvasRenderer",
     "docs": "",
     "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-    "sourceLine": 14,
+    "sourceLine": 15,
     "sourceColumn": 1,
     "members": [
       {
@@ -56,7 +337,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "new (simpleEngine: { requestUpdate: () => void; }) => CanvasRenderer",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 340,
+        "sourceLine": 355,
         "sourceColumn": 3
       },
       {
@@ -65,7 +346,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get $mousePosition(): Observable<V2>",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 41,
+        "sourceLine": 49,
         "sourceColumn": 3
       },
       {
@@ -74,7 +355,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get $mousePositionScreen(): Observable<V2>",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 37,
+        "sourceLine": 45,
         "sourceColumn": 3
       },
       {
@@ -83,7 +364,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get background(): string | null",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 152,
+        "sourceLine": 161,
         "sourceColumn": 3
       },
       {
@@ -92,7 +373,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "canvas: HTMLCanvasElement",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 23,
+        "sourceLine": 24,
         "sourceColumn": 3
       },
       {
@@ -101,7 +382,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "ctx: CanvasRenderingContext2D",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 36,
+        "sourceLine": 44,
         "sourceColumn": 3
       },
       {
@@ -110,7 +391,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get currentStyles(): LTResolvedStyles",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 148,
+        "sourceLine": 157,
         "sourceColumn": 3
       },
       {
@@ -119,7 +400,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "draw(initialColor: string | Color, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 454,
+        "sourceLine": 470,
         "sourceColumn": 3
       },
       {
@@ -128,7 +409,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "drawScreenSpace(initialColor: string, lineWidth?: number) => DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 460,
+        "sourceLine": 476,
         "sourceColumn": 3
       },
       {
@@ -137,7 +418,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "getHTML() => HTMLDivElement",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 25,
+        "sourceLine": 26,
         "sourceColumn": 3
       },
       {
@@ -146,7 +427,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get hdpi(): number",
         "docs": "Current device pixel ratio.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 90,
+        "sourceLine": 99,
         "sourceColumn": 3
       },
       {
@@ -155,7 +436,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get height(): number",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 186,
+        "sourceLine": 195,
         "sourceColumn": 3
       },
       {
@@ -164,7 +445,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set interactive(value: boolean): void",
         "docs": "Enable or disable mouse/touch pan and zoom input.\nWhen false, the user cannot pan or zoom but programmatic calls still work\nand the page scrolls normally. Defaults to true.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 296,
+        "sourceLine": 311,
         "sourceColumn": 3
       },
       {
@@ -173,7 +454,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "labelRegistry: LabelRegistry",
         "docs": "Label avoidance registry — swap() is called once per frame by the engine.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 21,
+        "sourceLine": 22,
         "sourceColumn": 3
       },
       {
@@ -182,7 +463,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "ll: DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 16,
+        "sourceLine": 17,
         "sourceColumn": 3
       },
       {
@@ -191,7 +472,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "llScreenSpace: DrawContext",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 18,
+        "sourceLine": 19,
+        "sourceColumn": 3
+      },
+      {
+        "name": "maxZoom",
+        "kind": "getter",
+        "signature": "get maxZoom(): number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 300,
         "sourceColumn": 3
       },
       {
@@ -200,7 +490,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "measureScreenInWorld(x: number) => number",
         "docs": "Returns equal distance in world space for giving screen space",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 211,
+        "sourceLine": 220,
         "sourceColumn": 3
       },
       {
@@ -209,7 +499,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "measureText(text: string) => V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 434,
+        "sourceLine": 450,
+        "sourceColumn": 3
+      },
+      {
+        "name": "minZoom",
+        "kind": "getter",
+        "signature": "get minZoom(): number",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 303,
         "sourceColumn": 3
       },
       {
@@ -218,7 +517,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "mouseHandlers: MouseEventHandlers",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 200,
+        "sourceLine": 209,
         "sourceColumn": 3
       },
       {
@@ -227,7 +526,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get mousePosition(): V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 221,
+        "sourceLine": 230,
         "sourceColumn": 3
       },
       {
@@ -236,7 +535,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "moveViewportBy(delta: V2) => void",
         "docs": "Offset the viewport center directly without changing zoom.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 278,
+        "sourceLine": 287,
         "sourceColumn": 3
       },
       {
@@ -245,7 +544,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "moveViewportTo(worldPoint: V2) => void",
         "docs": "Move the viewport center directly without changing zoom.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 272,
+        "sourceLine": 281,
         "sourceColumn": 3
       },
       {
@@ -254,7 +553,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "onCanvasResize: (x: number, y: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 378,
+        "sourceLine": 394,
         "sourceColumn": 3
       },
       {
@@ -263,7 +562,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "popLocalTransform() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 124,
+        "sourceLine": 133,
         "sourceColumn": 3
       },
       {
@@ -272,7 +571,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "popScreenTransform() => void",
         "docs": "Restore the world-space coordinate system saved by `pushScreenTransform()`.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 109,
+        "sourceLine": 118,
         "sourceColumn": 3
       },
       {
@@ -281,7 +580,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "popStyles() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 174,
+        "sourceLine": 183,
         "sourceColumn": 3
       },
       {
@@ -290,7 +589,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "postRender(_dt: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 430,
+        "sourceLine": 446,
         "sourceColumn": 3
       },
       {
@@ -299,7 +598,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "prepare() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 408,
+        "sourceLine": 424,
         "sourceColumn": 3
       },
       {
@@ -308,7 +607,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "pushLocalTransform(local: M3 | null) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 117,
+        "sourceLine": 126,
         "sourceColumn": 3
       },
       {
@@ -317,7 +616,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "pushScreenTransform(screenMatrix: M3) => void",
         "docs": "Push a screen-space coordinate system.\nWhile active, `renderer.draw()` maps world coordinates through `screenMatrix`\ninstead of the world-space panning transform.\nChildren rendered between push/pop live in the coordinate space defined by\n`makeScreenMatrix()`. Nest as needed (saves/restores cleanly).",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 101,
+        "sourceLine": 110,
         "sourceColumn": 3
       },
       {
@@ -326,7 +625,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "pushStyles(styles: LTResolvedStyles) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 170,
+        "sourceLine": 179,
         "sourceColumn": 3
       },
       {
@@ -335,7 +634,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "rectToScreen(r: Rect2D) => Rect2D",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 225,
+        "sourceLine": 234,
         "sourceColumn": 3
       },
       {
@@ -344,7 +643,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "screenToWorld(p: V2) => V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 217,
+        "sourceLine": 226,
         "sourceColumn": 3
       },
       {
@@ -353,7 +652,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set scrollBounds(bounds: Rect2D | null): void",
         "docs": "Set a scroll boundary in world space.\nSetting to null disables bounds enforcement.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 287,
+        "sourceLine": 296,
         "sourceColumn": 3
       },
       {
@@ -362,7 +661,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get theme(): LTThemePalette | null",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 161,
+        "sourceLine": 170,
         "sourceColumn": 3
       },
       {
@@ -371,7 +670,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "tick(dt: number) => boolean",
         "docs": "Step zoom animation.\nMust be called every frame from the engine.\nReturns true when a re-render was triggered.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 308,
+        "sourceLine": 323,
         "sourceColumn": 3
       },
       {
@@ -380,7 +679,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get viewMatrix(): M3",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 178,
+        "sourceLine": 187,
         "sourceColumn": 3
       },
       {
@@ -389,7 +688,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get viewPort(): V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 194,
+        "sourceLine": 203,
         "sourceColumn": 3
       },
       {
@@ -398,7 +697,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get viewportCenter(): V2",
         "docs": "Current viewport center in world space.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 252,
+        "sourceLine": 261,
         "sourceColumn": 3
       },
       {
@@ -407,7 +706,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get viewPortRatio(): number",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 190,
+        "sourceLine": 199,
         "sourceColumn": 3
       },
       {
@@ -416,7 +715,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get visibleArea(): Rect2D",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 232,
+        "sourceLine": 241,
         "sourceColumn": 3
       },
       {
@@ -425,7 +724,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get webgl(): WebGLDrawBackend",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 29,
+        "sourceLine": 30,
+        "sourceColumn": 3
+      },
+      {
+        "name": "webgl3d",
+        "kind": "getter",
+        "signature": "get webgl3d(): WebGL3DBackend",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
+        "sourceLine": 37,
         "sourceColumn": 3
       },
       {
@@ -434,7 +742,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get width(): number",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 182,
+        "sourceLine": 191,
         "sourceColumn": 3
       },
       {
@@ -443,7 +751,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "worldToScreen(p: V2) => V2",
         "docs": "",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 202,
+        "sourceLine": 211,
         "sourceColumn": 3
       },
       {
@@ -452,7 +760,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get zoom(): number",
         "docs": "Current linear zoom level (e.g. 2 = 2×).",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 242,
+        "sourceLine": 251,
         "sourceColumn": 3
       },
       {
@@ -461,7 +769,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "get zoomLevel(): number",
         "docs": "Current zoom level expressed as log₂ (0 = 1×, 1 = 2×, 3.2 = 9.2×).",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 247,
+        "sourceLine": 256,
         "sourceColumn": 3
       },
       {
@@ -470,7 +778,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "zoomToPoint(worldPoint: V2, targetZoom: number) => void",
         "docs": "Animate the viewport so that `worldPoint` is centred at the given zoom.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 267,
+        "sourceLine": 276,
         "sourceColumn": 3
       },
       {
@@ -479,7 +787,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "zoomToRect(rect: Rect2D, padding?: number) => void",
         "docs": "Animate the viewport so that `rect` fits in view.",
         "sourcePath": "packages/core/src/render/CanvasRenderer.ts",
-        "sourceLine": 260,
+        "sourceLine": 269,
         "sourceColumn": 3
       }
     ]
@@ -4241,6 +4549,55 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
     "members": []
   },
   {
+    "id": "@lunaterra/core:Transform3D",
+    "packageName": "@lunaterra/core",
+    "name": "Transform3D",
+    "kind": "class",
+    "summary": "class Transform3D",
+    "docs": "",
+    "sourcePath": "packages/core/src/render/Transform3D.ts",
+    "sourceLine": 3,
+    "sourceColumn": 1,
+    "members": [
+      {
+        "name": "modelMatrix",
+        "kind": "getter",
+        "signature": "get modelMatrix(): M4",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Transform3D.ts",
+        "sourceLine": 8,
+        "sourceColumn": 3
+      },
+      {
+        "name": "position",
+        "kind": "property",
+        "signature": "position: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Transform3D.ts",
+        "sourceLine": 4,
+        "sourceColumn": 3
+      },
+      {
+        "name": "rotation",
+        "kind": "property",
+        "signature": "rotation: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Transform3D.ts",
+        "sourceLine": 5,
+        "sourceColumn": 3
+      },
+      {
+        "name": "scale",
+        "kind": "property",
+        "signature": "scale: V3",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/Transform3D.ts",
+        "sourceLine": 6,
+        "sourceColumn": 3
+      }
+    ]
+  },
+  {
     "id": "@lunaterra/core:V2Source",
     "packageName": "@lunaterra/core",
     "name": "V2Source",
@@ -4251,6 +4608,46 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
     "sourceLine": 60,
     "sourceColumn": 1,
     "members": []
+  },
+  {
+    "id": "@lunaterra/core:WebGL3DBackend",
+    "packageName": "@lunaterra/core",
+    "name": "WebGL3DBackend",
+    "kind": "class",
+    "summary": "class WebGL3DBackend",
+    "docs": "",
+    "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
+    "sourceLine": 79,
+    "sourceColumn": 1,
+    "members": [
+      {
+        "name": "constructor",
+        "kind": "constructor",
+        "signature": "new (gl: WebGL2RenderingContext) => WebGL3DBackend",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
+        "sourceLine": 90,
+        "sourceColumn": 3
+      },
+      {
+        "name": "drawLineStrips",
+        "kind": "method",
+        "signature": "drawLineStrips(points: Float32Array, offsets: number[], sizes: number[], color: string, camera: Camera3D, modelMatrix?: M4, lineWidth?: number) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
+        "sourceLine": 129,
+        "sourceColumn": 3
+      },
+      {
+        "name": "drawTriangles",
+        "kind": "method",
+        "signature": "drawTriangles(points: Float32Array, color: string, camera: Camera3D, modelMatrix?: M4, options?: WebGL3DTriangleOptions) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
+        "sourceLine": 119,
+        "sourceColumn": 3
+      }
+    ]
   },
   {
     "id": "@lunaterra/core:WebGLDrawBackend",
@@ -4278,7 +4675,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "arc(v: V2, radius: number, startAngle?: number, endAngle?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 340,
+        "sourceLine": 397,
         "sourceColumn": 3
       },
       {
@@ -4287,7 +4684,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "beginPath() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 349,
+        "sourceLine": 406,
+        "sourceColumn": 3
+      },
+      {
+        "name": "context",
+        "kind": "getter",
+        "signature": "get context(): WebGL2RenderingContext",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGLBatch.ts",
+        "sourceLine": 98,
         "sourceColumn": 3
       },
       {
@@ -4296,7 +4702,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "fill() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 357,
+        "sourceLine": 414,
         "sourceColumn": 3
       },
       {
@@ -4305,7 +4711,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set fillStyle(color: string): void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 365,
+        "sourceLine": 422,
         "sourceColumn": 3
       },
       {
@@ -4314,7 +4720,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "fillText(text: string, p: V2, color?: string, fontSize?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 361,
+        "sourceLine": 418,
         "sourceColumn": 3
       },
       {
@@ -4332,7 +4738,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "lineTo(v: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 336,
+        "sourceLine": 393,
         "sourceColumn": 3
       },
       {
@@ -4341,7 +4747,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "moveTo(v: V2) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 331,
+        "sourceLine": 388,
         "sourceColumn": 3
       },
       {
@@ -4350,7 +4756,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "p(points: number[]) => void",
         "docs": "Implements the 'p' method required by the LL interface",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 278,
+        "sourceLine": 334,
         "sourceColumn": 3
       },
       {
@@ -4368,7 +4774,25 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "p3Fill(points: Float32Array, triangles: Uint16Array, _color: string) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 249,
+        "sourceLine": 263,
+        "sourceColumn": 3
+      },
+      {
+        "name": "p3FillRelative",
+        "kind": "method",
+        "signature": "p3FillRelative(points: Float32Array, triangles: Uint16Array, color: string, anchor: V2) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGLBatch.ts",
+        "sourceLine": 290,
+        "sourceColumn": 3
+      },
+      {
+        "name": "p3Relative",
+        "kind": "method",
+        "signature": "p3Relative(points: Float32Array, offsets: number[], sizes: number[], colors: string[], lineWidth: number, anchor: V2) => void",
+        "docs": "",
+        "sourcePath": "packages/core/src/render/WebGLBatch.ts",
+        "sourceLine": 250,
         "sourceColumn": 3
       },
       {
@@ -4377,7 +4801,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "prepareRender() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 104,
+        "sourceLine": 108,
         "sourceColumn": 3
       },
       {
@@ -4386,7 +4810,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderGlowLine(points: Float32Array, parametric: Float32Array, options: GlowLineOptions) => void",
         "docs": "Render a glowing line using an SDF-based fragment shader.",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 414,
+        "sourceLine": 471,
         "sourceColumn": 3
       },
       {
@@ -4395,7 +4819,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderGridDots(viewArea: Rect2D, density?: number, gridColor?: string, subgridColor?: string, subgridOpacity?: number, dotSize?: number) => void",
         "docs": "Renders grid dots directly using a dedicated shader",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 382,
+        "sourceLine": 439,
         "sourceColumn": 3
       },
       {
@@ -4404,7 +4828,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "renderPoints(points: Float32Array, color: string, pointSize?: number) => void",
         "docs": "Renders an array of points using WebGL's GL_POINTS primitive",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 295,
+        "sourceLine": 351,
         "sourceColumn": 3
       },
       {
@@ -4413,7 +4837,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "resize(w: number, h: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 327,
+        "sourceLine": 384,
         "sourceColumn": 3
       },
       {
@@ -4422,7 +4846,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "stroke() => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 353,
+        "sourceLine": 410,
         "sourceColumn": 3
       },
       {
@@ -4431,7 +4855,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "set strokeStyle(color: string): void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 369,
+        "sourceLine": 426,
         "sourceColumn": 3
       },
       {
@@ -4440,7 +4864,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "updateViewMatrix(vm: M3) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGLBatch.ts",
-        "sourceLine": 344,
+        "sourceLine": 401,
         "sourceColumn": 3
       }
     ]

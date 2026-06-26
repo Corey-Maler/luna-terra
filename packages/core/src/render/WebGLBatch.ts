@@ -95,6 +95,10 @@ export class WebGLDrawBackend {
   private viewMatrix: M3 = new M3();
   private colorCache: ColorCache;
 
+  public get context() {
+    return this.gl;
+  }
+
   // Grid shader instance
   private gridShader: GridShader;
 
@@ -105,18 +109,14 @@ export class WebGLDrawBackend {
     const gl = this.gl;
     // Clear with fully transparent background (r,g,b,alpha)
     gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
 
     // Set the view matrix uniform once for the entire render
-    gl.uniformMatrix3fv(
-      this.viewMatrixLocation,
-      false,
-      this.viewMatrix.getFloatArray(),
-    );
+    this.applyViewMatrix(this.viewMatrix);
   }
 
   public finishRender() {
@@ -224,6 +224,7 @@ export class WebGLDrawBackend {
     lineWidth = 1,
   ) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Bind the VAO
     gl.bindVertexArray(this.vao);
@@ -246,8 +247,22 @@ export class WebGLDrawBackend {
     }
   }
 
+  p3Relative(
+    points: Float32Array,
+    offsets: number[],
+    sizes: number[],
+    colors: string[],
+    lineWidth: number,
+    anchor: V2,
+  ) {
+    this.applyViewMatrix(this.relativeViewMatrix(anchor));
+    this.p3(this.rebasePoints(points, anchor), offsets, sizes, colors, lineWidth);
+    this.applyViewMatrix(this.viewMatrix);
+  }
+
   p3Fill(points: Float32Array, triangles: Uint16Array, _color: string) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Bind the VAO
     gl.bindVertexArray(this.vao);
@@ -272,6 +287,47 @@ export class WebGLDrawBackend {
     gl.deleteBuffer(elementBuffer);
   }
 
+  p3FillRelative(
+    points: Float32Array,
+    triangles: Uint16Array,
+    color: string,
+    anchor: V2,
+  ) {
+    this.applyViewMatrix(this.relativeViewMatrix(anchor));
+    this.p3Fill(this.rebasePoints(points, anchor), triangles, color);
+    this.applyViewMatrix(this.viewMatrix);
+  }
+
+  private rebasePoints(points: Float32Array, anchor: V2) {
+    const rebased = new Float32Array(points.length);
+    for (let i = 0; i < points.length; i += 2) {
+      rebased[i] = points[i] - anchor.x;
+      rebased[i + 1] = points[i + 1] - anchor.y;
+    }
+    return rebased;
+  }
+
+  private relativeViewMatrix(anchor: V2) {
+    const matrix = this.viewMatrix.copy();
+    const indexes = M3.indexes;
+    matrix.matrix[indexes.M20] +=
+      anchor.x * matrix.matrix[indexes.M00] +
+      anchor.y * matrix.matrix[indexes.M10];
+    matrix.matrix[indexes.M21] +=
+      anchor.x * matrix.matrix[indexes.M01] +
+      anchor.y * matrix.matrix[indexes.M11];
+    return matrix;
+  }
+
+  private applyViewMatrix(matrix: M3) {
+    this.gl.useProgram(this.program);
+    this.gl.uniformMatrix3fv(
+      this.viewMatrixLocation,
+      false,
+      matrix.getFloatArray(),
+    );
+  }
+
   /**
    * Implements the 'p' method required by the LL interface
    */
@@ -294,6 +350,7 @@ export class WebGLDrawBackend {
    */
   public renderPoints(points: Float32Array, color: string, pointSize = 1) {
     const gl = this.gl;
+    gl.useProgram(this.program);
 
     // Ensure the blend function is properly set for transparency
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
