@@ -7,6 +7,8 @@ export interface WebGL3DTriangleOptions {
   polygonOffsetUnits?: number;
 }
 
+const BUFFER_RING_SIZE = 4;
+
 const vertexShaderSource = `#version 300 es
 
 in vec3 a_position;
@@ -79,7 +81,8 @@ function createProgram(
 export class WebGL3DBackend {
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
-  private pointsBuffer: WebGLBuffer;
+  private pointsBuffers: WebGLBuffer[] = [];
+  private nextPointsBuffer = 0;
   private positionAttributeLocation: number;
   private modelMatrixLocation: WebGLUniformLocation | null;
   private viewMatrixLocation: WebGLUniformLocation | null;
@@ -98,11 +101,13 @@ export class WebGL3DBackend {
     this.projectionMatrixLocation = gl.getUniformLocation(this.program, 'u_projectionMatrix');
     this.colorLocation = gl.getUniformLocation(this.program, 'u_color');
 
-    const buffer = gl.createBuffer();
-    if (!buffer) {
-      throw new Error('Failed to create 3D points buffer');
+    for (let i = 0; i < BUFFER_RING_SIZE; i += 1) {
+      const buffer = gl.createBuffer();
+      if (!buffer) {
+        throw new Error('Failed to create 3D points buffer');
+      }
+      this.pointsBuffers.push(buffer);
     }
-    this.pointsBuffer = buffer;
 
     const vao = gl.createVertexArray();
     if (!vao) {
@@ -111,9 +116,7 @@ export class WebGL3DBackend {
     this.vao = vao;
 
     gl.bindVertexArray(this.vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.pointsBuffer);
     gl.enableVertexAttribArray(this.positionAttributeLocation);
-    gl.vertexAttribPointer(this.positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
   }
 
   public drawTriangles(
@@ -180,7 +183,8 @@ export class WebGL3DBackend {
     gl.depthFunc(gl.LEQUAL);
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.pointsBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.nextBuffer());
+    gl.vertexAttribPointer(this.positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
     gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
 
     gl.uniformMatrix4fv(this.modelMatrixLocation, false, modelMatrix.getFloatArray());
@@ -202,5 +206,11 @@ export class WebGL3DBackend {
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  }
+
+  private nextBuffer() {
+    const buffer = this.pointsBuffers[this.nextPointsBuffer];
+    this.nextPointsBuffer = (this.nextPointsBuffer + 1) % this.pointsBuffers.length;
+    return buffer;
   }
 }
