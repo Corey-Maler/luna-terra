@@ -227,26 +227,26 @@ export const isEnclosed = (metaType: number) =>
 
 export const typeidByTags = (tags: Record<string, string>) => {
   if ('highway' in tags) {
-    return hwTypes.indexOf(tags.highway);
+    return hwTypes.indexOf(tags['highway']);
   }
   if ('natural' in tags) {
-    const index = naturalTypes.indexOf(tags.natural);
+    const index = naturalTypes.indexOf(tags['natural']);
     return index < 0 ? -1 : 100 + index;
   }
   if ('building' in tags) {
-    const index = buildingTypes.indexOf(tags.building);
+    const index = buildingTypes.indexOf(tags['building']);
     return index < 0 ? -1 : BUILDING_OFFSET + index;
   }
   if ('waterway' in tags) {
-    const index = waterwayTypes.indexOf(tags.waterway);
+    const index = waterwayTypes.indexOf(tags['waterway']);
     return index < 0 ? -1 : WATERWAY_OFFSET + index;
   }
   if ('landuse' in tags) {
-    const index = landuseTypes.indexOf(tags.landuse);
+    const index = landuseTypes.indexOf(tags['landuse']);
     return index < 0 ? -1 : LANDUSE_OFFSET + index;
   }
   if ('aeroway' in tags) {
-    const index = aerowayTypes.indexOf(tags.aeroway);
+    const index = aerowayTypes.indexOf(tags['aeroway']);
     return index < 0 ? -1 : AEROWAY_OFFSET + index;
   }
   return 1;
@@ -312,22 +312,22 @@ export const getFeatureTypeById = (typeId: number): TerraFeatureType => {
 
 export const getZoomLevelByTags = (tags: Record<string, string>) => {
   if ('highway' in tags) {
-    return ResolutionByRoadType[tags.highway] ?? R.UNKNOWN;
+    return ResolutionByRoadType[tags['highway']] ?? R.UNKNOWN;
   }
   if ('natural' in tags) {
-    return ResolutionByNaturalType[tags.natural] ?? R.UNKNOWN;
+    return ResolutionByNaturalType[tags['natural']] ?? R.UNKNOWN;
   }
   if ('building' in tags) {
     return R.building;
   }
   if ('waterway' in tags) {
-    return ResolutionByWaterwayType[tags.waterway] ?? R.UNKNOWN;
+    return ResolutionByWaterwayType[tags['waterway']] ?? R.UNKNOWN;
   }
   if ('landuse' in tags) {
-    return ResolutionByLanduseType[tags.landuse] ?? R.UNKNOWN;
+    return ResolutionByLanduseType[tags['landuse']] ?? R.UNKNOWN;
   }
   if ('aeroway' in tags) {
-    return ResolutionByAerowayType[tags.aeroway] ?? R.UNKNOWN;
+    return ResolutionByAerowayType[tags['aeroway']] ?? R.UNKNOWN;
   }
   return R.UNKNOWN;
 };

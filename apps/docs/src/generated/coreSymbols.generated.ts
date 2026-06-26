@@ -4617,7 +4617,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
     "summary": "class WebGL3DBackend",
     "docs": "",
     "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
-    "sourceLine": 74,
+    "sourceLine": 79,
     "sourceColumn": 1,
     "members": [
       {
@@ -4626,7 +4626,7 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "new (gl: WebGL2RenderingContext) => WebGL3DBackend",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
-        "sourceLine": 85,
+        "sourceLine": 90,
         "sourceColumn": 3
       },
       {
@@ -4635,16 +4635,16 @@ export const generatedSymbols: GeneratedDocSymbol[] = [
         "signature": "drawLineStrips(points: Float32Array, offsets: number[], sizes: number[], color: string, camera: Camera3D, modelMatrix?: M4, lineWidth?: number) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
-        "sourceLine": 123,
+        "sourceLine": 129,
         "sourceColumn": 3
       },
       {
         "name": "drawTriangles",
         "kind": "method",
-        "signature": "drawTriangles(points: Float32Array, color: string, camera: Camera3D, modelMatrix?: M4) => void",
+        "signature": "drawTriangles(points: Float32Array, color: string, camera: Camera3D, modelMatrix?: M4, options?: WebGL3DTriangleOptions) => void",
         "docs": "",
         "sourcePath": "packages/core/src/render/WebGL3DBackend.ts",
-        "sourceLine": 114,
+        "sourceLine": 119,
         "sourceColumn": 3
       }
     ]

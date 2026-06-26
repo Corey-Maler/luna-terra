@@ -122,7 +122,7 @@ export class MapElement extends LTElement {
     return {};
   }
 
-  setup(engine: LunaTerraEngine) {
+  override setup(engine: LunaTerraEngine) {
     super.setup(engine);
     this.hostEngine = engine;
     this.lazyTreeRoot = LazyQuadTree.generate({ commutator: this.commutator, engine });
@@ -142,7 +142,7 @@ export class MapElement extends LTElement {
     this.hostEngine = undefined;
   }
 
-  render(renderer: CanvasRenderer) {
+  override render(renderer: CanvasRenderer) {
     this.renderGeometry(renderer);
   }
 

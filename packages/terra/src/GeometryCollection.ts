@@ -58,14 +58,14 @@ export class GeometryCollection {
 
   private optimizeForWebGL() {
     const grouped = this.groupByType();
-    for (const [key, value] of grouped.entries()) {
+    grouped.forEach((value, key) => {
       if (isGeometryEnclosed(key)) {
-        const optimized = value.map((g) => this.optimizeArea(g.typeid, g));
+        const optimized = value.map((geometry) => this.optimizeArea(geometry.typeid, geometry));
         this.optimizedGroups.push(...optimized);
       } else {
         this.optimizedGroups.push(this.optimizeGroup(key, value));
       }
-    }
+    });
   }
 
   private optimizeArea(typeid: number, geometry: GeometryClient): OptimizedArea {
