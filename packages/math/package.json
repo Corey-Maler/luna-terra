@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/math",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "2D math primitives and transforms used by Luna-Terra.",
   "repository": {
     "type": "git",

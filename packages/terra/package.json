@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/terra",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "OSM tile map renderer for Luna-Terra.",
   "repository": {
     "type": "git",
