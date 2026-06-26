@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/ui",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Canvas overlay UI components for Luna-Terra workflows.",
   "repository": {
     "type": "git",
