@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
+    "paths": {
+      "@lunaterra/core": ["packages/core/dist/index.d.ts"],
+      "@lunaterra/ui": ["packages/ui/dist/index.d.ts"],
+      "@lunaterra/ui/scale-ruler": ["packages/ui/dist/scale-ruler.d.ts"]
+    },
+    "types": ["node", "react"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

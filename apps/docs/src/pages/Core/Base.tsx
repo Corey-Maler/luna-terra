@@ -168,11 +168,12 @@ Runtime objects
         />
 
         <DocPage.Method
-          signature={<>engine.zoomToRect(rect: <T symbol="Rect2D" variant="code" />, padding = 0.85): void</>}
-          description="Animate the camera so a world-space rectangle fits within the viewport."
+          signature={<>engine.zoomToRect(rect: <T symbol="Rect2D" variant="code" />, padding = 0.85, duration = 400): void</>}
+          description="Fit a world-space rectangle within the viewport, optionally without animating the first layout."
           params={[
             { name: 'rect', type: <T symbol="Rect2D" />, description: 'World-space bounds to fit.' },
             { name: 'padding', type: 'number', optional: true, default: '0.85', description: 'Viewport fill fraction from 0 to 1.' },
+            { name: 'duration', type: 'number', optional: true, default: '400', description: 'Animation duration in milliseconds. Use 0 for an immediate fit.' },
           ]}
         />
 

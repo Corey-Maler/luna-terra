@@ -137,14 +137,31 @@ export class Color {
     if (value.startsWith('#')) {
       return Color.fromHex(value);
     }
-    const rgb = value.match(/rgba?\((\d+), (\d+), (\d+)(?:, (\d+))?\)/);
+    const number = '([+-]?(?:\\d+\\.?\\d*|\\.\\d+))';
+    const rgb = value.match(new RegExp(
+      `^rgba?\\(\\s*${number}\\s*,\\s*${number}\\s*,\\s*${number}` +
+      `(?:\\s*,\\s*${number})?\\s*\\)$`,
+      'i',
+    ));
     if (!rgb) throw new Error('Invalid RGB color');
 
+    const red = Number(rgb[1]);
+    const green = Number(rgb[2]);
+    const blue = Number(rgb[3]);
+    const alpha = rgb[4] === undefined ? 1 : Number(rgb[4]);
+    if (
+      [red, green, blue].some((channel) => channel < 0 || channel > 255) ||
+      alpha < 0 ||
+      alpha > 1
+    ) {
+      throw new Error('Invalid RGB color');
+    }
+
     const color = new Color(
-      Number(rgb[1]),
-      Number(rgb[2]),
-      Number(rgb[3]),
-      rgb[4] ? Number(rgb[4]) : 1
+      red,
+      green,
+      blue,
+      alpha,
     );
 
     colorsCache.set(value, color);

@@ -59,10 +59,15 @@ export class LunaTerraEngine {
   }
 
   public destroy() {
+    this._continuousLoopCount = 0;
     for (const child of this.children) {
       child.destroy?.();
     }
     this.children = [];
+    this.renderer.destroy();
+    if (LunaTerraEngine.instance === this) {
+      LunaTerraEngine.instance = undefined;
+    }
   }
 
   public getHtmlElements() {
@@ -209,11 +214,12 @@ export class LunaTerraEngine {
   }
 
   /**
-   * Animate the viewport to fit `rect` in view.
+   * Fit `rect` in the viewport.
    * @param padding fill-fraction 0–1 (default 0.85)
+   * @param duration animation duration in milliseconds; use 0 for an immediate fit
    */
-  public zoomToRect(rect: Rect2D, padding = 0.85): void {
-    this.renderer.zoomToRect(rect, padding);
+  public zoomToRect(rect: Rect2D, padding = 0.85, duration = 400): void {
+    this.renderer.zoomToRect(rect, padding, duration);
     this.requestUpdate();
   }
 

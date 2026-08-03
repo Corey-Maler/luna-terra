@@ -1,5 +1,12 @@
 # Luna-Terra – Workspace Instructions
 
+## Repository workflow
+
+- Never make changes directly on `main`. Create or switch to a feature branch before editing this repository.
+- Any user-visible or publishable package change must include a Changesets release note in `.changeset/*.md`, created with `pnpm changeset`, before the change is pushed or merged.
+- Documentation-only and internal maintenance changes that do not affect a published package may omit a changeset.
+- Follow the complete release flow in the "Publishing packages" section of `README.md`.
+
 ## Overview
 
 A **pnpm monorepo** (no NX, no Turborepo) for the Luna-Terra canvas rendering library and its documentation website.
@@ -13,6 +20,7 @@ Org scope: `@lunaterra/*`.
 apps/
   docs/             # React + Vite documentation website (name: "docs")
 packages/
+  react/           # @lunaterra/react – thin React lifecycle/control adapters
   core/             # @lunaterra/core   – canvas renderer (WebGL + Canvas2D)
   elements/         # @lunaterra/elements – reusable drawing primitives
   charts/           # @lunaterra/charts – chart components
@@ -93,6 +101,8 @@ Before creating any new drawable primitive, check existing implementations in:
 Prefer composition and extension over creating duplicate classes in app-local folders.
 
 For pointer arrows, use `Line` markers (`startMarker` / `endMarker`) from `@lunaterra/elements` instead of adding a dedicated arrow element class.
+
+For range selection, reuse `ScaleRuler` from `@lunaterra/ui`. React consumers should use the controlled `ScaleRuler` exported by `@lunaterra/react`; do not create parallel HTML/SVG range controls unless the canvas ruler cannot meet a documented accessibility or product requirement.
 
 ---
 
