@@ -3,6 +3,7 @@ export { TextElement } from './lib/Text';
 export type { TextOptions } from './lib/Text';
 export { DimensionLine } from './lib/DimensionLine';
 export type {
+  DimensionArrowPlacement,
   DimensionLineOptions,
   DimensionLineExtraStyles,
 } from './lib/DimensionLine';

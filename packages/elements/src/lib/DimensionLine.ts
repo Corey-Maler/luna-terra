@@ -6,6 +6,8 @@ import {
 } from '@lunaterra/core';
 import { renderMarker } from './markers';
 
+export type DimensionArrowPlacement = 'auto' | 'between' | 'outside';
+
 export interface DimensionLineOptions {
   /** Endpoints of the measured distance in local coordinates. */
   start: V2;
@@ -18,6 +20,14 @@ export interface DimensionLineOptions {
   extensionOvershoot: number;
   /** Open-arrow size in world units. */
   arrowSize: number;
+  /**
+   * `between` keeps arrow tails inside the witnesses; `outside` points inward
+   * from beyond them. `auto` moves arrows outside when the gap cannot fit the
+   * label and arrowheads.
+   */
+  arrowPlacement: DimensionArrowPlacement;
+  /** Witness-tick length in world units when arrows are outside. */
+  tickSize: number;
   /** Gap between the dimension line and its label in world units. */
   labelGap: number;
   /** Moves the label along the measured axis; useful for very small gaps. */
@@ -32,8 +42,8 @@ export interface DimensionLineExtraStyles {
 }
 
 /**
- * Conventional engineering dimension with extension lines, outward-facing
- * open arrows, and a screen-readable label. Works at any line angle.
+ * Conventional engineering dimension with extension lines, adaptive open
+ * arrows, and a screen-readable label. Works at any line angle.
  */
 export class DimensionLine extends LTStyledElement<
   DimensionLineOptions,
@@ -47,6 +57,8 @@ export class DimensionLine extends LTStyledElement<
       offset: 0,
       extensionOvershoot: 0.12,
       arrowSize: 0.18,
+      arrowPlacement: 'auto',
+      tickSize: 0.16,
       labelGap: 0.16,
       labelAlongOffset: 0,
       fontSize: 11,
@@ -113,10 +125,31 @@ export class DimensionLine extends LTStyledElement<
     const dimensionBatch = renderer.draw(colorString, this.styles.lineWidth);
     dimensionBatch.line(geometry.dimensionStart, geometry.dimensionEnd);
     dimensionBatch.stroke();
+    const arrowPlacement = this.resolveArrowPlacement(
+      dimensionBatch,
+      geometry,
+    );
+
+    if (arrowPlacement === 'outside') {
+      const tickVector = geometry.normal.scale(this.options.tickSize / 2);
+      dimensionBatch.begin(colorString, this.styles.lineWidth);
+      dimensionBatch.line(
+        geometry.dimensionStart.sub(tickVector),
+        geometry.dimensionStart.add(tickVector),
+      );
+      dimensionBatch.stroke();
+      dimensionBatch.begin(colorString, this.styles.lineWidth);
+      dimensionBatch.line(
+        geometry.dimensionEnd.sub(tickVector),
+        geometry.dimensionEnd.add(tickVector),
+      );
+      dimensionBatch.stroke();
+    }
+
     renderMarker(
       dimensionBatch,
       geometry.dimensionStart,
-      geometry.unit.scale(-1),
+      geometry.unit.scale(arrowPlacement === 'outside' ? 1 : -1),
       {
         shape: 'arrow',
         size: this.options.arrowSize,
@@ -127,7 +160,7 @@ export class DimensionLine extends LTStyledElement<
     renderMarker(
       dimensionBatch,
       geometry.dimensionEnd,
-      geometry.unit,
+      geometry.unit.scale(arrowPlacement === 'outside' ? -1 : 1),
       {
         shape: 'arrow',
         size: this.options.arrowSize,
@@ -190,6 +223,7 @@ export class DimensionLine extends LTStyledElement<
 
     return {
       unit,
+      normal,
       dimensionStart,
       dimensionEnd,
       extensionStartEnd: dimensionStart.add(overshootVector),
@@ -198,5 +232,34 @@ export class DimensionLine extends LTStyledElement<
       labelAlign,
       labelBaseline,
     };
+  }
+
+  private resolveArrowPlacement(
+    batch: ReturnType<CanvasRenderer['draw']>,
+    geometry: NonNullable<ReturnType<DimensionLine['geometry']>>,
+  ): Exclude<DimensionArrowPlacement, 'auto'> {
+    if (this.options.arrowPlacement !== 'auto') {
+      return this.options.arrowPlacement;
+    }
+
+    const startPixels = batch.toPixelsPub(geometry.dimensionStart);
+    const endPixels = batch.toPixelsPub(geometry.dimensionEnd);
+    const arrowPixels = batch
+      .toPixelsPub(
+        geometry.dimensionStart.add(
+          geometry.unit.scale(this.options.arrowSize),
+        ),
+      )
+      .distanceTo(startPixels);
+    const hdpi = window.devicePixelRatio || 1;
+    const context = batch.ctx2d;
+    const previousFont = context.font;
+    context.font = `${this.options.fontSize * hdpi}px Arial`;
+    const labelWidth = context.measureText(this.options.label).width;
+    context.font = previousFont;
+
+    const availablePixels = endPixels.distanceTo(startPixels);
+    const requiredPixels = labelWidth + arrowPixels * 2 + 12 * hdpi;
+    return availablePixels < requiredPixels ? 'outside' : 'between';
   }
 }

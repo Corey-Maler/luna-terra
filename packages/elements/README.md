@@ -17,7 +17,9 @@ pnpm add @lunaterra/elements
 ## Dimension lines
 
 `DimensionLine` draws a measurement at any angle with conventional extension
-lines, outward-facing open arrows, and a screen-readable label:
+lines, adaptive open arrows, and a screen-readable label. When the measured gap
+cannot fit its label, `arrowPlacement: 'auto'` changes from arrows between the
+witnesses to inward-pointing arrows outside them:
 
 ```ts
 const sag = new DimensionLine({
