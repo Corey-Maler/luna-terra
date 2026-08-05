@@ -1,6 +1,12 @@
 export { Line } from './lib/Line';
 export { TextElement } from './lib/Text';
 export type { TextOptions } from './lib/Text';
+export { DimensionLine } from './lib/DimensionLine';
+export type {
+  DimensionArrowPlacement,
+  DimensionLineOptions,
+  DimensionLineExtraStyles,
+} from './lib/DimensionLine';
 export { RectElement, buildRoundedRectPath } from './lib/Rect';
 export type { RectOptions } from './lib/Rect';
 export { Grid, GridMode } from './lib/Grid';
