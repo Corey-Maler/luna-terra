@@ -1,5 +1,12 @@
 import { Rect2D, V2 } from '@lunaterra/math';
-import { Handle, LTStyledElement, type CanvasRenderer, type LTElement, type LunaTerraEngine } from '@lunaterra/core';
+import {
+  Handle,
+  LTStyledElement,
+  type CanvasRenderer,
+  type LTElement,
+  type LTStyles,
+  type LunaTerraEngine,
+} from '@lunaterra/core';
 import {
   type LineOptions,
   type LineExtraStyles,
@@ -34,7 +41,10 @@ export class Line extends LTStyledElement<LineOptions, LineExtraStyles> {
     };
   }
 
-  constructor(options?: Partial<LineOptions>, styles?: Partial<LineExtraStyles>) {
+  constructor(
+    options?: Partial<LineOptions>,
+    styles?: Partial<LTStyles & LineExtraStyles>,
+  ) {
     super(options, {
       opacity: 1,
       color: null,

@@ -23,7 +23,12 @@ export class PanningTracker {
   public zoom = 1;
 
   public MAX_ZOOM = 1000;
-  public MIN_ZOOM = 0.8;
+  /**
+   * Luna-Terra scenes are not restricted to normalized 0–1 coordinates.
+   * Keep the default floor low enough for metre-, kilometre-, and other
+   * real-world coordinate systems while still avoiding a zero zoom matrix.
+   */
+  public MIN_ZOOM = 1e-6;
 
   /** When set, panning is clamped to keep this rect visible. */
   private _panBounds: Rect2D | null = null;
@@ -123,7 +128,8 @@ export class PanningTracker {
   // ── Animation API ──────────────────────────────────────────────────────
 
   /**
-   * Animate so that `rect` fills the viewport (with optional padding factor 0–1).
+   * Fit `rect` in the viewport (with optional padding factor 0–1).
+   * Set `duration` to 0 for an immediate fit, which is useful on first layout.
    */
   public zoomToRect(rect: Rect2D, padding = 0.85, duration = 400): void {
     // Always store as pending first.
@@ -160,6 +166,14 @@ export class PanningTracker {
       this._centerForWorldPoint(center, targetZoom),
       targetZoom,
     );
+
+    if (duration <= 0) {
+      this._anim = null;
+      this.zoom = targetZoom;
+      this.center = targetCenter;
+      this.updateShiftMatrix();
+      return;
+    }
 
     this._anim = {
       startZoom: this.zoom,

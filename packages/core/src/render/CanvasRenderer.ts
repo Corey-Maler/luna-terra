@@ -1,7 +1,6 @@
 import { M3, Rect2D, V2 } from '@lunaterra/math';
 import { Color } from '@lunaterra/color';
 import { DrawContext } from './Batch';
-import type { LTElement } from './Elements/LTElement';
 import type { LTResolvedStyles } from './Elements/LTStyledElement';
 import { LabelRegistry } from './LabelRegistry';
 import { MouseEventHandlers } from './MouseEventHandlers';
@@ -263,11 +262,12 @@ export class CanvasRenderer {
   }
 
   /**
-   * Animate the viewport so that `rect` fits in view.
+   * Fit `rect` in the viewport.
    * @param padding 0–1 fraction of the viewport to fill (default 0.85)
+   * @param duration animation duration in milliseconds; use 0 for an immediate fit
    */
-  public zoomToRect(rect: Rect2D, padding = 0.85): void {
-    this.panningTracker.zoomToRect(rect, padding);
+  public zoomToRect(rect: Rect2D, padding = 0.85, duration = 400): void {
+    this.panningTracker.zoomToRect(rect, padding, duration);
   }
 
   /**
@@ -340,8 +340,10 @@ export class CanvasRenderer {
     this.rootDiv.style.flex = '1';
   }
 
+  private resizeObserver: ResizeObserver | null = null;
+
   private setupObserver() {
-    const resizeObserver = new ResizeObserver((entries) => {
+    this.resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         this.onCanvasResize(width, height);
@@ -349,7 +351,13 @@ export class CanvasRenderer {
       }
     });
 
-    resizeObserver.observe(this.rootDiv);
+    this.resizeObserver.observe(this.rootDiv);
+  }
+
+  public destroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.mouseHandlers.destroy();
   }
 
   constructor(private readonly simpleEngine: { requestUpdate: () => void }) {
@@ -443,7 +451,8 @@ export class CanvasRenderer {
     this._webglBackend?.prepareRender();
   }
 
-  public postRender(_dt: number) {
+  public postRender(dt: number) {
+    void dt;
     this._webglBackend?.finishRender();
   }
 

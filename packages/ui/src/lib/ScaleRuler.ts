@@ -18,6 +18,11 @@ export interface ScaleRulerOptions {
   ticks: ScaleRulerTick[];
   /** Current value (continuous, clamped to [ticks[0].value, ticks[last].value]). */
   value: number;
+  /**
+   * Optional discrete interval. Dragged and programmatic values are rounded to
+   * this interval from the minimum tick. Omit for a continuous ruler.
+   */
+  step?: number;
   /** Optional formatter for the caret badge text. */
   formatValue?: (value: number, nearestTick: ScaleRulerTick) => string;
   /**
@@ -122,7 +127,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
 
   constructor(options: ScaleRulerOptions) {
     super(options);
-    this._value = options.value;
+    this._value = this._normaliseValue(options.value);
   }
 
   protected defaultOptions(): ScaleRulerOptions {
@@ -135,9 +140,8 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
 
   /** Programmatically update the value (triggers redraw). */
   public setValue(v: number): void {
-    const { ticks } = this.options;
-    if (!ticks.length) return;
-    this._value = Math.min(Math.max(v, ticks[0].value), ticks[ticks.length - 1].value);
+    if (!this.options.ticks.length) return;
+    this._value = this._normaliseValue(v);
     this._snapFrom = null;
     this._snapTo = null;
     this.engine?.requestUpdate();
@@ -155,8 +159,6 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
     };
     canvas.addEventListener('mouseleave', onLeave);
     this._onMouseLeave = () => canvas.removeEventListener('mouseleave', onLeave);
-
-    const mode = this.options.interactionMode ?? 'drag-caret';
 
     /** Convert a clientX/Y into physical (hdpi) canvas pixels. */
     const clientToPhys = (clientX: number, clientY: number): V2 => {
@@ -180,9 +182,12 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       const { ticks } = this.options;
       const minVal = ticks[0].value;
       const maxVal = ticks[ticks.length - 1].value;
+      const mode = this.options.interactionMode ?? 'drag-caret';
       if (mode === 'drag-caret') {
         const t = (physX - this._trackX0) / Math.max(1, this._trackX1 - this._trackX0);
-        this._value = _lerp(minVal, maxVal, Math.min(1, Math.max(0, t)));
+        this._value = this._normaliseValue(
+          _lerp(minVal, maxVal, Math.min(1, Math.max(0, t))),
+        );
         this.options.onChange?.(this._value);
       } else {
         // scroll-scale
@@ -190,7 +195,9 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
         const dx = physX - this._scrollDragStartX;
         const trackW = Math.max(1, this._trackX1 - this._trackX0);
         const valueDelta = (dx / trackW) * (maxVal - minVal);
-        this._value = Math.min(maxVal, Math.max(minVal, this._scrollDragStartValue - valueDelta));
+        this._value = this._normaliseValue(
+          this._scrollDragStartValue - valueDelta,
+        );
         this.options.onChange?.(this._value);
       }
       engine.requestUpdate();
@@ -201,7 +208,7 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       this._snapFrom = null;
       this._snapTo = null;
       this.options.onDragStart?.();
-      if (mode === 'drag-caret') {
+      if ((this.options.interactionMode ?? 'drag-caret') === 'drag-caret') {
         applyDragAtPhysX(physPt.x);
       } else {
         this._scrollDragStartX = physPt.x;
@@ -351,6 +358,19 @@ export class ScaleRuler extends LTElement<ScaleRulerOptions> {
       screenPt.x <= this._trackX1 + pad &&
       Math.abs(screenPt.y - this._trackY) < (CARET_H / 2 + LABEL_PAD + LABEL_SIZE + 4) * hdpi
     );
+  }
+
+  private _normaliseValue(value: number): number {
+    const { ticks, step } = this.options;
+    if (!ticks.length) return value;
+
+    const min = ticks[0].value;
+    const max = ticks[ticks.length - 1].value;
+    const clamped = Math.min(max, Math.max(min, value));
+    if (step === undefined || step <= 0) return clamped;
+
+    const stepped = min + Math.round((clamped - min) / step) * step;
+    return Math.min(max, Math.max(min, Number(stepped.toPrecision(12))));
   }
 
   override render(renderer: CanvasRenderer) {

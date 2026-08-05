@@ -91,6 +91,17 @@ export class MouseEventHandlers {
     this.canvas.addEventListener("touchend", this.onTouchEnd, { passive: false });
   }
 
+  public destroy(): void {
+    this.canvas.removeEventListener("mousedown", this.onMouseDown);
+    this.canvas.removeEventListener("mousemove", this.onMouseMove);
+    this.canvas.removeEventListener("mouseup", this.onMouseUp);
+    this.canvas.removeEventListener("wheel", this.onMouseScroll);
+    this.canvas.removeEventListener("click", this.onClick);
+    this.canvas.removeEventListener("touchstart", this.onTouchStart);
+    this.canvas.removeEventListener("touchmove", this.onTouchMove);
+    this.canvas.removeEventListener("touchend", this.onTouchEnd);
+  }
+
   public activateItemDragMode = (props: ItemDragModeOptions) => {
     this.dragging = false;
     this.dragMode = true;
