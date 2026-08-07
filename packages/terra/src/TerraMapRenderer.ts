@@ -37,6 +37,7 @@ export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 const TERRA_OCEAN_SPHERE_RADIUS = 0.998;
 const TERRA_LAYER_DEPTH_BIAS_UNITS = 2;
+const TERRA_ROAD_FILL_DEPTH_BIAS_UNITS = 1;
 
 export function terraUnwrapAmount(zoom: number) {
   const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
@@ -63,7 +64,16 @@ type TerraMapRenderFrame = {
   unwrap: number;
   projectPoint: (x: number, y: number) => V3;
   projectGeoPoint: (longitudeRadians: number, latitudeRadians: number, radius: number) => V3;
+  surfaceNormal: (x: number, y: number) => V3;
   globeDepth: (x: number, y: number) => number;
+  pixelsPerLocalUnit: number;
+};
+
+type RoadStyle = {
+  casingColor: string;
+  casingWidthPixels: number;
+  color: string;
+  widthMeters: number;
 };
 
 const TERRAIN_COLORS = {
@@ -85,6 +95,42 @@ const roadLodColors = [
   '#333333', '#444444', '#555555', '#666666', '#777777',
   '#888888', '#999999', '#aaaaaa', '#bbbbbb',
 ];
+
+const EARTH_RADIUS_METERS = 6_371_008.8;
+const EARTH_CIRCUMFERENCE_METERS = Math.PI * 2 * EARTH_RADIUS_METERS;
+const MIN_ROAD_WIDTH_PIXELS = 3;
+
+const roadStyles: Record<string, RoadStyle> = {
+  motorway: { widthMeters: 24, color: '#f8f7f2', casingColor: '#a9a8a2', casingWidthPixels: 2 },
+  motorway_link: { widthMeters: 10, color: '#f8f7f2', casingColor: '#a9a8a2', casingWidthPixels: 2 },
+  trunk: { widthMeters: 18, color: '#fbfaf6', casingColor: '#b1afa8', casingWidthPixels: 2 },
+  trunk_link: { widthMeters: 9, color: '#fbfaf6', casingColor: '#b1afa8', casingWidthPixels: 2 },
+  primary: { widthMeters: 14, color: '#fffdf9', casingColor: '#bebbb2', casingWidthPixels: 2 },
+  primary_link: { widthMeters: 8, color: '#fffdf9', casingColor: '#bebbb2', casingWidthPixels: 2 },
+  secondary: { widthMeters: 11, color: '#fffefb', casingColor: '#c8c5bc', casingWidthPixels: 1.5 },
+  secondary_link: { widthMeters: 7, color: '#fffefb', casingColor: '#c8c5bc', casingWidthPixels: 1.5 },
+  tertiary: { widthMeters: 9, color: '#ffffff', casingColor: '#d0cdc5', casingWidthPixels: 1.5 },
+  tertiary_link: { widthMeters: 6, color: '#ffffff', casingColor: '#d0cdc5', casingWidthPixels: 1.5 },
+  residential: { widthMeters: 7, color: '#ffffff', casingColor: '#d8d5cd', casingWidthPixels: 1 },
+  unclassified: { widthMeters: 7, color: '#ffffff', casingColor: '#d8d5cd', casingWidthPixels: 1 },
+  living_street: { widthMeters: 6, color: '#ffffff', casingColor: '#d8d5cd', casingWidthPixels: 1 },
+  service: { widthMeters: 5, color: '#ffffff', casingColor: '#ddd9d1', casingWidthPixels: 1 },
+  road: { widthMeters: 6, color: '#ffffff', casingColor: '#d8d5cd', casingWidthPixels: 1 },
+  track: { widthMeters: 4, color: '#e7e1d6', casingColor: '#c8c0b3', casingWidthPixels: 1 },
+  pedestrian: { widthMeters: 5, color: '#f4f0e8', casingColor: '#d2ccc1', casingWidthPixels: 1 },
+  cycleway: { widthMeters: 3, color: '#e8f0ee', casingColor: '#bfcfca', casingWidthPixels: 1 },
+  footway: { widthMeters: 2, color: '#f2eee7', casingColor: '#cec8be', casingWidthPixels: 1 },
+  path: { widthMeters: 1.5, color: '#f2eee7', casingColor: '#cec8be', casingWidthPixels: 1 },
+  bridleway: { widthMeters: 2, color: '#eee6da', casingColor: '#cdbfac', casingWidthPixels: 1 },
+  steps: { widthMeters: 2, color: '#e9e4dc', casingColor: '#c9c2b8', casingWidthPixels: 1 },
+};
+
+const defaultRoadStyle: RoadStyle = {
+  widthMeters: 5,
+  color: '#ffffff',
+  casingColor: '#d8d5cd',
+  casingWidthPixels: 1,
+};
 
 const waterFeatureNames = new Set([
   'coastline',
@@ -159,6 +205,30 @@ export class TerraMapRenderer {
       return 'globe';
     }
     return mapMode;
+  }
+
+  public projectWorldToScreen(
+    renderer: CanvasRenderer,
+    x: number,
+    y: number,
+    options: Pick<TerraMapRenderOptions, 'mapMode' | 'pitchDegrees'> = {},
+  ): V2 | null {
+    const frame = this.buildFrame(
+      renderer,
+      this.resolveMapSurface(renderer, options.mapMode ?? 'plane'),
+      options.pitchDegrees ?? 0,
+    );
+    const modelViewProjection = frame.camera.projectionMatrix
+      .multiply(frame.camera.viewMatrix)
+      .multiply(frame.modelMatrix);
+    const projected = modelViewProjection.multiplyV3(frame.projectPoint(x, y));
+    if (projected.z < -1 || projected.z > 1 || projected.x < -1 || projected.x > 1 || projected.y < -1 || projected.y > 1) {
+      return null;
+    }
+    return new V2(
+      (projected.x * 0.5 + 0.5) * renderer.width,
+      (1 - (projected.y * 0.5 + 0.5)) * renderer.height,
+    );
   }
 
   public hitTestTile(
@@ -256,6 +326,12 @@ export class TerraMapRenderer {
         ),
         projectGeoPoint: (longitudeRadians, latitudeRadians, radius) =>
           frame.projectAtRadius(longitudeRadians, latitudeRadians, radius),
+        surfaceNormal: (x, y) => frame.localNormal(
+          worldUToLongitudeRadians(x),
+          worldVToLatitudeRadians(y),
+        ),
+        pixelsPerLocalUnit: renderer.height /
+          (2 * Math.tan(Math.PI / 8) * view.distance) * view.renderScale,
       };
     }
 
@@ -270,6 +346,8 @@ export class TerraMapRenderer {
       globeDepth: () => 1,
       projectPoint: (x, y) => new V3(x - anchorWorld.x, y - anchorWorld.y, 0),
       projectGeoPoint: (longitudeRadians, latitudeRadians) => new V3(longitudeRadians, latitudeRadians, 0),
+      surfaceNormal: () => new V3(0, 0, 1),
+      pixelsPerLocalUnit: renderer.height / Math.max(1e-9, halfHeight * 2),
     };
   }
 
@@ -340,6 +418,11 @@ export class TerraMapRenderer {
         continue;
       }
 
+      if (feature.kind === 'road') {
+        this.renderRoads(renderer, group, feature, frame);
+        continue;
+      }
+
       const style = this.lineStyle(feature);
       const lines = this.linePoints3D(group, frame);
       renderer.webgl3d.drawLineStrips(
@@ -361,6 +444,92 @@ export class TerraMapRenderer {
       frame.camera,
       frame.modelMatrix,
     );
+  }
+
+  private renderRoads(
+    renderer: CanvasRenderer,
+    group: OptimizedLines,
+    feature: TerraFeatureType,
+    frame: TerraMapRenderFrame,
+  ) {
+    const style = roadStyles[feature.name] ?? defaultRoadStyle;
+    const casing = this.roadRibbonPoints(group, frame, style.widthMeters, style.casingWidthPixels);
+    const fill = this.roadRibbonPoints(group, frame, style.widthMeters);
+    const casingDepthBias = this.depthBiasUnits(feature);
+
+    renderer.webgl3d.drawTriangles(
+      casing,
+      style.casingColor,
+      frame.camera,
+      frame.modelMatrix,
+      { polygonOffsetUnits: casingDepthBias },
+    );
+    renderer.webgl3d.drawTriangles(
+      fill,
+      style.color,
+      frame.camera,
+      frame.modelMatrix,
+      { polygonOffsetUnits: casingDepthBias - TERRA_ROAD_FILL_DEPTH_BIAS_UNITS },
+    );
+  }
+
+  private roadRibbonPoints(
+    group: OptimizedLines,
+    frame: TerraMapRenderFrame,
+    widthMeters: number,
+    extraWidthPixels = 0,
+  ) {
+    const triangles: number[] = [];
+    for (let strip = 0; strip < group.offsets.length; strip += 1) {
+      const offset = group.offsets[strip];
+      const size = group.sizes[strip];
+      if (size < 2) {
+        continue;
+      }
+
+      const left: V3[] = [];
+      const right: V3[] = [];
+      for (let i = 0; i < size; i += 1) {
+        const index = offset + i;
+        const x = group.points[index * 2];
+        const y = group.points[index * 2 + 1];
+        const previous = Math.max(offset, index - 1);
+        const next = Math.min(offset + size - 1, index + 1);
+        const p = frame.projectPoint(x, y);
+        const from = frame.projectPoint(group.points[previous * 2], group.points[previous * 2 + 1]);
+        const to = frame.projectPoint(group.points[next * 2], group.points[next * 2 + 1]);
+        const tangent = to.sub(from).normalize();
+        const normal = frame.surfaceNormal(x, y).cross(tangent).normalize();
+        const halfWidth = this.roadHalfWidth(frame, y, widthMeters, extraWidthPixels);
+        left.push(p.add(normal.scale(halfWidth)));
+        right.push(p.sub(normal.scale(halfWidth)));
+      }
+
+      for (let i = 0; i < size - 1; i += 1) {
+        this.pushRoadTriangle(triangles, left[i], right[i], left[i + 1]);
+        this.pushRoadTriangle(triangles, right[i], right[i + 1], left[i + 1]);
+      }
+    }
+    return new Float32Array(triangles);
+  }
+
+  private roadHalfWidth(
+    frame: TerraMapRenderFrame,
+    worldY: number,
+    widthMeters: number,
+    extraWidthPixels: number,
+  ) {
+    const metersToLocal = frame.surface === 'plane'
+      ? 1 / (EARTH_CIRCUMFERENCE_METERS * Math.max(0.08, Math.cos(this.worldYToLatRad(worldY))))
+      : 1 / EARTH_RADIUS_METERS;
+    const widthFromMeters = widthMeters * metersToLocal;
+    const widthFromPixels = (MIN_ROAD_WIDTH_PIXELS + extraWidthPixels * 2) /
+      Math.max(1e-9, frame.pixelsPerLocalUnit);
+    return Math.max(widthFromMeters, widthFromPixels) / 2;
+  }
+
+  private pushRoadTriangle(target: number[], a: V3, b: V3, c: V3) {
+    target.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
   }
 
   private renderDebugGrid(

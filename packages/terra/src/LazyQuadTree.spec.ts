@@ -7,7 +7,10 @@ function makeContext(
 ): LazyQuadTreeContext {
   return {
     commutator: { request } as unknown as LazyQuadTreeContext['commutator'],
-    engine: { requestUpdate: vi.fn() } as unknown as LazyQuadTreeContext['engine'],
+    engine: {
+      requestUpdate: vi.fn(),
+      renderer: { rectToScreen: () => ({ width: 128 }) },
+    } as unknown as LazyQuadTreeContext['engine'],
   };
 }
 
@@ -64,5 +67,41 @@ describe('LazyQuadTree', () => {
 
     expect(childFallback?.source?.level).toBe(0);
     expect(childExact).toBeUndefined();
+  });
+
+  it('separates annotated place labels from WebGL geometry', async () => {
+    const request = vi.fn(() => Promise.resolve([{
+      typeId: 702,
+      points: { lats: [32768], lons: [16384] },
+      label: { text: 'Tórshavn', kind: 'town' },
+    } satisfies MapyGeometry]));
+    const root = LazyQuadTree.generate(makeContext(request));
+
+    await root.fetch();
+
+    expect(root.getGeometryForTile(0, 0)?.geometry).toEqual([]);
+    expect(root.getLabelsForArea(root.boundaries)).toEqual([{
+      text: 'Tórshavn',
+      kind: 'town',
+      x: expect.closeTo(0.25, 4),
+      y: expect.closeTo(0.5, 4),
+    }]);
+  });
+
+  it('keeps annotated road geometry and exposes its decoded path for label placement', async () => {
+    const request = vi.fn(() => Promise.resolve([{
+      ...lineGeometry(),
+      label: { text: 'Ektorpsvägen', kind: 'road' },
+    } satisfies MapyGeometry]));
+    const root = LazyQuadTree.generate(makeContext(request));
+
+    await root.fetch();
+
+    expect(root.getGeometryForTile(0, 0)?.geometry).toHaveLength(1);
+    expect(root.getLabelsForArea(root.boundaries)[0]).toMatchObject({
+      text: 'Ektorpsvägen',
+      kind: 'road',
+      path: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    });
   });
 });
