@@ -1,9 +1,10 @@
 import { LTElement, CanvasRenderer, LunaTerraEngine } from '@lunaterra/core';
-import { Rect2D, V2 } from '@lunaterra/math';
+import { V2 } from '@lunaterra/math';
 import { LAND_MASK_MAX_DEPTH, LAND_MASK_TYPE_ID, getFeatureTypeById } from './helpers';
 import { CommutatorClient } from './Commutator';
 import { LazyQuadTree } from './LazyQuadTree';
 import { GeometryCollection } from './GeometryCollection';
+import type { TerraPlaceLabel } from './types/Mapy';
 import {
   emptyTerraRenderStats,
   type TerraRenderStats,
@@ -78,6 +79,8 @@ export class MapElement extends LTElement {
   private lastReadyGlobeLayer: GlobeGeometryLayer | null = null;
   private readonly tileDiagnosticsCache = new Map<string, TerraTileDiagnostics | null>();
   private readonly tileDiagnosticsLoading = new Set<string>();
+  private labelCanvas?: HTMLCanvasElement;
+  private labelContext?: CanvasRenderingContext2D;
   private unsubscribeMouseMove?: () => void;
   private unsubscribeClick?: () => void;
 
@@ -125,6 +128,7 @@ export class MapElement extends LTElement {
   override setup(engine: LunaTerraEngine) {
     super.setup(engine);
     this.hostEngine = engine;
+    this.createLabelOverlay(engine);
     this.lazyTreeRoot = LazyQuadTree.generate({ commutator: this.commutator, engine });
     this.unsubscribeMouseMove = engine.renderer.$mousePositionScreen.subscribe((point) => {
       this.mouseScreen = point;
@@ -140,6 +144,9 @@ export class MapElement extends LTElement {
     this.unsubscribeMouseMove?.();
     this.unsubscribeClick?.();
     this.hostEngine = undefined;
+    this.labelCanvas?.remove();
+    this.labelCanvas = undefined;
+    this.labelContext = undefined;
   }
 
   override render(renderer: CanvasRenderer) {
@@ -161,6 +168,12 @@ export class MapElement extends LTElement {
     const collections = globeLayer
       ? globeLayer.collections
       : this.collectionsForArea(renderer);
+    const labels = globeSelection
+      ? this.lazyTreeRoot?.getLabelsForTiles(globeSelection.tiles.map((tile) => ({
+        level: tile.level,
+        index: mortonTileIndexFromXYLevel(tile.x, tile.y, tile.level),
+      }))) ?? []
+      : this.lazyTreeRoot?.getLabelsForArea(renderer.visibleArea) ?? [];
     const debugTiles = this.debugTileFill && globeSelection
       ? this.debugTilesForGlobeSelection(globeSelection)
       : undefined;
@@ -179,8 +192,121 @@ export class MapElement extends LTElement {
       pitchDegrees: this.pitchDegrees,
       sourceBounds: this.sourceBounds,
     });
+    this.renderPlaceLabels(renderer, labels);
 
     this.reportStats(renderer, collections);
+  }
+
+  private renderPlaceLabels(renderer: CanvasRenderer, labels: TerraPlaceLabel[]) {
+    const context = this.labelContext;
+    const canvas = this.labelCanvas;
+    if (!context || !canvas) {
+      return;
+    }
+    if (canvas.width !== renderer.canvas.width || canvas.height !== renderer.canvas.height) {
+      canvas.width = renderer.canvas.width;
+      canvas.height = renderer.canvas.height;
+    }
+    context.setTransform(renderer.hdpi, 0, 0, renderer.hdpi, 0, 0);
+    context.clearRect(0, 0, renderer.width, renderer.height);
+    const occupied: Array<{ left: number; top: number; right: number; bottom: number }> = [];
+    const priority = { city: 0, town: 1, village: 2, road: 3 };
+    for (const label of [...labels].sort((a, b) => priority[a.kind] - priority[b.kind])) {
+      if (label.kind === 'road' && renderer.zoom < 11) {
+        continue;
+      }
+      const point = this.mapRenderer.projectWorldToScreen(renderer, label.x, label.y, {
+        mapMode: this.mapMode,
+        pitchDegrees: this.pitchDegrees,
+      });
+      if (!point && label.kind !== 'road') {
+        continue;
+      }
+      const size = label.kind === 'city' ? 16 : label.kind === 'town' ? 14 : label.kind === 'village' ? 12 : 11;
+      const width = label.text.length * size * 0.58;
+      const roadPlacement = label.kind === 'road'
+        ? this.roadLabelPlacement(renderer, label.path ?? [], width)
+        : undefined;
+      if (label.kind === 'road' && !roadPlacement) {
+        continue;
+      }
+      const cssPoint = roadPlacement?.point ?? new V2(point!.x / renderer.hdpi, point!.y / renderer.hdpi);
+      const angle = roadPlacement?.angle ?? 0;
+      const projectedWidth = Math.abs(Math.cos(angle)) * width + Math.abs(Math.sin(angle)) * size;
+      const projectedHeight = Math.abs(Math.sin(angle)) * width + Math.abs(Math.cos(angle)) * size;
+      const bounds = {
+        left: cssPoint.x - projectedWidth / 2 - 3,
+        top: cssPoint.y - projectedHeight / 2 - 3,
+        right: cssPoint.x + projectedWidth / 2 + 3,
+        bottom: cssPoint.y + projectedHeight / 2 + 3,
+      };
+      if (occupied.some((other) => bounds.left < other.right && bounds.right > other.left && bounds.top < other.bottom && bounds.bottom > other.top)) {
+        continue;
+      }
+      occupied.push(bounds);
+      context.fillStyle = label.kind === 'road' ? '#5b5f64' : '#39434d';
+      context.font = `${size}px system-ui, sans-serif`;
+      context.textAlign = 'center';
+      context.textBaseline = 'alphabetic';
+      if (roadPlacement) {
+        context.save();
+        context.translate(cssPoint.x, cssPoint.y);
+        context.rotate(angle);
+        context.fillText(label.text, 0, 0);
+        context.restore();
+      } else {
+        context.fillText(label.text, cssPoint.x, cssPoint.y);
+      }
+    }
+  }
+
+  private roadLabelPlacement(renderer: CanvasRenderer, path: V2[], textWidth: number) {
+    let best: { point: V2; angle: number; length: number } | undefined;
+    for (let index = 1; index < path.length; index += 1) {
+      const from = this.mapRenderer.projectWorldToScreen(renderer, path[index - 1].x, path[index - 1].y, {
+        mapMode: this.mapMode,
+        pitchDegrees: this.pitchDegrees,
+      });
+      const to = this.mapRenderer.projectWorldToScreen(renderer, path[index].x, path[index].y, {
+        mapMode: this.mapMode,
+        pitchDegrees: this.pitchDegrees,
+      });
+      if (!from || !to) {
+        continue;
+      }
+      const dx = (to.x - from.x) / renderer.hdpi;
+      const dy = (to.y - from.y) / renderer.hdpi;
+      const length = Math.hypot(dx, dy);
+      if (length < textWidth + 12 || length <= (best?.length ?? 0)) {
+        continue;
+      }
+      let angle = Math.atan2(dy, dx);
+      if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+        angle += Math.PI;
+      }
+      best = {
+        point: new V2((from.x + to.x) / (2 * renderer.hdpi), (from.y + to.y) / (2 * renderer.hdpi)),
+        angle,
+        length,
+      };
+    }
+    return best;
+  }
+
+  private createLabelOverlay(engine: LunaTerraEngine) {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = [
+      'height:100%',
+      'left:0',
+      'pointer-events:none',
+      'position:absolute',
+      'top:0',
+      'width:100%',
+      'z-index:4',
+    ].join(';');
+    engine.renderer.getHTML().appendChild(canvas);
+    this.labelCanvas = canvas;
+    this.labelContext = canvas.getContext('2d') ?? undefined;
   }
 
   private normalizeGlobeViewport(renderer: CanvasRenderer) {

@@ -83,5 +83,7 @@ export type {
   LegacyDoublePrecisionPoints,
   LegacySinglePrecisionPoints,
   MapyGeometry,
+  TerraPlaceLabel,
+  TerraPlaceLabelMetadata,
   TilePoints,
 } from './types/Mapy';

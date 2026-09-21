@@ -12,12 +12,15 @@ const BUFFER_RING_SIZE = 4;
 const vertexShaderSource = `#version 300 es
 
 in vec3 a_position;
+in vec2 a_ribbon;
+out vec2 v_ribbon;
 
 uniform mat4 u_modelMatrix;
 uniform mat4 u_viewMatrix;
 uniform mat4 u_projectionMatrix;
 
 void main() {
+  v_ribbon = a_ribbon;
   gl_Position = u_projectionMatrix * u_viewMatrix * u_modelMatrix * vec4(a_position, 1.0);
 }
 `;
@@ -27,11 +30,19 @@ const fragmentShaderSource = `#version 300 es
 precision highp float;
 
 uniform vec4 u_color;
+uniform vec4 u_borderColor;
+uniform bool u_isRibbon;
+in vec2 v_ribbon;
 
 out vec4 outColor;
 
 void main() {
   outColor = u_color;
+  if (u_isRibbon) {
+    float edge = abs(v_ribbon.x) - v_ribbon.y;
+    float aa = max(fwidth(edge), 0.000001);
+    outColor = mix(u_color, u_borderColor, smoothstep(-0.5 * aa, 0.5 * aa, edge));
+  }
 }
 `;
 
@@ -84,6 +95,9 @@ export class WebGL3DBackend {
   private pointsBuffers: WebGLBuffer[] = [];
   private nextPointsBuffer = 0;
   private positionAttributeLocation: number;
+  private ribbonAttributeLocation: number;
+  private borderColorLocation: WebGLUniformLocation | null;
+  private isRibbonLocation: WebGLUniformLocation | null;
   private modelMatrixLocation: WebGLUniformLocation | null;
   private viewMatrixLocation: WebGLUniformLocation | null;
   private projectionMatrixLocation: WebGLUniformLocation | null;
@@ -96,6 +110,9 @@ export class WebGL3DBackend {
     this.program = createProgram(gl, vertexShader, fragmentShader);
 
     this.positionAttributeLocation = gl.getAttribLocation(this.program, 'a_position');
+    this.ribbonAttributeLocation = gl.getAttribLocation(this.program, 'a_ribbon');
+    this.borderColorLocation = gl.getUniformLocation(this.program, 'u_borderColor');
+    this.isRibbonLocation = gl.getUniformLocation(this.program, 'u_isRibbon');
     this.modelMatrixLocation = gl.getUniformLocation(this.program, 'u_modelMatrix');
     this.viewMatrixLocation = gl.getUniformLocation(this.program, 'u_viewMatrix');
     this.projectionMatrixLocation = gl.getUniformLocation(this.program, 'u_projectionMatrix');
@@ -129,6 +146,18 @@ export class WebGL3DBackend {
     this.draw(points, color, camera, modelMatrix, this.gl.TRIANGLES, 0, points.length / 3, options);
   }
 
+  /** Triangle vertices: x, y, z, signed cross-ribbon coordinate (-1..1), fill half-width ratio. */
+  public drawRibbon(
+    vertices: Float32Array,
+    color: string,
+    borderColor: string,
+    camera: Camera3D,
+    modelMatrix = M4.identity(),
+    options: WebGL3DTriangleOptions = {},
+  ) {
+    this.draw(vertices, color, camera, modelMatrix, this.gl.TRIANGLES, 0, vertices.length / 5, options, borderColor);
+  }
+
   public drawLineStrips(
     points: Float32Array,
     offsets: number[],
@@ -156,9 +185,10 @@ export class WebGL3DBackend {
     offset: number,
     count: number,
     options: WebGL3DTriangleOptions = {},
+    borderColor?: string,
   ) {
     const gl = this.gl;
-    this.prepareDraw(points, color, camera, modelMatrix);
+    this.prepareDraw(points, color, camera, modelMatrix, borderColor);
     if (mode === gl.TRIANGLES && (
       options.polygonOffsetFactor !== undefined ||
       options.polygonOffsetUnits !== undefined
@@ -176,6 +206,7 @@ export class WebGL3DBackend {
     color: string,
     camera: Camera3D,
     modelMatrix: M4,
+    borderColor?: string,
   ) {
     const gl = this.gl;
 
@@ -184,7 +215,18 @@ export class WebGL3DBackend {
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.nextBuffer());
-    gl.vertexAttribPointer(this.positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+    const isRibbon = borderColor !== undefined;
+    gl.vertexAttribPointer(this.positionAttributeLocation, 3, gl.FLOAT, false, isRibbon ? 20 : 0, 0);
+    if (isRibbon) {
+      gl.enableVertexAttribArray(this.ribbonAttributeLocation);
+      gl.vertexAttribPointer(this.ribbonAttributeLocation, 2, gl.FLOAT, false, 20, 12);
+      const border = this.colorCache.getColor(borderColor);
+      gl.uniform4f(this.borderColorLocation, border[0], border[1], border[2], border[3]);
+    } else {
+      gl.disableVertexAttribArray(this.ribbonAttributeLocation);
+      gl.vertexAttrib2f(this.ribbonAttributeLocation, 0, 0);
+    }
+    gl.uniform1i(this.isRibbonLocation, isRibbon ? 1 : 0);
     gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
 
     gl.uniformMatrix4fv(this.modelMatrixLocation, false, modelMatrix.getFloatArray());

@@ -2,7 +2,7 @@ import { Rect2D } from '@lunaterra/math';
 import type { LunaTerraEngine } from '@lunaterra/core';
 import { VirtualTree } from './VirtualTree';
 import { GeometryClient } from './Geometry';
-import type { MapyGeometry } from './types/Mapy';
+import type { MapyGeometry, TerraPlaceLabel } from './types/Mapy';
 import { CommutatorClient } from './Commutator';
 import { GeometryCollection } from './GeometryCollection';
 import { incDebugValue, printDebugValue } from './debug';
@@ -26,7 +26,10 @@ export class LazyQuadTree extends VirtualTree {
   public context: LazyQuadTreeContext;
 
   private geometry: GeometryClient[] = [];
+  private labels: TerraPlaceLabel[] = [];
   private geometryCollection: GeometryCollection | undefined = undefined;
+  private retryAfter = 0;
+  private retryDelay = 1000;
 
   private parent: LazyQuadTree | undefined;
 
@@ -67,7 +70,7 @@ export class LazyQuadTree extends VirtualTree {
   }
 
   public async fetch() {
-    if (this.loading || this.fulfilled) {
+    if (this.loading || this.fulfilled || Date.now() < this.retryAfter) {
       return;
     }
 
@@ -76,9 +79,20 @@ export class LazyQuadTree extends VirtualTree {
     try {
       const data = await this.context.commutator.request(this.index, this.level);
       this.missing = data === null;
-      this.geometry = data ? this.deserialize(data) : [];
+      const decoded = data ? this.deserialize(data) : { geometry: [], labels: [] };
+      this.geometry = decoded.geometry;
+      this.labels = decoded.labels;
       this.geometryCollection = undefined;
       this.fulfilled = true;
+      this.retryDelay = 1000;
+      this.retryAfter = 0;
+    } catch {
+      // Keep transient errors distinct from confirmed empty/missing tiles.
+      // Wake rendering after backoff; only tiles still selected will refetch.
+      this.missing = false;
+      this.retryAfter = Date.now() + this.retryDelay;
+      setTimeout(() => this.context.engine.requestUpdate(), this.retryDelay);
+      this.retryDelay = Math.min(this.retryDelay * 2, 30_000);
     } finally {
       this.loading = false;
       this.context.engine.requestUpdate();
@@ -86,13 +100,61 @@ export class LazyQuadTree extends VirtualTree {
   }
 
   private deserialize(data: Array<MapyGeometry>) {
-    return data.map((serialized) =>
+    const labels: TerraPlaceLabel[] = [];
+    const geometry = data.filter((serialized) => {
+      if (!serialized.label) {
+        return true;
+      }
+      const decoded = GeometryClient.deserialize(serialized, this.boundaries, 16);
+      const point = decoded.points[Math.floor(decoded.points.length / 2)];
+      if (point) {
+        labels.push({
+          ...serialized.label,
+          x: point.x,
+          y: point.y,
+          ...(serialized.label.kind === 'road' ? { path: decoded.points } : {}),
+        });
+      }
+      return serialized.label.kind === 'road';
+    }).map((serialized) =>
       GeometryClient.deserialize(
         serialized,
         this.boundaries,
         this.hasChildren() ? 8 : 16
       )
     );
+    return { geometry, labels };
+  }
+
+  public getLabelsForArea(area: Rect2D): TerraPlaceLabel[] {
+    if (!this.boundaries.intersects(area)) {
+      return [];
+    }
+    if (!this.loading && !this.fulfilled) {
+      void this.fetch();
+    }
+    if (!this.fulfilled || !this.hasChildren() || this.amIGoodCandidate()) {
+      return this.labels;
+    }
+    if (!this.subTrees) {
+      this.generateSubTree();
+    }
+    return this.subTrees?.flatMap((subTree) => subTree.getLabelsForArea(area)) ?? this.labels;
+  }
+
+  public getLabelsForTiles(
+    tiles: Array<{ index: TileIndex; level: number }>,
+  ): TerraPlaceLabel[] {
+    return tiles.flatMap((tile) => {
+      const node = this.getOrCreateByIndex(tile.index, tile.level);
+      if (!node) {
+        return [];
+      }
+      if (!node.loading && !node.fulfilled) {
+        void node.fetch();
+      }
+      return node.fulfilled ? node.labels : [];
+    });
   }
 
   public getRenderedTree(area: Rect2D): LazyQuadTree[] {
