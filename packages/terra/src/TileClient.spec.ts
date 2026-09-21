@@ -48,11 +48,11 @@ describe('LegacyJsonTileClient', () => {
     await expect(client.getTile(2, '131074')).resolves.toBeNull();
   });
 
-  it('treats rejected legacy tile fetches as empty', async () => {
+  it('rejects failed legacy tile fetches so the tree can retry', async () => {
     mockFetchReject();
     const client = new LegacyJsonTileClient('http://tiles');
 
-    await expect(client.getTile(2, '131074')).resolves.toBeNull();
+    await expect(client.getTile(2, '131074')).rejects.toThrow('Failed to fetch');
   });
 });
 
@@ -73,11 +73,11 @@ describe('TerraTileStoreClient', () => {
     await expect(client.getTile(2, '131074')).resolves.toBeNull();
   });
 
-  it('treats rejected tile-store tile fetches as empty', async () => {
+  it('rejects failed tile-store fetches so the tree can retry', async () => {
     mockFetchReject();
     const client = new TerraTileStoreClient('http://tiles');
 
-    await expect(client.getTile(2, '131074')).resolves.toBeNull();
+    await expect(client.getTile(2, '131074')).rejects.toThrow('Failed to fetch');
   });
 
   it('requests manifest from the tile-store server', async () => {

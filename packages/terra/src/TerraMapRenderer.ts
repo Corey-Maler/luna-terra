@@ -37,7 +37,6 @@ export const TERRA_UNWRAP_FULL_ZOOM = 512;
 export const TERRA_DEBUG_SURFACE_COVER_MAX_UNWRAP = 0.995;
 const TERRA_OCEAN_SPHERE_RADIUS = 0.998;
 const TERRA_LAYER_DEPTH_BIAS_UNITS = 2;
-const TERRA_ROAD_FILL_DEPTH_BIAS_UNITS = 1;
 
 export function terraUnwrapAmount(zoom: number) {
   const start = Math.log2(TERRA_GLOBE_AUTO_MAX_ZOOM);
@@ -99,6 +98,14 @@ const roadLodColors = [
 const EARTH_RADIUS_METERS = 6_371_008.8;
 const EARTH_CIRCUMFERENCE_METERS = Math.PI * 2 * EARTH_RADIUS_METERS;
 const MIN_ROAD_WIDTH_PIXELS = 3;
+const waterwayWidths: Record<string, { meters: number; pixels: number }> = {
+  river: { meters: 20, pixels: 3 },
+  canal: { meters: 12, pixels: 3 },
+  stream: { meters: 3, pixels: 2 },
+  drain: { meters: 2, pixels: 2 },
+  ditch: { meters: 1, pixels: 2 },
+};
+const defaultWaterwayWidth = { meters: 3, pixels: 2 };
 
 const roadStyles: Record<string, RoadStyle> = {
   motorway: { widthMeters: 24, color: '#f8f7f2', casingColor: '#a9a8a2', casingWidthPixels: 2 },
@@ -423,6 +430,18 @@ export class TerraMapRenderer {
         continue;
       }
 
+      if (feature.kind === 'waterway') {
+        const width = waterwayWidths[feature.name] ?? defaultWaterwayWidth;
+        renderer.webgl3d.drawTriangles(
+          this.lineRibbonPoints(group, frame, width.meters, width.pixels),
+          TERRAIN_COLORS.water,
+          frame.camera,
+          frame.modelMatrix,
+          { polygonOffsetUnits: this.depthBiasUnits(feature) },
+        );
+        continue;
+      }
+
       const style = this.lineStyle(feature);
       const lines = this.linePoints3D(group, frame);
       renderer.webgl3d.drawLineStrips(
@@ -453,31 +472,25 @@ export class TerraMapRenderer {
     frame: TerraMapRenderFrame,
   ) {
     const style = roadStyles[feature.name] ?? defaultRoadStyle;
-    const casing = this.roadRibbonPoints(group, frame, style.widthMeters, style.casingWidthPixels);
-    const fill = this.roadRibbonPoints(group, frame, style.widthMeters);
-    const casingDepthBias = this.depthBiasUnits(feature);
+    const ribbon = this.lineRibbonPoints(group, frame, style.widthMeters, MIN_ROAD_WIDTH_PIXELS, style.casingWidthPixels, true);
 
-    renderer.webgl3d.drawTriangles(
-      casing,
+    renderer.webgl3d.drawRibbon(
+      ribbon,
+      style.color,
       style.casingColor,
       frame.camera,
       frame.modelMatrix,
-      { polygonOffsetUnits: casingDepthBias },
-    );
-    renderer.webgl3d.drawTriangles(
-      fill,
-      style.color,
-      frame.camera,
-      frame.modelMatrix,
-      { polygonOffsetUnits: casingDepthBias - TERRA_ROAD_FILL_DEPTH_BIAS_UNITS },
+      { polygonOffsetUnits: this.depthBiasUnits(feature) },
     );
   }
 
-  private roadRibbonPoints(
+  private lineRibbonPoints(
     group: OptimizedLines,
     frame: TerraMapRenderFrame,
     widthMeters: number,
+    minimumWidthPixels: number,
     extraWidthPixels = 0,
+    withRibbonCoordinates = false,
   ) {
     const triangles: number[] = [];
     for (let strip = 0; strip < group.offsets.length; strip += 1) {
@@ -489,6 +502,7 @@ export class TerraMapRenderer {
 
       const left: V3[] = [];
       const right: V3[] = [];
+      const fillRatios: number[] = [];
       for (let i = 0; i < size; i += 1) {
         const index = offset + i;
         const x = group.points[index * 2];
@@ -500,35 +514,53 @@ export class TerraMapRenderer {
         const to = frame.projectPoint(group.points[next * 2], group.points[next * 2 + 1]);
         const tangent = to.sub(from).normalize();
         const normal = frame.surfaceNormal(x, y).cross(tangent).normalize();
-        const halfWidth = this.roadHalfWidth(frame, y, widthMeters, extraWidthPixels);
+        const halfWidth = this.lineHalfWidth(frame, y, widthMeters, minimumWidthPixels, extraWidthPixels);
         left.push(p.add(normal.scale(halfWidth)));
         right.push(p.sub(normal.scale(halfWidth)));
+        if (withRibbonCoordinates) {
+          const fillHalfWidth = this.lineHalfWidth(frame, y, widthMeters, minimumWidthPixels, 0);
+          fillRatios.push(fillHalfWidth / halfWidth);
+        }
       }
 
       for (let i = 0; i < size - 1; i += 1) {
-        this.pushRoadTriangle(triangles, left[i], right[i], left[i + 1]);
-        this.pushRoadTriangle(triangles, right[i], right[i + 1], left[i + 1]);
+        if (withRibbonCoordinates) {
+          // Match the triangle topology while carrying the width at each endpoint.
+          const a = left[i], b = right[i], c = left[i + 1], d = right[i + 1];
+          triangles.push(
+            a.x, a.y, a.z, -1, fillRatios[i],
+            b.x, b.y, b.z, 1, fillRatios[i],
+            c.x, c.y, c.z, -1, fillRatios[i + 1],
+            b.x, b.y, b.z, 1, fillRatios[i],
+            d.x, d.y, d.z, 1, fillRatios[i + 1],
+            c.x, c.y, c.z, -1, fillRatios[i + 1],
+          );
+        } else {
+          this.pushRibbonTriangle(triangles, left[i], right[i], left[i + 1]);
+          this.pushRibbonTriangle(triangles, right[i], right[i + 1], left[i + 1]);
+        }
       }
     }
     return new Float32Array(triangles);
   }
 
-  private roadHalfWidth(
+  private lineHalfWidth(
     frame: TerraMapRenderFrame,
     worldY: number,
     widthMeters: number,
+    minimumWidthPixels: number,
     extraWidthPixels: number,
   ) {
     const metersToLocal = frame.surface === 'plane'
       ? 1 / (EARTH_CIRCUMFERENCE_METERS * Math.max(0.08, Math.cos(this.worldYToLatRad(worldY))))
       : 1 / EARTH_RADIUS_METERS;
     const widthFromMeters = widthMeters * metersToLocal;
-    const widthFromPixels = (MIN_ROAD_WIDTH_PIXELS + extraWidthPixels * 2) /
-      Math.max(1e-9, frame.pixelsPerLocalUnit);
-    return Math.max(widthFromMeters, widthFromPixels) / 2;
+    const pixelsPerUnit = Math.max(1e-9, frame.pixelsPerLocalUnit);
+    const widthFromPixels = minimumWidthPixels / pixelsPerUnit;
+    return Math.max(widthFromMeters, widthFromPixels) / 2 + extraWidthPixels / pixelsPerUnit;
   }
 
-  private pushRoadTriangle(target: number[], a: V3, b: V3, c: V3) {
+  private pushRibbonTriangle(target: number[], a: V3, b: V3, c: V3) {
     target.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
   }
 

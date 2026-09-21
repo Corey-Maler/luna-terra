@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LazyQuadTree, type LazyQuadTreeContext } from './LazyQuadTree';
+import { TerraTileStoreClient } from './TileClient';
 import type { MapyGeometry } from './types/Mapy';
 
 function makeContext(
@@ -25,6 +26,50 @@ function lineGeometry(): MapyGeometry {
 }
 
 describe('LazyQuadTree', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['network', 'HTTP 500'])('recovers from %s errors after backoff without caching a missing tile', async (failure) => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn();
+    if (failure === 'network') fetchMock.mockRejectedValueOnce(new Error('offline'));
+    else fetchMock.mockResolvedValueOnce({ status: 500, ok: false });
+    fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => [lineGeometry()] });
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new TerraTileStoreClient('http://tiles');
+    const context = makeContext((index, level) => client.getTile(level, String(index)));
+    const root = LazyQuadTree.generate(context);
+
+    await root.fetch();
+    expect(root.fulfilled).toBe(false);
+    expect(root.missing).toBe(false);
+    await root.fetch();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.mocked(context.engine.requestUpdate).mockClear();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(context.engine.requestUpdate).toHaveBeenCalledOnce();
+    await root.fetch();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(root.getGeometryForTile(0, 0)?.geometry).toHaveLength(1);
+    expect(root.fulfilled).toBe(true);
+    expect(root.missing).toBe(false);
+  });
+
+  it('continues to cache confirmed missing tiles without scheduling retries', async () => {
+    vi.useFakeTimers();
+    const request = vi.fn().mockResolvedValue(null);
+    const root = LazyQuadTree.generate(makeContext(request));
+    await root.fetch();
+    await vi.advanceTimersByTimeAsync(30_000);
+    await root.fetch();
+    expect(request).toHaveBeenCalledOnce();
+    expect(root.fulfilled).toBe(true);
+    expect(root.missing).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('does not cache an empty parent collection while the parent is still loading', async () => {
     let resolveRoot!: (data: MapyGeometry[]) => void;
     const rootRequest = new Promise<MapyGeometry[]>((resolve) => {

@@ -28,6 +28,8 @@ export class LazyQuadTree extends VirtualTree {
   private geometry: GeometryClient[] = [];
   private labels: TerraPlaceLabel[] = [];
   private geometryCollection: GeometryCollection | undefined = undefined;
+  private retryAfter = 0;
+  private retryDelay = 1000;
 
   private parent: LazyQuadTree | undefined;
 
@@ -68,7 +70,7 @@ export class LazyQuadTree extends VirtualTree {
   }
 
   public async fetch() {
-    if (this.loading || this.fulfilled) {
+    if (this.loading || this.fulfilled || Date.now() < this.retryAfter) {
       return;
     }
 
@@ -82,6 +84,15 @@ export class LazyQuadTree extends VirtualTree {
       this.labels = decoded.labels;
       this.geometryCollection = undefined;
       this.fulfilled = true;
+      this.retryDelay = 1000;
+      this.retryAfter = 0;
+    } catch {
+      // Keep transient errors distinct from confirmed empty/missing tiles.
+      // Wake rendering after backoff; only tiles still selected will refetch.
+      this.missing = false;
+      this.retryAfter = Date.now() + this.retryDelay;
+      setTimeout(() => this.context.engine.requestUpdate(), this.retryDelay);
+      this.retryDelay = Math.min(this.retryDelay * 2, 30_000);
     } finally {
       this.loading = false;
       this.context.engine.requestUpdate();

@@ -60,6 +60,7 @@ export interface TerraTileDiagnostics {
 }
 
 export interface TerraTileClient {
+  /** Null means confirmed absence; transient failures reject so callers can retry. */
   getTile(level: number, index: string): Promise<MapyGeometry[] | null>;
   getManifest?(): Promise<TerraManifest | null>;
   getTileDiagnostics?(level: number, index: string): Promise<TerraTileDiagnostics | null>;
@@ -69,17 +70,7 @@ export class LegacyJsonTileClient implements TerraTileClient {
   constructor(private readonly baseUrl = DEFAULT_TILE_BASE_URL) {}
 
   async getTile(level: number, index: string): Promise<MapyGeometry[] | null> {
-    const response = await fetchResponse(`${this.baseUrl}/${level}/${index}.json`);
-    if (!response) {
-      return null;
-    }
-    if (response.status === 404 || response.status === 204) {
-      return null;
-    }
-    if (!response.ok) {
-      return [];
-    }
-    return response.json();
+    return fetchTile(`${this.baseUrl}/${level}/${index}.json`);
   }
 }
 
@@ -87,17 +78,7 @@ export class TerraTileStoreClient implements TerraTileClient {
   constructor(private readonly baseUrl = DEFAULT_TILE_BASE_URL) {}
 
   async getTile(level: number, index: string): Promise<MapyGeometry[] | null> {
-    const response = await fetchResponse(`${this.baseUrl}/tiles/${level}/${index}`);
-    if (!response) {
-      return null;
-    }
-    if (response.status === 404 || response.status === 204) {
-      return null;
-    }
-    if (!response.ok) {
-      return [];
-    }
-    return response.json();
+    return fetchTile(`${this.baseUrl}/tiles/${level}/${index}`);
   }
 
   async getManifest(): Promise<TerraManifest | null> {
@@ -127,6 +108,17 @@ export class TerraTileStoreClient implements TerraTileClient {
     }
     return response.json();
   }
+}
+
+async function fetchTile(url: string): Promise<MapyGeometry[] | null> {
+  const response = await fetch(url);
+  if (response.status === 404 || response.status === 204) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`Tile request failed: HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
 async function fetchResponse(url: string) {
