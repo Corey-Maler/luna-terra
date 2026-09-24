@@ -1,0 +1,58 @@
+{
+  "name": "@lunaterra/ground-crew",
+  "version": "0.0.0",
+  "description": "Node.js Canvas2D rendering for Luna-Terra, with Express integration and an optional CLI.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/ground-crew"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ground-crew": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets",
+    "examples",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:compile": "tsc -p tsconfig.lib.json",
+    "build": "pnpm run clean && pnpm run build:compile",
+    "prepack": "pnpm run build:compile",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@lunaterra/core": "workspace:*",
+    "@lunaterra/declarative": "workspace:*",
+    "@napi-rs/canvas": "^1.0.9",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "5",
+    "express": "5"
+  }
+}

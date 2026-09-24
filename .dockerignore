@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/dist
+dist-ssr
+.pnpm-store
+.codex
+.agents
+.vscode
+tmp
+**/*.log
+**/.env
+**/.env.*
+!/.env.example
+**/*.local

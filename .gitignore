@@ -37,3 +37,7 @@ vitest.config.*.timestamp*
 # Local scratch/design folders
 tmp/
 apps/docs/stitch 2/
+# Runtime demo configuration
+.env
+.env.*
+!.env.example

@@ -50,13 +50,19 @@ export interface FunctionPlotOptions {
 
 export interface LineSeriesOptions {
   /** Data points in world coords */
-  data: Array<{ x: number; y: number }>;
+  data: Array<{ x: number; y: number | null; width?: number; color?: string }>;
+  /** Hold each value until the next X, then draw a vertical transition. */
+  interpolation?: 'linear' | 'step-after';
   /** Stroke width in screen pixels (default: 1.5) */
   lineWidth?: number;
   /** Opacity of gradient fill below the line (0 = none, default: 0) */
   fillOpacity?: number;
   /** Y world value to fill down to (default: 0) */
   yFillTo?: number;
+  /** Canvas dash lengths in screen pixels. Empty or omitted means solid. */
+  dashPattern?: number[];
+  /** Break the line when adjacent X values differ by more than this amount. */
+  maxGapX?: number;
 }
 
 export interface StackedAreaLayer {

@@ -11,8 +11,12 @@ Opinionated monorepo for drawing and interaction on JavaScript canvas.
 - `packages/ui` - Reusable UI overlays/panels for canvas workflows (ScaleRuler, Panel, FpsPanel).
 - `packages/math` - Geometry primitives and transform math (`V2`, `M3`, `Rect2D`).
 - `packages/color` - `Color` model and color-space helpers.
+- `packages/declarative` - Reusable interactive ChartView scenes, serializable chart specifications, controls, and independently scaled lanes.
+- `packages/ground-crew` - Node.js Canvas2D rendering package with PNG output, Express integration, and an optional CLI.
 - `packages/tracing` - Performance tracing utilities.
 - `packages/legacy` - Legacy prototype; reference only.
+
+The [Ground Crew guide](packages/ground-crew/README.md) shows how to render a weather chart as PNG in Node or an Express route. The [declarative chart guide](packages/declarative/README.md) describes the shared chart specification.
 
 ## Commands
 
@@ -49,6 +53,18 @@ Pointer arrows should be implemented via `Line` marker options in `@lunaterra/el
 ## In-development note
 
 The project is still evolving and APIs may shift.
+
+## Docker demo
+
+Run the interactive docs and Ground Crew renderer together with a persistent Redis quota:
+
+```sh
+docker compose up -d --build --wait
+```
+
+For the public Coolify deployment, select `compose.coolify.yaml`; Traefik routes to internal port 4200.
+
+The server-rendering docs include an on-demand PNG preview. Public defaults allow 10 render requests per IP per 10 minutes; use an ignored root `.env` to override the limit locally. See the [Docker demo guide](docs/docker-demo.md) for Caddy trust settings, configuration, updates, and Docker access setup.
 
 ## Publishing packages
 

@@ -1,0 +1,47 @@
+# Deploy this file on Coolify using the Docker Compose build pack.
+# Assign the demo service an HTTPS domain targeting internal port 4200.
+services:
+  demo:
+    build: .
+    restart: unless-stopped
+    init: true
+    expose: ['4200']
+    environment:
+      DEMO_HOST: '0.0.0.0'
+      DEMO_PORT: '4200'
+      DEMO_RATE_STORE: redis
+      REDIS_URL: redis://redis:6379
+      DEMO_RATE_LIMIT: '${DEMO_RATE_LIMIT:-10}'
+      DEMO_RATE_WINDOW_MS: '${DEMO_RATE_WINDOW_MS:-600000}'
+      # One direct Traefik hop; neither service publishes a host port.
+      DEMO_TRUST_PROXY: '1'
+      DEMO_RENDER_WORKERS: '${DEMO_RENDER_WORKERS:-2}'
+      DEMO_RENDER_QUEUE: '${DEMO_RENDER_QUEUE:-16}'
+      DEMO_RENDER_TIMEOUT_MS: '${DEMO_RENDER_TIMEOUT_MS:-10000}'
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 128
+    stop_grace_period: 20s
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always, --maxmemory, 64mb, --maxmemory-policy, noeviction]
+    volumes:
+      - render-limits:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 128m
+    cpus: 0.5
+volumes:
+  render-limits:

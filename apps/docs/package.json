@@ -12,7 +12,9 @@
     "typecheck": "pnpm run generate:symbols && tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
-    "@lunaterra/ui": "workspace:*",
-    "@lunaterra/terra": "workspace:*"
+    "@lunaterra/declarative": "workspace:*",
+    "@lunaterra/react": "workspace:^",
+    "@lunaterra/terra": "workspace:*",
+    "@lunaterra/ui": "workspace:*"
   }
 }

@@ -11,8 +11,8 @@ import {
 import { LineSeries, StateBandSeries } from '@lunaterra/charts';
 import { RectElement, TextElement } from '@lunaterra/elements';
 import { TimelineChartChrome } from '@lunaterra/ui';
-import { DocPage } from '../../components/DocPage/DocPage';
-import { LiveCodeScene } from '../../components/LiveCodeScene';
+import { LunaTerraCanvas } from '@lunaterra/react';
+import { Color } from '@lunaterra/color';
 
 class GroupElement extends LTElement<object> {
   protected defaultOptions() { return {}; }
@@ -83,49 +83,6 @@ const EXTREMA_SMOOTH_MINUTES_MIN = 45;
 const EXTREMA_SMOOTH_MINUTES_MAX = 180;
 const EXTREMA_MIN_PROMINENCE_PX = 2;
 const EXTREMA_SAME_TYPE_MIN_DISTANCE_MINUTES = 10 * 60;
-
-const HOME_ASSISTANT_SOURCE = `const timelineChrome = new TimelineChartChrome({
-  chartFrame,
-  scaleTicks: [...SCALE_RULER_TICKS],
-  initialScaleValue: scaleValue,
-  initialVisibleCenter: visibleCenter,
-  initialCursorValue: cursorMinute,
-  domainMin: 0,
-  domainMax: TOTAL_MINUTES,
-  minWindowSize: MIN_WINDOW_MINUTES,
-  maxWindowSize: MAX_WINDOW_MINUTES,
-  scaleValueToWindowSize: scaleValueToWindowMinutes,
-  windowSizeToScaleValue: windowMinutesToScaleValue,
-  windowTickStepCandidates: WINDOW_TICK_STEP_CANDIDATES,
-  formatScaleValue: (value) => formatWindowLabel(scaleValueToWindowMinutes(value)),
-  formatWindowTick: (minute, step) => formatTickLabel(minute, step),
-  formatCursorValue: formatCursorLabel,
-  crosshair: {
-    yMin: FILL_BASELINE,
-    yMax: CHART_TOP,
-    showXLabel: false,
-    getSeries: () => [currentSeries.minLine, currentSeries.maxLine],
-  },
-  tooltip: {
-    widthPx: 148,
-    heightPx: 40,
-    anchorOffsetPx: 8,
-    paddingXPx: 6,
-    paddingTopPx: 10,
-    lineGapPx: 12,
-    getRows: (minute) => [
-      { text: "temp / humidity / heater", fontSize: 9 },
-      { text: "min and max temperature", fontSize: 8, opacity: 0.84 },
-      { text: "heater on/off state", fontSize: 8, opacity: 0.86 },
-    ],
-    getPanelY: (_state, panelHeightWorld) => clamp(DATA_CEILING - panelHeightWorld, DATA_FLOOR, DATA_CEILING - panelHeightWorld),
-  },
-  onStateChange: (state) => {
-    windowMinutes = state.windowSize;
-    visibleCenter = state.visibleCenter;
-    cursorMinute = state.cursorValue;
-  },
-});`;
 
 class RangeFill extends LTElement<RangeFillOptions> {
   protected defaultOptions(): RangeFillOptions {
@@ -529,7 +486,7 @@ function formatTickLabel(minute: number, tickStepMinutes: number): string {
   return `${hh}:${mm}`;
 }
 
-export default function HomeAssistantPage() {
+export default function HistoricTemperaturesExample() {
   const aggregatedByBucket = useMemo<Record<number, AggregatedSeries>>(() => {
     return AGGREGATE_BUCKETS.reduce<Record<number, AggregatedSeries>>((acc, bucketMinutes) => {
       const buckets = aggregateTemperatureBuckets(bucketMinutes);
@@ -544,7 +501,24 @@ export default function HomeAssistantPage() {
     }, {});
   }, []);
 
-  const buildScene = useCallback((engine: LunaTerraEngine): LTElement => {
+  const buildScene = useCallback((engine: LunaTerraEngine): void => {
+    // Explicit palette so this example has no dependency on the documentation app.
+    engine.theme = {
+      chart: {
+        series: { primary: Color.from('#7090b0'), secondary: Color.from('#c49a60') },
+        widget: { title: Color.from('#3c2a1a').withAlpha(0.82) },
+      },
+      ui: {
+        scaleRuler: {
+          tooth: Color.from('#3c2a1a').withAlpha(0.45),
+          label: Color.from('#3c2a1a').withAlpha(0.55),
+          tick: Color.from('#3c2a1a').withAlpha(0.38),
+          badgeBg: Color.from('#5a3512').withAlpha(0.88),
+          badgeText: Color.from('#ebe1d2'),
+        },
+        zoomControls: { panelBg: Color.from('#fffaf3').withAlpha(0.94) },
+      },
+    };
     const group = new GroupElement();
     let scaleValue = 2;
     let windowMinutes = scaleValueToWindowMinutes(scaleValue);
@@ -879,27 +853,13 @@ export default function HomeAssistantPage() {
     engine.interactive = false;
     engine.add(group);
     updateVisibleWindow(visibleCenter);
-    return group;
   }, [aggregatedByBucket]);
 
   return (
-    <DocPage title="Charts/Home Assistant" section="@lunaterra/charts">
-      <DocPage.Section id="home-assistant" title="Home Assistant Climate History">
-        <p>
-          The top ruler controls the visible time window, the bottom ruler scrubs the cursor, and the shared shell now
-          owns the crosshair plus cursor tooltip. The chart overlays temperature, humidity, and a heating on/off lane.
-        </p>
-        <div style={{ maxWidth: 560 }}>
-          <LiveCodeScene
-            buildScene={buildScene}
-            defaultConfig={{}}
-            source={HOME_ASSISTANT_SOURCE}
-            canvasHeight={252}
-            zoom={false}
-            scrollBounds={null}
-          />
-        </div>
-      </DocPage.Section>
-    </DocPage>
+    <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+      <LunaTerraCanvas onCreate={buildScene} background="#fcf9f2"
+        style={{ width: 560, height: 252 }}
+        aria-label="Historic temperature range, humidity, and heating state" />
+    </div>
   );
 }

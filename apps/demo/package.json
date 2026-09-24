@@ -1,0 +1,22 @@
+{
+  "name": "@lunaterra/demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "node --check src/app.mjs && node --check src/server.mjs",
+    "start": "node --env-file-if-exists=../../.env src/server.mjs",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@lunaterra/ground-crew": "workspace:*",
+    "express": "5",
+    "express-rate-limit": "8",
+    "rate-limit-redis": "4",
+    "redis": "5"
+  }
+}

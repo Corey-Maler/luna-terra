@@ -303,9 +303,15 @@ export const RouteDefinitions: SectionDefinition[] = [
         Element: lazy(() => import('./Charts/Axis')),
       },
       {
-        title: 'Home Assistant',
-        tag: 'home-assistant',
-        Element: lazy(() => import('./Charts/HomeAssistant')),
+        title: 'Historic temperatures',
+        tag: 'historic-temperatures',
+        Element: lazy(() => import('./Charts/HistoricTemperatures')),
+      },
+      {
+        title: 'Weather forecast',
+        tag: 'weather-forecast',
+        Element: lazy(() => import('./Charts/WeatherForecast')),
+        searchTerms: ['clouds', 'sunshine', 'forecast', 'temperature', 'declarative'],
       },
       {
         title: 'Signal Scope',
@@ -313,6 +319,16 @@ export const RouteDefinitions: SectionDefinition[] = [
         Element: lazy(() => import('./Charts/SignalScope')),
       },
     ],
+  },
+  {
+    'section-title': 'Declarative API (@lunaterra/declarative)',
+    tag: 'declarative',
+    pages: [{ title: 'Chart API', tag: 'overview', Element: lazy(() => import('./Declarative/Declarative')), searchTerms: ['controls', 'lanes', 'step-after', 'ChartSpec', 'compileChart', 'react'] }],
+  },
+  {
+    'section-title': 'Server rendering (@lunaterra/ground-crew)',
+    tag: 'ground-crew',
+    pages: [{ title: 'Node & Express', tag: 'overview', Element: lazy(() => import('./GroundCrew/GroundCrew')), searchTerms: ['node', 'express', 'png', 'renderChart', 'server', 'ground crew'] }],
   },
   {
     'section-title': 'Terra Map Engine (@lunaterra/terra)',
