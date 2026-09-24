@@ -1,4 +1,4 @@
-# @lunaterra/charts
+# @lunaterra/declarative
 
 ## 0.1.0
 
@@ -14,10 +14,12 @@
 - Updated dependencies [0a9ae9c]
 - Updated dependencies [efc3b0d]
 - Updated dependencies [244d578]
+- Updated dependencies [d3a221b]
+- Updated dependencies [d3a221b]
 - Updated dependencies [b6e52ea]
+  - @lunaterra/charts@0.1.0
   - @lunaterra/core@0.1.0
   - @lunaterra/elements@0.1.0
   - @lunaterra/color@0.0.5
+  - @lunaterra/ui@0.1.0
   - @lunaterra/math@0.0.5
-
-All notable changes to this package will be documented in this file.

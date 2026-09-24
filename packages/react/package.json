@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Thin React lifecycle bindings for the Luna-Terra canvas engine.",
   "repository": {
     "type": "git",
