@@ -1,6 +1,6 @@
 import { TracingInstance } from '@lunaterra/tracing';
 import type { Rect2D, V2 } from '@lunaterra/math';
-import { CanvasRenderer } from '../render/CanvasRenderer';
+import { CanvasRenderer, type StaticCanvasSurface } from '../render/CanvasRenderer';
 import type { EditModeOptions, ItemDragModeOptions } from '../render/MouseEventHandlers';
 import type { LTElement } from '../render/Elements/LTElement';
 import type { LTThemePalette } from '../render/theme';
@@ -24,13 +24,15 @@ export class LunaTerraEngine {
 
   /** Per-engine tracing store — isolated from other canvases on the page. */
   public readonly tracing = new TracingInstance();
+  private readonly staticSurface: boolean;
 
   /** Attach an FPS panel element — set by the panel itself during setup(). */
   public fpsPanel: FpsPanelHandle | undefined = undefined;
 
-  constructor() {
-    this.renderer = new CanvasRenderer(this);
-    LunaTerraEngine.instance = this;
+  constructor(surface?: StaticCanvasSurface) {
+    this.staticSurface = !!surface;
+    this.renderer = new CanvasRenderer(this, surface);
+    if (!surface) LunaTerraEngine.instance = this;
   }
 
   /**
@@ -74,6 +76,14 @@ export class LunaTerraEngine {
     return this.renderer.getHTML();
   }
 
+  /** Draw one frame without browser scheduling, for image export. */
+  public renderFrame(): void {
+    this.children.forEach((child) => child.doUpdate(0, this.renderer));
+    this.renderer.prepare();
+    this.children.forEach((child) => child.doRender(this.renderer));
+    this.renderer.postRender(0);
+  }
+
   private updateScheduled: false | 'quick' | 'full' = false;
 
   // ── Continuous animation loop ──────────────────────────────────────────────
@@ -87,6 +97,7 @@ export class LunaTerraEngine {
    * Call once per feature that needs animation; balance with `releaseContinuousLoop()`.
    */
   public requestContinuousLoop(): void {
+    if (this.staticSurface) throw new Error('Animation is unavailable on a static surface');
     this._continuousLoopCount++;
     if (this._continuousLoopCount === 1) {
       this._tickContinuous();
@@ -116,6 +127,7 @@ export class LunaTerraEngine {
   }
 
   public requestUpdate(type: 'quick' | 'full' = 'full') {
+    if (this.staticSurface) return;
     // Continuous loop already fires every frame — one-shot request is redundant.
     if (this._continuousLoopCount > 0) return;
 

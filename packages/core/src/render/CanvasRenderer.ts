@@ -11,8 +11,14 @@ import { WebGL3DBackend } from './WebGL3DBackend';
 import { Colors } from './colors';
 import type { LTThemePalette } from './theme';
 
+export interface StaticCanvasSurface {
+  canvas: HTMLCanvasElement;
+  pixelRatio: number;
+  fontFamily?: string;
+}
+
 export class CanvasRenderer {
-  protected rootDiv = document.createElement('div');
+  protected rootDiv!: HTMLDivElement;
   public readonly ll: DrawContext;
   // Without the world transform, so 10 units means 10 screen pixels.
   public readonly llScreenSpace: DrawContext;
@@ -21,8 +27,9 @@ export class CanvasRenderer {
   public readonly labelRegistry = new LabelRegistry();
 
   public canvas: HTMLCanvasElement;
-  private webglCanvas: HTMLCanvasElement;
+  private webglCanvas!: HTMLCanvasElement;
   public getHTML() {
+    if (!this.rootDiv) throw new Error('A static renderer has no HTML element');
     return this.rootDiv;
   }
 
@@ -42,10 +49,12 @@ export class CanvasRenderer {
 
   public ctx: CanvasRenderingContext2D;
   public get $mousePositionScreen() {
+    if (!this.mouseHandlers) throw new Error('Pointer input is unavailable on a static surface');
     return this.mouseHandlers.$mousePositionScreen;
   }
 
   public get $mousePosition() {
+    if (!this.mouseHandlers) throw new Error('Pointer input is unavailable on a static surface');
     return this.mouseHandlers.$mousePositionWorld;
   }
 
@@ -63,7 +72,7 @@ export class CanvasRenderer {
   // When non-null, replaces panningTracker.viewMatrix as the base for draw transforms.
   // Set by pushScreenTransform / cleared by popScreenTransform.
   private _screenBaseMatrix: M3 | null = null;
-  private _savedTransformStack: M3[] | null = null;
+  private _screenTransformStack: Array<{ local: M3[]; screen: M3 | null }> = [];
 
   /**
    * Build an affine matrix that maps `worldBounds` (a 2D rect in arbitrary world units)
@@ -107,7 +116,7 @@ export class CanvasRenderer {
    * `makeScreenMatrix()`. Nest as needed (saves/restores cleanly).
    */
   public pushScreenTransform(screenMatrix: M3): void {
-    this._savedTransformStack = this._transformStack.slice();
+    this._screenTransformStack.push({ local: this._transformStack, screen: this._screenBaseMatrix });
     this._transformStack = [];
     this._screenBaseMatrix = screenMatrix;
     this._syncBatchTransforms(M3.identity());
@@ -115,9 +124,9 @@ export class CanvasRenderer {
 
   /** Restore the world-space coordinate system saved by `pushScreenTransform()`. */
   public popScreenTransform(): void {
-    this._transformStack = this._savedTransformStack ?? [];
-    this._savedTransformStack = null;
-    this._screenBaseMatrix = null;
+    const previous = this._screenTransformStack.pop();
+    this._transformStack = previous?.local ?? [];
+    this._screenBaseMatrix = previous?.screen ?? null;
     const top = this._transformStack.at(-1) ?? M3.identity();
     this._syncBatchTransforms(top);
   }
@@ -205,7 +214,7 @@ export class CanvasRenderer {
 
   private panningTracker: PanningTracker;
   private viewPortTracker: ViewPort;
-  public mouseHandlers: MouseEventHandlers;
+  public mouseHandlers!: MouseEventHandlers;
 
   public worldToScreen(p: V2) {
     return this.viewMatrix.multiplyV2(p);
@@ -227,6 +236,7 @@ export class CanvasRenderer {
   }
 
   public get mousePosition() {
+    if (!this.mouseHandlers) throw new Error('Pointer input is unavailable on a static surface');
     return this.mouseHandlers.mousePosition;
   }
 
@@ -309,10 +319,11 @@ export class CanvasRenderer {
    * and the page scrolls normally. Defaults to true.
    */
   public set interactive(value: boolean) {
+    if (!this.mouseHandlers) throw new Error('Pointer input is unavailable on a static surface');
     this.mouseHandlers.interactive = value;
   }
   public get interactive(): boolean {
-    return this.mouseHandlers.interactive;
+    return this.mouseHandlers?.interactive ?? false;
   }
 
   /**
@@ -357,10 +368,20 @@ export class CanvasRenderer {
   public destroy(): void {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    this.mouseHandlers.destroy();
+    this.mouseHandlers?.destroy();
   }
 
-  constructor(private readonly simpleEngine: { requestUpdate: () => void }) {
+  constructor(private readonly simpleEngine: { requestUpdate: () => void }, surface?: StaticCanvasSurface) {
+    if (surface) {
+      this.canvas = surface.canvas;
+      this.ctx = this.canvas.getContext('2d')!;
+      this.viewPortTracker = new ViewPort(this.canvas.width, this.canvas.height, surface.pixelRatio);
+      this.panningTracker = new PanningTracker(this.viewPortTracker, () => this.simpleEngine.requestUpdate());
+      this.ll = new DrawContext(this.viewMatrix, this.ctx, surface.pixelRatio, surface.fontFamily);
+      this.llScreenSpace = new DrawContext(M3.identity(), this.ctx, surface.pixelRatio, surface.fontFamily);
+      return;
+    }
+    this.rootDiv = document.createElement('div');
     const canvas = document.createElement('canvas');
     const webglCanvas = document.createElement('canvas');
 
@@ -389,8 +410,8 @@ export class CanvasRenderer {
     const ctx = canvas.getContext('2d')!;
     this.ctx = ctx;
 
-    this.ll = new DrawContext(this.viewMatrix, ctx);
-    this.llScreenSpace = new DrawContext(M3.identity(), ctx);
+    this.ll = new DrawContext(this.viewMatrix, ctx, this.viewPortTracker.HDPI);
+    this.llScreenSpace = new DrawContext(M3.identity(), ctx, this.viewPortTracker.HDPI);
 
     this._webglBackend = new WebGLDrawBackend(webglCanvas);
     this._webgl3dBackend = new WebGL3DBackend(this._webglBackend.context);
@@ -402,6 +423,8 @@ export class CanvasRenderer {
   public onCanvasResize = (x: number, y: number) => {
     this.viewPortTracker.update(x, y);
     const ratio = this.viewPortTracker.HDPI;
+    this.ll.setPixelRatio(ratio);
+    this.llScreenSpace.setPixelRatio(ratio);
     this.canvas.width = x * ratio;
     this.canvas.height = y * ratio;
 
@@ -443,7 +466,7 @@ export class CanvasRenderer {
     this.clearBackground();
 
     this._transformStack = [];
-    this._savedTransformStack = null;
+    this._screenTransformStack = [];
     this._screenBaseMatrix = null;
     this._styleStack = [];
     this.ll.updateViewMatrix(this.panningTracker.viewMatrix);

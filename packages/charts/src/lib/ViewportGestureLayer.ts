@@ -6,6 +6,8 @@ import {
 
 export interface ViewportGestureLayerOptions {
   chartFrame: ScreenContainer;
+  enablePan?: boolean;
+  enableZoom?: boolean;
   getWindowSize: () => number;
   getVisibleCenter: () => number;
   panBy: (delta: number) => void;
@@ -48,6 +50,8 @@ export class ViewportGestureLayer extends LTElement<ViewportGestureLayerOptions>
     const onWheel = (event: WheelEvent) => {
       if (!this.hitClientPoint(event.clientX, event.clientY)) return;
 
+      const zooming = !this.options.wheelZoomRequiresCtrl || event.ctrlKey;
+      if (zooming ? this.options.enableZoom === false : this.options.enablePan === false) return;
       event.preventDefault();
       const ratio = this.focusRatioFromClientX(event.clientX);
       const windowSize = this.options.getWindowSize();
@@ -66,7 +70,7 @@ export class ViewportGestureLayer extends LTElement<ViewportGestureLayerOptions>
     };
 
     const onMouseDown = (event: MouseEvent) => {
-      if (!this.hitClientPoint(event.clientX, event.clientY)) return;
+      if (this.options.enablePan === false || !this.hitClientPoint(event.clientX, event.clientY)) return;
       this.isMouseDragging = true;
       this.lastMouseX = event.clientX;
       event.preventDefault();
@@ -87,7 +91,7 @@ export class ViewportGestureLayer extends LTElement<ViewportGestureLayerOptions>
     };
 
     const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 1) {
+      if (event.touches.length === 1 && this.options.enablePan !== false) {
         const touch = event.touches[0];
         if (!this.hitClientPoint(touch.clientX, touch.clientY)) return;
         this.touchMode = 'pan';
@@ -96,7 +100,7 @@ export class ViewportGestureLayer extends LTElement<ViewportGestureLayerOptions>
         return;
       }
 
-      if (event.touches.length === 2) {
+      if (event.touches.length === 2 && this.options.enableZoom !== false) {
         const midpoint = this.touchMidpoint(event.touches);
         if (!this.hitClientPoint(midpoint.x, midpoint.y)) return;
         this.touchMode = 'pinch';

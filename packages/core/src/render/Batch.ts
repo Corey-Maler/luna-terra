@@ -29,10 +29,12 @@ export class LLSoftware {
   protected readonly ctx: CanvasRenderingContext2D;
   protected currentPoint: V2 | null = null;
 
-  constructor(viewMatrix: M3, ctx: CanvasRenderingContext2D) {
+  constructor(viewMatrix: M3, ctx: CanvasRenderingContext2D, protected pixelRatio = 1, protected readonly fontFamily = 'Arial') {
     this.viewMatrix = viewMatrix;
     this.ctx = ctx;
   }
+
+  setPixelRatio(ratio: number): void { this.pixelRatio = ratio; }
 
   public p() {
     throw new Error('not implemented');
@@ -98,8 +100,7 @@ export class LLSoftware {
     const prevAlign = this.ctx.textAlign;
     const prevBaseline = this.ctx.textBaseline;
     this.ctx.fillStyle = color;
-    const hdpi = window.devicePixelRatio || 1;
-    this.ctx.font = `${fontSize * hdpi}px Arial`;
+    this.ctx.font = `${fontSize * this.pixelRatio}px ${this.fontFamily}`;
     this.ctx.textAlign = align;
     this.ctx.textBaseline = baseline;
     this.ctx.fillText(text, pp.x, pp.y);
@@ -257,9 +258,9 @@ export class DrawContext extends LLSoftware {
       this.color = newColor;
     }
     //this.ctx.beginPath();
-    this.ctx.lineWidth = width ?? 1;
+    this.ctx.lineWidth = (width ?? 1) * this.pixelRatio;
     if (opts.dashPattern) {
-      this.ctx.setLineDash(opts.dashPattern);
+      this.ctx.setLineDash(opts.dashPattern.map((length) => length * this.pixelRatio));
     } else {
       this.ctx.setLineDash([]);
     }
@@ -350,7 +351,7 @@ export class DrawContext extends LLSoftware {
     }
     const screenTop = this.toPixels(new V2(0, maxY)).y;
     const screenBottom = this.toPixels(new V2(0, yFillTo)).y;
-    const edgeBleedPx = (window.devicePixelRatio || 1) * 2;
+    const edgeBleedPx = this.pixelRatio * 2;
     const screenBottomBleed = screenBottom + (screenBottom >= screenTop ? edgeBleedPx : -edgeBleedPx);
     const fillTop = Math.min(screenTop, screenBottomBleed);
     const fillHeight = Math.abs(screenBottomBleed - screenTop);

@@ -41,6 +41,7 @@ export const RouterPage = () => {
           </Suspense>
         }
       />
+      <Route path="/charts/home-assistant" element={<Navigate to="/charts/historic-temperatures" replace />} />
       <Route path="*" element={<Page />} />
     </Routes>
   );

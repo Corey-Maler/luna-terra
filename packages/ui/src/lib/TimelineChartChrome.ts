@@ -25,6 +25,9 @@ export interface TimelineChartState {
 
 export interface TimelineChartChromeOptions {
   chartFrame: ScreenContainer;
+  showZoom?: boolean;
+  showCursor?: boolean;
+  enablePan?: boolean;
   scaleTicks: ScaleRulerTick[];
   initialScaleValue: number;
   initialVisibleCenter?: number;
@@ -36,6 +39,8 @@ export interface TimelineChartChromeOptions {
   scaleValueToWindowSize: (scaleValue: number) => number;
   windowSizeToScaleValue: (windowSize: number) => number;
   windowTickStepCandidates: readonly number[];
+  /** Limit labels to the available chart width. Defaults to seven. */
+  maxWindowTickCount?: number;
   formatScaleValue: (scaleValue: number, windowSize: number) => string;
   formatWindowTick: (value: number, step: number) => string;
   formatCursorValue: (value: number) => string;
@@ -139,6 +144,8 @@ export class TimelineChartChrome extends LTElement<TimelineChartChromeOptions> {
 
     this.gestureLayer = new ViewportGestureLayer({
       chartFrame: this.options.chartFrame,
+      enablePan: this.options.enablePan,
+      enableZoom: this.options.showZoom,
       getWindowSize: () => this.windowSize,
       getVisibleCenter: () => this.visibleCenter,
       panBy: (delta) => {
@@ -158,9 +165,9 @@ export class TimelineChartChrome extends LTElement<TimelineChartChromeOptions> {
       wheelZoomSensitivity: this.options.wheelZoomSensitivity,
     });
 
-    this.appendChild(this.topRuler);
-    this.appendChild(this.bottomRuler);
-    this.appendChild(this.gestureLayer);
+    if (this.options.showZoom !== false) this.appendChild(this.topRuler);
+    if (this.options.showCursor !== false) this.appendChild(this.bottomRuler);
+    if (this.options.enablePan !== false || this.options.showZoom !== false) this.appendChild(this.gestureLayer);
 
     if (this.options.crosshair) {
       this.crosshair = new Crosshair({
@@ -298,6 +305,7 @@ export class TimelineChartChrome extends LTElement<TimelineChartChromeOptions> {
       center: this.visibleCenter,
       windowSize: this.windowSize,
       stepCandidates: this.options.windowTickStepCandidates,
+      maxTickCount: this.options.maxWindowTickCount,
       formatLabel: (value, step) => this.options.formatWindowTick(value, step),
     });
 
@@ -327,7 +335,7 @@ export class TimelineChartChrome extends LTElement<TimelineChartChromeOptions> {
     if (!chartBounds) return;
 
     const worldPerPxX = (chartBounds.xMax - chartBounds.xMin) / Math.max(1, this.options.chartFrame.options.width);
-    const worldPerPxY = (chartBounds.yMax - chartBounds.yMin) / Math.max(1, this.options.chartFrame.options.height);
+    const worldPerPxY = Math.abs(chartBounds.yMax - chartBounds.yMin) / Math.max(1, this.options.chartFrame.options.height);
     const rows = this.options.tooltip.getRows(state.cursorValue, state);
     const titleLineCount = this.tooltipTitle ? 1 : 0;
     const width = this.options.tooltip.widthPx * worldPerPxX;

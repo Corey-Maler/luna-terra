@@ -3,11 +3,12 @@ import { V2 } from '@lunaterra/math';
 export class ViewPort {
   public width: number;
   public height: number;
-  public HDPI: number = window.devicePixelRatio || 1;
+  public HDPI: number;
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, pixelRatio = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1) {
     this.width = width;
     this.height = height;
+    this.HDPI = pixelRatio;
   }
 
   public get virtualWidth(): number {
@@ -27,7 +28,7 @@ export class ViewPort {
   }
 
   public update(width: number, height: number): void {
-    this.HDPI = window.devicePixelRatio || 1;
+    this.HDPI = typeof window === 'undefined' ? this.HDPI : window.devicePixelRatio || 1;
     this.width = width * this.HDPI;
     this.height = height * this.HDPI;
   }

@@ -1,0 +1,37 @@
+{
+  "name": "@lunaterra/declarative",
+  "version": "0.0.0",
+  "description": "Declarative Cartesian charts for Luna-Terra.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Corey-Maler/luna-terra.git",
+    "directory": "packages/declarative"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:compile": "tsc -p tsconfig.lib.json",
+    "build": "pnpm run clean && pnpm run build:compile",
+    "prepack": "pnpm run build:compile",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lunaterra/core": "workspace:*",
+    "@lunaterra/charts": "workspace:*",
+    "@lunaterra/elements": "workspace:*",
+    "@lunaterra/math": "workspace:*",
+    "@lunaterra/color": "workspace:*",
+    "tslib": "^2.3.0",
+    "@lunaterra/ui": "workspace:*"
+  }
+}
