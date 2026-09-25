@@ -53,7 +53,7 @@ it('configures controls independently and lets static rendering override the vie
   expect(compileChart({ ...spec, controls: { zoom: false, pan: false, cursor: false } }, layout).timeline).toBeUndefined();
 });
 
-it('survives the small initial canvas size before a responsive host is measured', () => {
+  it('survives the small initial canvas size before a responsive host is measured', () => {
   const spec = emptyChart();
   spec.series = [0, 1, 2].map(i => ({ id: String(i), label: String(i), color: '#8295ad', data: [] }));
   const view = compileChart(spec, { width: 800, height: 440, pixelRatio: 1 }, { responsive: true });
@@ -61,5 +61,12 @@ it('survives the small initial canvas size before a responsive host is measured'
   view.compute({ width: 747, height: 440, hdpi: 1 } as CanvasRenderer);
   expect(view.options.width).toBe(747);
   expect(view.options.height).toBe(440);
+  view.destroy();
+});
+
+it('compiles a compact static chart layout', () => {
+  const view = compileChart(emptyChart(), { width: 445, height: 95, pixelRatio: 1 }, { interactive: false });
+  expect(view.options.width).toBe(445);
+  expect(view.options.height).toBe(95);
   view.destroy();
 });

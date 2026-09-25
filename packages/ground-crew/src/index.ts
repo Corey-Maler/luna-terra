@@ -14,8 +14,8 @@ export function validateRenderOptions(options: RenderOptions = {}): Required<Ren
   if (!Number.isInteger(width) || !Number.isInteger(height) || typeof pixelRatio !== 'number' || !Number.isFinite(pixelRatio)) {
     throw new TypeError('Width and height must be integers; pixel ratio must be a finite number');
   }
-  if (width < 320 || height < 240 || pixelRatio < 0.5 || pixelRatio > 4) {
-    throw new TypeError('Expected at least 320×240 logical pixels and pixel ratio 0.5–4');
+  if (width < 1 || height < 1 || pixelRatio < 0.5 || pixelRatio > 4) {
+    throw new TypeError('Expected positive logical dimensions and pixel ratio 0.5–4');
   }
   const physicalWidth = width * pixelRatio;
   const physicalHeight = height * pixelRatio;
