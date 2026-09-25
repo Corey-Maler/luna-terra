@@ -1,5 +1,11 @@
 # @lunaterra/declarative
 
+## 0.3.0
+
+### Minor Changes
+
+- 48d196e: Keep compact static charts readable with min/max values and eight-pixel time labels.
+
 ## 0.2.0
 
 ### Minor Changes
