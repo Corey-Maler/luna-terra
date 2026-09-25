@@ -1,5 +1,16 @@
 # @lunaterra/ground-crew
 
+## 0.3.0
+
+### Minor Changes
+
+- 48d196e: Keep compact static charts readable with min/max values and eight-pixel time labels.
+
+### Patch Changes
+
+- Updated dependencies [48d196e]
+  - @lunaterra/declarative@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

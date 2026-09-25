@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/declarative",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Declarative Cartesian charts for Luna-Terra.",
   "repository": {
     "type": "git",
