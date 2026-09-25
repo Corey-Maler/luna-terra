@@ -1,6 +1,6 @@
 {
   "name": "@lunaterra/ground-crew",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Node.js Canvas2D rendering for Luna-Terra, with Express integration and an optional CLI.",
   "repository": {
     "type": "git",

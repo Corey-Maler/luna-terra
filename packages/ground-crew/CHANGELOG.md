@@ -1,5 +1,16 @@
 # @lunaterra/ground-crew
 
+## 0.2.0
+
+### Minor Changes
+
+- ddddee0: Allow compact static chart rendering at positive dimensions.
+
+### Patch Changes
+
+- Updated dependencies [ddddee0]
+  - @lunaterra/declarative@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
