@@ -42,6 +42,26 @@ function label(parent: LTElement, text: string, x: number, y: number, color?: st
   return element;
 }
 
+/** Tiny dependency-free status icon used in static forecast banners. */
+function sunMarker(parent: LTElement, x: number, y: number, color: string | undefined, kind: 'sunrise' | 'sunset'): void {
+  const horizon = y + 6;
+  line(parent, new V2(x - 6, horizon), new V2(x + 6, horizon), color, 1);
+  // A compact diamond sun stays crisp at 1× RGB565, unlike a font glyph.
+  line(parent, new V2(x, y), new V2(x + 3, y + 3), color, 1);
+  line(parent, new V2(x + 3, y + 3), new V2(x, horizon), color, 1);
+  line(parent, new V2(x, horizon), new V2(x - 3, y + 3), color, 1);
+  line(parent, new V2(x - 3, y + 3), new V2(x, y), color, 1);
+  if (kind === 'sunrise') {
+    line(parent, new V2(x + 7, horizon - 1), new V2(x + 7, y + 1), color, 1);
+    line(parent, new V2(x + 5, y + 3), new V2(x + 7, y + 1), color, 1);
+    line(parent, new V2(x + 9, y + 3), new V2(x + 7, y + 1), color, 1);
+  } else {
+    line(parent, new V2(x + 7, y + 1), new V2(x + 7, horizon - 1), color, 1);
+    line(parent, new V2(x + 5, horizon - 3), new V2(x + 7, horizon - 1), color, 1);
+    line(parent, new V2(x + 9, horizon - 3), new V2(x + 7, horizon - 1), color, 1);
+  }
+}
+
 function niceStep(span: number, target = 5): number {
   const rough = span / target;
   const power = 10 ** Math.floor(Math.log10(rough));
@@ -125,11 +145,21 @@ export class ChartView extends ScreenContainer {
     // Reserve every pixel for the plot and omit chrome that would not be legible.
     const compact = !interactive && (width < 320 || height < 240);
     const onlyLanes = spec.series.length > 0 && spec.series.every(series => series.lane);
+    const values = spec.series.filter(s => !s.lane).flatMap((s) => s.data.filter((p) => p.x >= spec.x.min && p.x <= spec.x.max && p.y !== null).map((p) => p.y as number));
+    const dataMin = values.length ? Math.min(...values) : 0;
+    const dataMax = values.length ? Math.max(...values) : 1;
+    const compactRuleLabels = compact ? (spec.rules ?? []).filter((rule, index, all) => {
+      if (!rule.label || rule.marker) return false;
+      const previous = all.slice(0, index).reverse().find(candidate => candidate.label);
+      return !previous || (rule.x - previous.x) / (spec.x.max - spec.x.min) * width >= 30;
+    }) : [];
+    const compactValues = compact && values.length > 0 && !onlyLanes;
+    const compactBottom = compactRuleLabels.length ? 12 : 6;
     const columns = Math.max(1, Math.floor((width - 64) / 180));
     const rows = Math.max(1, Math.ceil(spec.series.length / columns));
-    const sidePadding = compact ? Math.min(6, Math.floor(width / 4)) : onlyLanes ? 76 : 54;
+    const sidePadding = compact ? compactValues ? 28 : Math.min(6, Math.floor(width / 4)) : onlyLanes ? 76 : 54;
     const plot = compact
-      ? { x: sidePadding, y: Math.min(6, Math.floor(height / 4)), w: Math.max(1, width - sidePadding * 2), h: Math.max(1, height - Math.min(12, Math.floor(height / 2))) }
+      ? { x: sidePadding, y: Math.min(6, Math.floor(height / 4)), w: Math.max(1, width - sidePadding - 6), h: Math.max(1, height - Math.min(6, Math.floor(height / 4)) - compactBottom) }
       : { x: sidePadding, y: showZoom ? 120 : 66, w: width - sidePadding * 2,
         h: height - 132 - (showZoom ? 54 : 0) - (showCursor ? 20 : 0) - (rows - 1) * 22 };
     if (!compact && plot.h < 40) throw new ChartValidationError('output', 'image is too short for the chart legend');
@@ -140,13 +170,12 @@ export class ChartView extends ScreenContainer {
       label(this, spec.y.label, plot.x, plot.y - 16, spec.theme?.foreground, 11);
     }
 
-    const values = spec.series.filter(s => !s.lane).flatMap((s) => s.data.filter((p) => p.x >= spec.x.min && p.x <= spec.x.max && p.y !== null).map((p) => p.y as number));
-    const min = values.length ? Math.min(...values) : 0;
-    const max = values.length ? Math.max(...values) : 1;
-    const padding = Math.max((max - min) * 0.15, 1);
-    const yMin = spec.y.min ?? min - padding, yMax = spec.y.max ?? max + padding;
+    const padding = Math.max((dataMax - dataMin) * 0.15, 1);
+    const yMin = spec.y.min ?? dataMin - padding, yMax = spec.y.max ?? dataMax + padding;
     if (yMin >= yMax) throw new ChartValidationError('chart.y', 'resolved min must be below max');
     const y = (value: number) => (yMax - value) / (yMax - yMin);
+    const compactUnit = spec.series.find(series => !series.lane)?.unit ?? '';
+    const formatCompactValue = (value: number) => `${Number(value.toFixed(1))}${compactUnit}`;
     const frame = new ClippedFrame({ offsetX: plot.x, offsetY: plot.y, width: plot.w, height: plot.h, worldBounds: { xMin: spec.x.min, xMax: spec.x.max, yMin: 1, yMax: 0 } });
     this.appendChild(frame);
     for (const region of spec.regions ?? []) {
@@ -172,6 +201,23 @@ export class ChartView extends ScreenContainer {
     }
     for (const rule of spec.rules ?? []) {
       line(frame, new V2(rule.x, 0), new V2(rule.x, 1), rule.color, 1, [3, 5], 0.7);
+    }
+    if (compact) {
+      for (const rule of spec.rules ?? []) {
+        if (!rule.marker) continue;
+        const x = plot.x + (rule.x - spec.x.min) / (spec.x.max - spec.x.min) * plot.w;
+        sunMarker(this, x, plot.y + 1, rule.color ?? spec.theme?.foreground, rule.marker);
+      }
+    }
+    if (compactValues) {
+      label(this, formatCompactValue(dataMax), plot.x - 4, plot.y + y(dataMax) * plot.h, spec.theme?.foreground, 10, 'right');
+      label(this, formatCompactValue(dataMin), plot.x - 4, plot.y + y(dataMin) * plot.h, spec.theme?.foreground, 10, 'right');
+    }
+    if (compactRuleLabels.length) {
+      for (const rule of compactRuleLabels) {
+        const x = plot.x + (rule.x - spec.x.min) / (spec.x.max - spec.x.min) * plot.w;
+        label(this, rule.label, x, height - 4, rule.color ?? spec.theme?.foreground, 8, 'center');
+      }
     }
     const ruleLabels = compact ? [] : (spec.rules ?? []).map((rule) => label(this, rule.label, 0, plot.y + 10, rule.color, 10));
     const formatter = spec.x.type === 'time' ? new Intl.DateTimeFormat(spec.x.locale ?? 'en-GB', { timeZone: spec.x.timeZone ?? 'UTC', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : null;

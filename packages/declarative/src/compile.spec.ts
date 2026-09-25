@@ -70,3 +70,14 @@ it('compiles a compact static chart layout', () => {
   expect(view.options.height).toBe(95);
   view.destroy();
 });
+
+it('keeps compact charts legible with range and time labels', () => {
+  const spec = emptyChart();
+  spec.y = { label: 'Temperature' };
+  spec.series = [{ id: 'temperature', label: 'Temperature', color: '#2563EB', unit: '°C', data: [{ x: 0, y: 8 }, { x: 36 * 3_600_000, y: 16 }] }];
+  spec.rules = [{ x: 0, label: '12:00' }, { x: 24 * 3_600_000, label: '12:00' }, { x: 12 * 3_600_000, label: 'Sunrise', marker: 'sunrise' }];
+  const view = compileChart(spec, { width: 445, height: 95, pixelRatio: 1 }, { interactive: false });
+  const texts = view.children?.filter((child) => child.constructor.name === 'TextElement').map((child) => (child as { options: { text: string } }).options.text);
+  expect(texts).toEqual(expect.arrayContaining(['8°C', '16°C', '12:00']));
+  view.destroy();
+});

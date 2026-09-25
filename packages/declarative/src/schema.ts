@@ -30,7 +30,7 @@ export interface ChartSpec {
   y: { min?: number; max?: number; label: string };
   series: ChartSeries[];
   controls?: false | ChartControls;
-  rules?: Array<{ x: number; label: string; color?: string }>;
+  rules?: Array<{ x: number; label: string; color?: string; marker?: 'sunrise' | 'sunset' }>;
   regions?: Array<{ from: number; to: number; color: string; opacity?: number }>;
   theme?: { background?: string; foreground?: string; grid?: string };
 }
