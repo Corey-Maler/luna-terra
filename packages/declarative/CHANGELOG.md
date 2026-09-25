@@ -1,5 +1,11 @@
 # @lunaterra/declarative
 
+## 0.2.0
+
+### Minor Changes
+
+- ddddee0: Allow compact static chart rendering at positive dimensions.
+
 ## 0.1.0
 
 ### Minor Changes
