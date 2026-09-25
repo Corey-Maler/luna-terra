@@ -108,8 +108,11 @@ export function validateChartSpec(input: unknown): ChartSpec {
     entries.forEach((item: unknown, i: number) => {
       const p = `chart.${key}[${i}]`;
       const e = record(item, p);
-      allowed(e, key === 'rules' ? ['x', 'label', 'color'] : ['from', 'to', 'color', 'opacity'], p);
-      if (key === 'rules') { finite(e['x'], `${p}.x`); string(e['label'], `${p}.label`); }
+      allowed(e, key === 'rules' ? ['x', 'label', 'color', 'marker'] : ['from', 'to', 'color', 'opacity'], p);
+      if (key === 'rules') {
+        finite(e['x'], `${p}.x`); string(e['label'], `${p}.label`);
+        if (e['marker'] !== undefined && e['marker'] !== 'sunrise' && e['marker'] !== 'sunset') fail(`${p}.marker`, 'expected sunrise or sunset');
+      }
       else if (finite(e['from'], `${p}.from`) >= finite(e['to'], `${p}.to`)) fail(p, 'from must be below to');
       if (key === 'regions' && e['opacity'] !== undefined && (finite(e['opacity'], `${p}.opacity`) < 0 || (e['opacity'] as number) > 1)) fail(`${p}.opacity`, 'expected 0–1');
       if (e['color'] !== undefined) color(e['color'], `${p}.color`);
