@@ -66,12 +66,12 @@ The static surface supports Canvas2D elements. Animation and interactive UI requ
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `width` | 1200 | Logical width, integer, at least 320 |
-| `height` | 480 | Logical height, integer, at least 240 |
+| `width` | 1200 | Logical width, positive integer |
+| `height` | 480 | Logical height, positive integer |
 | `pixelRatio` | 1 | 0.5–4; physical dimensions must be integers |
 | `format` | `png` | PNG output |
 
-Physical images are limited to 4096 pixels per side and 8 million pixels total. Charts with many legend rows may require more height. The default image background is `#fcf9f2`; set `spec.theme` for explicit image colors.
+Physical images are limited to 4096 pixels per side and 8 million pixels total. Compact dimensions such as a 445×95 status-panel chart are supported; chart content is still responsible for fitting the available space. The default image background is `#fcf9f2`; set `spec.theme` for explicit image colors.
 
 ## Optional standalone command
 

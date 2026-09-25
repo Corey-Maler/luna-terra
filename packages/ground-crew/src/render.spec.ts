@@ -18,6 +18,12 @@ describe('Ground Crew render', () => {
     expect(() => validateRenderOptions({ width: 4096, height: 4096 })).toThrow(RangeError);
   });
 
+  it('renders a compact banner chart', async () => {
+    const image = await renderChart(spec, { width: 445, height: 95 });
+    expect([image.width, image.height]).toEqual([445, 95]);
+    expect(image.bytes.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  });
+
   it('renders a nonweather numeric chart from the same specification', async () => {
     const image = await renderChart({
       schemaVersion: 1,

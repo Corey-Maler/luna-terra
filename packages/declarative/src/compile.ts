@@ -108,8 +108,8 @@ export class ChartView extends ScreenContainer {
 
   private rebuild(): void {
     const { width, height, pixelRatio } = this.layout;
-    if (![width, height, pixelRatio].every(Number.isFinite) || width < 320 || height < 240 || pixelRatio < 0.5 || pixelRatio > 4) {
-      throw new ChartValidationError('output', 'expected at least 320×240 logical pixels and pixel ratio 0.5–4');
+    if (![width, height, pixelRatio].every(Number.isFinite) || width <= 0 || height <= 0 || pixelRatio < 0.5 || pixelRatio > 4) {
+      throw new ChartValidationError('output', 'expected positive logical dimensions and pixel ratio 0.5–4');
     }
     this.destroy();
     this.children = [];
@@ -121,17 +121,24 @@ export class ChartView extends ScreenContainer {
     const showCursor = interactive && controls.cursor !== false;
     const enablePan = interactive && controls.pan !== false;
     const hasTimeline = showZoom || showCursor || enablePan;
+    // Static status-panel images can be much smaller than an interactive chart.
+    // Reserve every pixel for the plot and omit chrome that would not be legible.
+    const compact = !interactive && (width < 320 || height < 240);
     const onlyLanes = spec.series.length > 0 && spec.series.every(series => series.lane);
     const columns = Math.max(1, Math.floor((width - 64) / 180));
     const rows = Math.max(1, Math.ceil(spec.series.length / columns));
-    const sidePadding = onlyLanes ? 76 : 54;
-    const plot = { x: sidePadding, y: showZoom ? 120 : 66, w: width - sidePadding * 2,
-      h: height - 132 - (showZoom ? 54 : 0) - (showCursor ? 20 : 0) - (rows - 1) * 22 };
-    if (plot.h < 40) throw new ChartValidationError('output', 'image is too short for the chart legend');
+    const sidePadding = compact ? Math.min(6, Math.floor(width / 4)) : onlyLanes ? 76 : 54;
+    const plot = compact
+      ? { x: sidePadding, y: Math.min(6, Math.floor(height / 4)), w: Math.max(1, width - sidePadding * 2), h: Math.max(1, height - Math.min(12, Math.floor(height / 2))) }
+      : { x: sidePadding, y: showZoom ? 120 : 66, w: width - sidePadding * 2,
+        h: height - 132 - (showZoom ? 54 : 0) - (showCursor ? 20 : 0) - (rows - 1) * 22 };
+    if (!compact && plot.h < 40) throw new ChartValidationError('output', 'image is too short for the chart legend');
     if (spec.theme?.background) this.appendChild(new RectElement({ width, height, fillColor: spec.theme.background, stroke: false }));
-    const titleLimit = Math.floor((width - 48) / 10);
-    label(this, spec.title.length > titleLimit ? `${spec.title.slice(0, titleLimit - 1)}…` : spec.title, 24, 24, spec.theme?.foreground, 17);
-    label(this, spec.y.label, plot.x, plot.y - 16, spec.theme?.foreground, 11);
+    if (!compact) {
+      const titleLimit = Math.floor((width - 48) / 10);
+      label(this, spec.title.length > titleLimit ? `${spec.title.slice(0, titleLimit - 1)}…` : spec.title, 24, 24, spec.theme?.foreground, 17);
+      label(this, spec.y.label, plot.x, plot.y - 16, spec.theme?.foreground, 11);
+    }
 
     const values = spec.series.filter(s => !s.lane).flatMap((s) => s.data.filter((p) => p.x >= spec.x.min && p.x <= spec.x.max && p.y !== null).map((p) => p.y as number));
     const min = values.length ? Math.min(...values) : 0;
@@ -150,12 +157,12 @@ export class ChartView extends ScreenContainer {
     const step = niceStep(yMax - yMin, Math.max(2, Math.floor(plot.h / 48)));
     for (let tick = Math.ceil(yMin / step) * step; !onlyLanes && tick <= yMax; tick += step) {
       line(frame, new V2(spec.x.min, y(tick)), new V2(spec.x.max, y(tick)), spec.theme?.grid, 1, [], 0.16);
-      label(this, Number(tick.toFixed(5)).toString(), plot.x - 10, plot.y + y(tick) * plot.h, spec.theme?.foreground, 11, 'right');
+      if (!compact) label(this, Number(tick.toFixed(5)).toString(), plot.x - 10, plot.y + y(tick) * plot.h, spec.theme?.foreground, 11, 'right');
     }
     for (const series of spec.series) {
       const lane = series.lane;
       const mapY = lane ? (value: number) => lane.bottom - (Math.max(lane.min, Math.min(lane.max, value)) - lane.min) / (lane.max - lane.min) * (lane.bottom - lane.top) : y;
-      if (lane && onlyLanes) {
+      if (lane && onlyLanes && !compact) {
         label(this, series.label, plot.x - 10, plot.y + (lane.top + lane.bottom) / 2 * plot.h, series.color, 11, 'right');
         line(frame, new V2(spec.x.min, lane.bottom), new V2(spec.x.max, lane.bottom), spec.theme?.grid, 1, [], 0.16);
       }
@@ -166,7 +173,7 @@ export class ChartView extends ScreenContainer {
     for (const rule of spec.rules ?? []) {
       line(frame, new V2(rule.x, 0), new V2(rule.x, 1), rule.color, 1, [3, 5], 0.7);
     }
-    const ruleLabels = (spec.rules ?? []).map((rule) => label(this, rule.label, 0, plot.y + 10, rule.color, 10));
+    const ruleLabels = compact ? [] : (spec.rules ?? []).map((rule) => label(this, rule.label, 0, plot.y + 10, rule.color, 10));
     const formatter = spec.x.type === 'time' ? new Intl.DateTimeFormat(spec.x.locale ?? 'en-GB', { timeZone: spec.x.timeZone ?? 'UTC', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : null;
     const formatX = (x: number) => formatter ? formatter.format(new Date(x)) : `${Number(x.toPrecision(5))}${spec.x.label ? ` ${spec.x.label}` : ''}`;
     const formatTick = (x: number) => spec.x.type === 'time' ? new Intl.DateTimeFormat(spec.x.locale ?? 'en-GB', { timeZone: spec.x.timeZone ?? 'UTC', day: 'numeric', month: 'short', hour: '2-digit', hourCycle: 'h23' }).format(new Date(x)) : formatX(x);
@@ -176,19 +183,21 @@ export class ChartView extends ScreenContainer {
       element.position.x = Math.max(plot.x + 4, Math.min(plot.x + plot.w - 105, plot.x + (x - windowMin) / (windowMax - windowMin) * plot.w + 8));
     });
     syncRules(spec.x.min, spec.x.max);
-    spec.series.forEach((series, i) => {
-      const xx = 24 + (i % columns) * ((width - 48) / columns);
-      const yy = height - (showCursor ? 76 : 26) - (rows - 1 - Math.floor(i / columns)) * 22;
-      line(this, new V2(xx, yy), new V2(xx + 24, yy), series.color, 2, series.stroke?.dash);
-      label(this, series.label.length > 20 ? `${series.label.slice(0, 19)}…` : series.label, xx + 32, yy, spec.theme?.foreground, 11);
-    });
-    if (!spec.series.some(s => s.data.some(p => p.y !== null && p.x >= spec.x.min && p.x <= spec.x.max))) label(this, 'No readings available', plot.x + plot.w / 2, plot.y + plot.h / 2, spec.theme?.foreground, 14, 'center');
+    if (!compact) {
+      spec.series.forEach((series, i) => {
+        const xx = 24 + (i % columns) * ((width - 48) / columns);
+        const yy = height - (showCursor ? 76 : 26) - (rows - 1 - Math.floor(i / columns)) * 22;
+        line(this, new V2(xx, yy), new V2(xx + 24, yy), series.color, 2, series.stroke?.dash);
+        label(this, series.label.length > 20 ? `${series.label.slice(0, 19)}…` : series.label, xx + 32, yy, spec.theme?.foreground, 11);
+      });
+      if (!spec.series.some(s => s.data.some(p => p.y !== null && p.x >= spec.x.min && p.x <= spec.x.max))) label(this, 'No readings available', plot.x + plot.w / 2, plot.y + plot.h / 2, spec.theme?.foreground, 14, 'center');
+    }
     const span = spec.x.max - spec.x.min;
     const axisLabels: TextElement[] = [];
     const syncAxis = (min: number, max: number) => axisLabels.forEach((element, i) => {
       element.options.text = formatTick(min + (max - min) * i / (axisLabels.length - 1));
     });
-    if (!showCursor) {
+    if (!showCursor && !compact) {
       const count = Math.max(2, Math.floor(plot.w / 140));
       for (let i = 0; i <= count; i++) axisLabels.push(label(this, formatTick(spec.x.min + span * i / count), plot.x + plot.w * i / count, plot.y + plot.h + 22, spec.theme?.foreground, 10, i === 0 ? 'left' : i === count ? 'right' : 'center'));
     }
